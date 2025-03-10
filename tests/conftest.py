@@ -4,7 +4,7 @@ import pytest_asyncio
 from asyncpg.exceptions import InvalidCatalogNameError
 from faker import Faker
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.util import concurrency
 from sqlalchemy_utils import create_database, database_exists
@@ -23,7 +23,7 @@ def app() -> FastAPI:
 
 @pytest_asyncio.fixture
 async def client(app: FastAPI) -> AsyncGenerator:
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app),  base_url="http://test") as client:
         yield client
 
 
