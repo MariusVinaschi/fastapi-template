@@ -23,7 +23,7 @@ def app() -> FastAPI:
 
 @pytest_asyncio.fixture
 async def client(app: FastAPI) -> AsyncGenerator:
-    async with AsyncClient(transport=ASGITransport(app=app),  base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 
 
@@ -39,9 +39,7 @@ def create_db_if_not_exists(db_url):
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator:
-    async_session = async_sessionmaker(
-        bind=async_engine, autoflush=False, expire_on_commit=False
-    )
+    async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
     async with async_session() as session:
         await concurrency.greenlet_spawn(create_db_if_not_exists, async_engine.url)
         async with async_engine.begin() as conn:

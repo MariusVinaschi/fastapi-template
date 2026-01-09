@@ -1,0 +1,80 @@
+version: "3.9"
+
+networks:
+  prefect_network:
+    name: prefect_network
+    driver: bridge
+
+services:
+  prefectdb:
+    image: postgres:17
+    networks:
+      - prefect_network
+    environment:
+      POSTGRES_USER: ${PREFECT_DB_USER:-prefect}
+      POSTGRES_PASSWORD: ${PREFECT_DB_PASSWORD:-prefect}
+      POSTGRES_DB: ${PREFECT_DB_NAME:-prefect}
+    volumes:
+      - prefect_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PREFECT_DB_USER:-prefect}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    networks:
+      - prefect_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    container_name: prefect-server
+    depends_on:
+      prefectdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${PREFECT_DB_USER:-prefect}:${PREFECT_DB_PASSWORD:-prefect}@prefectdb:5432/${PREFECT_DB_NAME:-prefect}
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_DB: 0
+    command: prefect server start --no-services
+    ports:
+      - "4200:4200"
+    networks:
+      - prefect_network
+
+  prefect-services:
+    image: prefecthq/prefect:3-latest
+    networks:
+      - prefect_network
+    depends_on:
+      prefectdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${PREFECT_DB_USER:-prefect}:${PREFECT_DB_PASSWORD:-prefect}@prefectdb:5432/${PREFECT_DB_NAME:-prefect}
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_DB: 0
+    command: prefect server services start
+
+volumes:
+  prefect_data:
+  redis_data:
+

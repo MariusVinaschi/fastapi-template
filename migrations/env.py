@@ -7,8 +7,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # IMPORT ALL MODELS TO THE DATABASE
-from app.core.models import Base
-from app.user.models import User  # noqa
+# Import from the new domain structure
+from app.domains.base.models import Base
+from app.domains.users.models import User, APIKey  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
