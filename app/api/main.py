@@ -10,7 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Import all models to ensure they are registered with SQLAlchemy
 # This must be done before creating the FastAPI app to avoid circular import issues
-import app.models  # noqa: F401
 from app.infrastructure.config import settings
 from app.api.router import api_router, webhook_router
 

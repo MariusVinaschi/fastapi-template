@@ -1,9 +1,9 @@
 import asyncio
 
-from app.user.service import UserService, APIKeyService
-from app.user.schemas import UserCreate
-from app.database import async_session
-from app.config import settings
+from app.domains.users.service import UserService, APIKeyService
+from app.domains.users.schemas import UserCreate
+from app.infrastructure.database import async_session
+from app.infrastructure.config import settings
 
 USER_EMAIL = settings.DEFAULT_USER
 USER_ROLE = settings.DEFAULT_USER_ROLE
@@ -11,8 +11,8 @@ USER_ROLE = settings.DEFAULT_USER_ROLE
 
 async def main():
     # Create tables first
-    from app.database import async_engine
-    from app.core.models import Base
+    from app.infrastructure.database import async_engine
+    from app.domains.base.models import Base
 
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

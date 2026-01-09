@@ -8,8 +8,8 @@ from fastapi.security import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
-from app.core.dependencies import CurrentSession
+from app.infrastructure.config import settings
+from app.api.dependencies import CurrentSession
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
 
