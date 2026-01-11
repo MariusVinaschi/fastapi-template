@@ -10,6 +10,7 @@ dependencies = [
     "jwt>=1.4.0",
     "prefect>=3.6.10",
     "pydantic-settings>=2.12.0",
+    "pydantic[email,timezone]>=2.12.5",
     "pyjwt>=2.10.1",
     "sqlalchemy>=2.0.45",
     "sqlalchemy-utils>=0.42.1",

@@ -7,10 +7,11 @@ from fastapi.security import (
     HTTPBearer,
     SecurityScopes,
 )
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.config import settings
-from app.api.dependencies import CurrentSession
+from app.infrastructure.database import get_session
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
 
@@ -44,7 +45,7 @@ class VerifyAuth:
     async def get_current_user(
         self,
         security_scopes: SecurityScopes,
-        session: CurrentSession,
+        session: AsyncSession = Depends(get_session),
         api_key_value: str | None = Security(api_key_header),
         token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
@@ -64,7 +65,7 @@ class VerifyAuth:
     async def get_current_admin_user(
         self,
         security_scopes: SecurityScopes,
-        session: CurrentSession,
+        session: AsyncSession = Depends(get_session),
         api_key_value: str | None = Security(api_key_header),
         token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
