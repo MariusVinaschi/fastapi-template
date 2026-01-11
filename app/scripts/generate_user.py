@@ -1,7 +1,7 @@
 import asyncio
 
 from app.domains.users.service import UserService, APIKeyService
-from app.domains.users.schemas import UserCreate
+from app.domains.users.schemas import RoleEnum, UserCreate
 from app.infrastructure.database import async_session
 from app.infrastructure.config import settings
 
@@ -19,7 +19,11 @@ async def main():
 
     async with async_session() as session:
         user = await UserService.for_system(session).create(
-            UserCreate(email=USER_EMAIL, role=USER_ROLE)
+            UserCreate(
+                email=USER_EMAIL,
+                role=RoleEnum(USER_ROLE),
+                clerk_id="local_user",
+            )
         )
         api_key_service = APIKeyService(session)
         response = await api_key_service.generate_api_key(user)
