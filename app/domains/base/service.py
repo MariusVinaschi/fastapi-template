@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.base.authorization import AuthorizationContext
-from app.domains.base.exceptions import EntityNotFoundException
+from app.domains.base.exceptions import EntityNotFoundException, PermissionDenied
 from app.domains.base.filters import BaseFilterParams
 from app.domains.base.repository import BaseRepository
 
@@ -62,10 +62,17 @@ class BaseService(Generic[ModelType, RepositoryType]):
 
     def _check_general_permissions(self, action: str) -> bool:
         """Check general permissions - override in subclass if needed"""
+        
+        if self.authorization_context is None:
+            raise PermissionDenied("Authorization context required")
+
         return True
 
     def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
         """Check instance permissions - override in subclass if needed"""
+        if self.authorization_context is None:
+            raise PermissionDenied("Authorization context required")
+
         return True
 
     async def get_by_id(self, id: UUID) -> Optional[ModelType]:
@@ -222,7 +229,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
 
     async def _validate_bulk_update(
         self, instances: list[ModelType], data: BulkUpdateSchemaType
-    ) -> None:
+    ) -> bool:
         """
         Validate bulk update operation - override in subclass if needed.
 
@@ -287,7 +294,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
 class BulkDeleteServiceMixin(BaseService[ModelType, RepositoryType]):
     """Mixin for bulk delete operations"""
 
-    async def _validate_bulk_delete(self, ids: list[UUID]) -> None:
+    async def _validate_bulk_delete(self, ids: list[UUID]) -> bool:
         """Validate bulk deletion - override in subclass if needed"""
         return True
 

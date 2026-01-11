@@ -30,6 +30,9 @@ class UserService(
         super().__init__(session, UserRepository, authorization_context, UserNotFoundException)
 
     def _check_general_permissions(self, action: str) -> bool:
+        if self.authorization_context is None:
+            raise PermissionDenied("Authorization context required")
+
         if self.authorization_context.user_role == RoleEnum.ADMIN:
             return True
 
@@ -39,6 +42,9 @@ class UserService(
         raise PermissionDenied("Action not allowed")
 
     def _check_instance_permissions(self, action: str, instance: User) -> bool:
+        if self.authorization_context is None:
+            raise PermissionDenied("Authorization context required")
+
         if action == "delete" and self.authorization_context.user_id == str(instance.id):
             raise PermissionDenied("Action not allowed")
 
@@ -98,6 +104,9 @@ class ClerkUserService(
         """Find the primary email from Clerk's payload."""
         primary_email_id = data.get("primary_email_address_id")
         email_entries = data.get("email_addresses")
+
+        if email_entries is None:
+            raise ValueError("email_addresses not found in the Clerk payload")
 
         if len(email_entries) == 1:
             return email_entries[0].get("email_address")

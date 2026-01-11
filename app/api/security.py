@@ -1,4 +1,5 @@
 import jwt
+from jwt.exceptions import DecodeError, PyJWKClientError
 from fastapi import HTTPException, Security, status
 from fastapi.security import (
     APIKeyHeader,
@@ -44,8 +45,8 @@ class VerifyAuth:
         self,
         security_scopes: SecurityScopes,
         session: CurrentSession,
-        api_key_value: APIKeyHeader = Security(api_key_header),
-        token: HTTPAuthorizationCredentials = Security(http_bearer),
+        api_key_value: str | None = Security(api_key_header),
+        token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
         """Get current user using JWT or API Key authentication"""
         if api_key_value is not None:
@@ -64,8 +65,8 @@ class VerifyAuth:
         self,
         security_scopes: SecurityScopes,
         session: CurrentSession,
-        api_key_value: APIKeyHeader = Security(api_key_header),
-        token: HTTPAuthorizationCredentials = Security(http_bearer),
+        api_key_value: str | None = Security(api_key_header),
+        token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
         """Get current admin user using JWT or API Key authentication"""
         user = await self.get_current_user(security_scopes, session, api_key_value, token)
@@ -117,9 +118,9 @@ class VerifyAuth:
         # This gets the 'kid' from the passed token
         try:
             signing_key = self.jwks_client.get_signing_key_from_jwt(token.credentials).key
-        except jwt.exceptions.PyJWKClientError as error:
+        except PyJWKClientError as error:
             raise UnauthorizedException(str(error))
-        except jwt.exceptions.DecodeError as error:
+        except DecodeError as error:
             raise UnauthorizedException(str(error))
         except Exception:
             raise UnauthorizedException("Check the Clerk frontend API URL and the JWT token")
@@ -131,7 +132,7 @@ class VerifyAuth:
                 issuer=self.clerk_issuer,
             )
             if payload.get("azp") != self.clerk_azp:
-                raise jwt.DecodeError("Invalid authorized party")
+                raise DecodeError("Invalid authorized party")
         except Exception as error:
             raise UnauthorizedException(str(error))
 
