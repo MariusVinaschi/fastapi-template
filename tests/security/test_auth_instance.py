@@ -21,7 +21,7 @@ class TestAuthInstance:
     async def test_auth_get_current_user(self, mocker, db_session):
         """Test get_current_user using the global auth instance"""
         mock_user = MagicMock()
-        mock_request = mocker.MagicMock(spec=Request)
+        mocker.MagicMock(spec=Request)
         mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
         mock_token = mocker.MagicMock()
 
@@ -42,7 +42,7 @@ class TestAuthInstance:
         """Test get_current_admin_user using the global auth instance"""
         mock_user = MagicMock()
         mock_user.role = "admin"
-        mock_request = mocker.MagicMock(spec=Request)
+        mocker.MagicMock(spec=Request)
         mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
 
         # Mock get_current_user to return admin user

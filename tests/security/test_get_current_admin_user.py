@@ -12,7 +12,7 @@ from app.user.schemas import RoleEnum
 async def test_get_admin_user(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mock_request = mocker.MagicMock(spec=Request)
+    mocker.MagicMock(spec=Request)
     mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
 
     # Mock get_current_user to return admin user
@@ -30,7 +30,7 @@ async def test_get_admin_user(mocker: MockerFixture, db_session):
 async def test_get_admin_user_user_not_admin(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with non-admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
-    mock_request = mocker.MagicMock(spec=Request)
+    mocker.MagicMock(spec=Request)
     mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
 
     # Mock get_current_user to return standard user
@@ -49,7 +49,7 @@ async def test_get_admin_user_user_not_admin(mocker: MockerFixture, db_session):
 async def test_get_admin_user_with_jwt_token(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with JWT token"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mock_request = mocker.MagicMock(spec=Request)
+    mocker.MagicMock(spec=Request)
     mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
     mock_token = mocker.MagicMock()
 

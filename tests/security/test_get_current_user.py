@@ -12,7 +12,7 @@ from app.user.schemas import RoleEnum
 async def test_get_current_user_admin(mocker: MockerFixture, db_session):
     """Test get_current_user with admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mock_request = mocker.MagicMock(spec=Request)
+    mocker.MagicMock(spec=Request)
     mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
     mock_token = mocker.MagicMock()
 
@@ -34,7 +34,7 @@ async def test_get_current_user_admin(mocker: MockerFixture, db_session):
 async def test_get_current_user_standard(mocker: MockerFixture, db_session):
     """Test get_current_user with standard user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
-    mock_request = mocker.MagicMock(spec=Request)
+    mocker.MagicMock(spec=Request)
     mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
     mock_token = mocker.MagicMock()
 
