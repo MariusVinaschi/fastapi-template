@@ -1,14 +1,30 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import uuid4
 
+from app.domains.base.authorization import AuthorizationContext
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.users.schemas import RoleEnum
 from app.domains.users.service import UserService
 
 
-class MockAuthorizationContext:
-    def __init__(self, user_role: RoleEnum):
-        self.user_role = user_role
+class MockAuthorizationContext(AuthorizationContext):
+    def __init__(self, user_role: RoleEnum, user_id: str | None = None, user_email: str = "test@example.com"):
+        self._user_id = user_id or str(uuid4())
+        self._user_email = user_email
+        self._user_role = str(user_role)
+
+    @property
+    def user_id(self) -> str:
+        return self._user_id
+
+    @property
+    def user_email(self) -> str:
+        return self._user_email
+
+    @property
+    def user_role(self) -> str:
+        return self._user_role
 
 
 @pytest.mark.asyncio
