@@ -2,6 +2,7 @@
 Base repository - Framework agnostic data access layer.
 Contains all the generic CRUD operations for domain entities.
 """
+from collections.abc import Sequence
 from typing import Generic, Optional, Tuple, Type, TypeVar
 
 from sqlalchemy import Select, delete, func, insert, select
@@ -68,7 +69,7 @@ class ListRepositoryMixin(BaseRepository):
         """
         return select(self.model)
 
-    async def get_all(self, filters: BaseFilterParams) -> list[ModelType]:
+    async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
         """Get all entities with optional authorization"""
         query = self._build_list_query()
         query = self._apply_user_scope(query)
@@ -82,7 +83,7 @@ class ListRepositoryMixin(BaseRepository):
         result = await self.session.scalars(query)
         return result.fetchall()
 
-    async def get_paginated(self, filters: BaseFilterParams) -> Tuple[int, list[ModelType]]:
+    async def get_paginated(self, filters: BaseFilterParams) -> Tuple[int, Sequence[ModelType]]:
         """Get paginated entities with optional authorization"""
         query = self._build_list_query()
         query = self._apply_user_scope(query)
@@ -102,12 +103,12 @@ class ListRepositoryMixin(BaseRepository):
         paginated_query = query.offset(filters.offset).limit(filters.limit)
         results = await self.session.scalars(paginated_query)
 
-        return total_count, results.fetchall()
+        return total_count or 0, results.fetchall()
 
     async def get_ids(
         self,
         filters: BaseFilterParams,
-    ) -> list[str]:
+    ) -> Sequence[str]:
         """
         Get only the IDs of entities matching the filters.
         This is more efficient than get_all() when only IDs are needed.
@@ -266,7 +267,7 @@ class BulkUpdateRepositoryMixin(BaseRepository):
 class BulkCreateRepositoryMixin(BaseRepository):
     """Mixin for bulk create operations"""
 
-    async def bulk_create(self, data: list[dict]) -> list[ModelType]:
+    async def bulk_create(self, data: list[dict]) -> Sequence[ModelType]:
         """
         Create multiple instances in the database and return created objects.
 
@@ -320,5 +321,5 @@ class BulkDeleteRepositoryMixin(BaseRepository):
         await self._commit()
 
         # Return number of deleted records
-        return result.rowcount
+        return getattr(result, "rowcount", 0) or 0
 
