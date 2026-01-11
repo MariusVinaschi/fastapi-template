@@ -126,6 +126,9 @@ class CreateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Add created_by only for user operations
         if not self._is_system_operation():
+            if self.authorization_context is None:
+                raise PermissionDenied("Authorization context required")
+
             result["created_by"] = self.authorization_context.user_email
             result["updated_by"] = self.authorization_context.user_email
         else:
@@ -134,7 +137,7 @@ class CreateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         return result
 
-    async def _validate_create(self, data: dict) -> None:
+    async def _validate_create(self, data: dict) -> bool:
         """Validate creation - override in subclass if needed"""
         return True
 
@@ -162,13 +165,16 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Add updated_by only for user operations
         if not self._is_system_operation():
+            if self.authorization_context is None:
+                raise PermissionDenied("Authorization context required")
+
             result["updated_by"] = self.authorization_context.user_email
         else:
             result["updated_by"] = "system"
 
         return result
 
-    async def _validate_update(self, instance: ModelType, data: dict) -> None:
+    async def _validate_update(self, instance: ModelType, data: dict) -> bool:
         """Validate update - override in subclass if needed"""
         return True
 
@@ -180,6 +186,8 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Get existing instance
         instance = await self.get_by_id(id)
+        if instance is None:
+            raise self.not_found_exception(f"Entity with id {id} not found")
 
         # Check instance permissions only for user operations
         if not self._is_system_operation():
@@ -204,6 +212,8 @@ class DeleteServiceMixin(BaseService[ModelType, RepositoryType]):
             self._check_general_permissions("delete")
 
         instance = await self.get_by_id(id)
+        if instance is None:
+            raise self.not_found_exception(f"Entity with id {id} not found")
 
         # Check instance permissions only for user operations
         if not self._is_system_operation():
@@ -221,14 +231,20 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Add updated_by only for user operations
         if not self._is_system_operation():
+            if self.authorization_context is None:
+                raise PermissionDenied("Authorization context required")
             result["updated_by"] = self.authorization_context.user_email
         else:
             result["updated_by"] = "system"
 
         return result
 
+    async def _validate_update(self, instance: ModelType, data: dict) -> None:
+        """Validate update - override in subclass if needed"""
+        pass
+
     async def _validate_bulk_update(
-        self, instances: list[ModelType], data: BulkUpdateSchemaType
+        self, instances: list[ModelType], data: dict
     ) -> bool:
         """
         Validate bulk update operation - override in subclass if needed.
@@ -319,6 +335,9 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Add created_by only for user operations
         if not self._is_system_operation():
+            if self.authorization_context is None:
+                raise PermissionDenied("Authorization context required")
+
             result["created_by"] = self.authorization_context.user_email
             result["updated_by"] = self.authorization_context.user_email
         else:
@@ -326,6 +345,10 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
             result["updated_by"] = "system"
 
         return result
+
+    async def _validate_create(self, data: dict) -> None:
+        """Validate creation - override in subclass if needed"""
+        pass
 
     async def _validate_bulk_create(self, items: list[dict]) -> None:
         """
