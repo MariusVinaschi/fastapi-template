@@ -32,7 +32,6 @@ class UserBase(UserEmail):
 
 class UserRead(UserBase, UUIDSchema, TimestampSchema):
     """Schema for reading user data"""
-
     pass
 
 

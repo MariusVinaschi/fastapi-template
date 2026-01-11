@@ -1,4 +1,4 @@
-from app.core.filters import BaseFilterParams
+from app.domains.base.filters import BaseFilterParams
 
 
 async def test_get_all_success(repository, populated_db, auth_context_user_1):

@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-from app.security import UnauthenticatedException
+from app.api.security import UnauthenticatedException
 
 
 class TestUnauthenticatedException:
@@ -44,7 +44,7 @@ class TestUnauthenticatedException:
 
     def test_unauthenticated_exception_different_from_unauthorized(self):
         """Test that UnauthenticatedException has different status code from UnauthorizedException"""
-        from app.security import UnauthorizedException
+        from app.api.security import UnauthorizedException
 
         auth_exception = UnauthenticatedException("Auth required")
         unauth_exception = UnauthorizedException("Access denied")

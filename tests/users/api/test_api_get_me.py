@@ -2,9 +2,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 
-from app.security import auth
-from app.user.factory import UserFactory
-from app.user.schemas import RoleEnum
+from app.api.security import auth
+from app.domains.users.factory import UserFactory
+from app.domains.users.schemas import RoleEnum
 from tests.utils.override_dependencies import DependencyOverrider
 from tests.validations.validation_users import (
     valid_data_from_user_object,
@@ -13,8 +13,8 @@ from tests.validations.validation_users import (
 
 
 @pytest.mark.asyncio
-async def test_get_me_user_manager(client: AsyncClient, app: FastAPI, db_session):
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.MANAGER)
+async def test_get_me_user_admin(client: AsyncClient, app: FastAPI, db_session):
+    user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     with DependencyOverrider(
         app,
         overrides={auth.get_current_user: lambda: user},

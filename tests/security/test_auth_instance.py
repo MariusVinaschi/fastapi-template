@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from fastapi import Request
 from fastapi.security import SecurityScopes
 
-from app.security import auth, VerifyAuth
+from app.api.security import auth, VerifyAuth
 
 
 class TestAuthInstance:
@@ -56,7 +56,7 @@ class TestAuthInstance:
 
     def test_auth_instance_singleton_behavior(self):
         """Test that the auth instance behaves as a singleton"""
-        from app.security import auth as auth_imported
+        from app.api.security import auth as auth_imported
 
         # Both should be the same instance
         assert auth is auth_imported

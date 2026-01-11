@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-from app.security import UnauthorizedException
+from app.api.security import UnauthorizedException
 
 
 class TestUnauthorizedException:

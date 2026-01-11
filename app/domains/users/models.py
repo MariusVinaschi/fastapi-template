@@ -30,7 +30,6 @@ class User(Base, UUIDMixin, TimestampMixin, CreatedByMixin):
         ),
         default="standard",
     )
-    configuration: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     api_key: Mapped[Optional["APIKey"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False

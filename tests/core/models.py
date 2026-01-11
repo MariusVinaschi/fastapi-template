@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.models import Base, CreatedByMixin, TimestampMixin, UUIDMixin
+from app.domains.base.models import Base, CreatedByMixin, TimestampMixin, UUIDMixin
 
 
 class User(Base, UUIDMixin, TimestampMixin):

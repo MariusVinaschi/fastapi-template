@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.security import VerifyAuth, UnauthenticatedException, UnauthorizedException
-from app.user.models import User
+from app.api.security import VerifyAuth, UnauthenticatedException, UnauthorizedException
+from app.domains.users.models import User
 
 
 class TestVerifyAuth:

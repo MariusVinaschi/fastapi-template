@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.exceptions import EntityNotFoundException
+from app.domains.base.exceptions import EntityNotFoundException
 from tests.core.conftest import UpdateModelSchema
 
 

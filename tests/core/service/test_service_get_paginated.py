@@ -1,4 +1,4 @@
-from app.core.filters import BaseFilterParams
+from app.domains.base.filters import BaseFilterParams
 from tests.core.conftest import CreateModelSchema
 
 
@@ -21,16 +21,12 @@ async def test_get_paginated_with_search(service, populated_db, auth_context_use
     items = [
         CreateModelSchema(
             name="Searchable Item",
-            created_by="user1@test.com",
-            updated_by="user1@test.com",
         ),
         CreateModelSchema(
             name="Another Search Term",
-            created_by="user1@test.com",
-            updated_by="user1@test.com",
         ),
         CreateModelSchema(
-            name="No Match", created_by="user1@test.com", updated_by="user1@test.com"
+            name="No Match"
         ),
     ]
     for item in items:

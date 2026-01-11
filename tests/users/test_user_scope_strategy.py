@@ -3,9 +3,9 @@ import uuid
 import pytest_asyncio
 from sqlalchemy import select
 
-from app.user.authorization import UserScopeStrategy
-from app.user.factory import UserFactory
-from app.user.models import User, UserAuthorizationAdapter
+from app.domains.users.authorization import UserScopeStrategy
+from app.domains.users.factory import UserFactory
+from app.domains.users.models import User, UserAuthorizationAdapter
 
 
 @pytest_asyncio.fixture
@@ -42,9 +42,7 @@ async def test_apply_scope_returns_empty_for_nonexistent_user(
     db_session,
 ):
     # Set a non-existent user ID
-    auth_context = UserAuthorizationAdapter(
-        User(id=uuid.uuid4(), email="test@test.com")
-    )
+    auth_context = UserAuthorizationAdapter(User(id=uuid.uuid4(), email="test@test.com"))
 
     # Create base query
     query = select(User)

@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.util import concurrency
 from sqlalchemy_utils import create_database, database_exists
 
-from app.core.models import Base
-from app.database import async_engine
-from app.main import create_application
+from app.domains.base.models import Base
+from app.infrastructure.database import async_engine
+from app.api.main import create_application
 
 fake = Faker()
 

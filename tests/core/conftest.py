@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.authorization import AuthorizationContext, AuthorizationScopeStrategy
-from app.core.repository import (
+from app.domains.base.authorization import AuthorizationContext, AuthorizationScopeStrategy
+from app.domains.base.repository import (
     BulkCreateRepositoryMixin,
     BulkDeleteRepositoryMixin,
     BulkUpdateRepositoryMixin,
@@ -16,7 +16,7 @@ from app.core.repository import (
     ReadRepositoryMixin,
     UpdateRepositoryMixin,
 )
-from app.core.service import (
+from app.domains.base.service import (
     BulkCreateServiceMixin,
     BulkDeleteServiceMixin,
     BulkUpdateServiceMixin,

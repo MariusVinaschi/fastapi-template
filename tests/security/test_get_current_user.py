@@ -3,9 +3,9 @@ from pytest_mock import MockerFixture
 from fastapi import Request
 from fastapi.security import SecurityScopes
 
-from app.security import VerifyAuth
-from app.user.factory import UserFactory
-from app.user.schemas import RoleEnum
+from app.api.security import VerifyAuth
+from app.domains.users.factory import UserFactory
+from app.domains.users.schemas import RoleEnum
 
 
 @pytest.mark.asyncio
