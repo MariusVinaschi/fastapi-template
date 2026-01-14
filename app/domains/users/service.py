@@ -215,7 +215,7 @@ class APIKeyService(
         except APIKeyNotFoundException:
             pass
 
-        api_key = f"hellp_{secrets.token_urlsafe(32)}"
+        api_key = f"{secrets.token_urlsafe(32)}"
         key_hash = self.hash_api_key(api_key)
 
         await self.create(
