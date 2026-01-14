@@ -10,10 +10,14 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 # Import from the new domain structure
 from app.domains.base.models import Base
 from app.domains.users.models import User, APIKey  # noqa
+from app.infrastructure.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# NOTE: This project uses an async SQLAlchemy engine, so we keep an async driver here.
+config.set_main_option("sqlalchemy.url", str(settings.DB_URL))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -50,6 +54,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -57,7 +62,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
