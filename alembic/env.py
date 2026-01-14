@@ -16,7 +16,6 @@ from app.infrastructure.config import settings
 # access to the values within the .ini file in use.
 config = context.config
 
-# NOTE: This project uses an async SQLAlchemy engine, so we keep an async driver here.
 config.set_main_option("sqlalchemy.url", str(settings.DB_URL))
 
 # Interpret the config file for Python logging.
