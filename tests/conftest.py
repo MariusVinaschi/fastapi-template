@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from typing import AsyncGenerator
 
-import pytest_asyncio
+import pytest
 from asyncpg.exceptions import InvalidCatalogNameError
 from faker import Faker
 from fastapi import FastAPI
@@ -16,12 +16,12 @@ from app.api.main import create_application
 fake = Faker()
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 def app() -> Iterator[FastAPI]:
     yield create_application()
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def client(app: FastAPI) -> AsyncGenerator:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
@@ -37,7 +37,7 @@ def create_db_if_not_exists(db_url):
         create_database(db_url)
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def db_session() -> AsyncGenerator:
     async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
     async with async_session() as session:
