@@ -30,60 +30,62 @@ class UserService(
         super().__init__(session, UserRepository, authorization_context, UserNotFoundException)
 
     def _check_general_permissions(self, action: str) -> bool:
-        if self.authorization_context is None:
-            raise PermissionDenied("Authorization context required")
+        """Check general permissions for user operations"""
+        # System operations bypass all permission checks
+        if super()._check_general_permissions(action) and self._is_system_operation():
+            return True
 
+        # Admins can do everything
         if self.authorization_context.user_role == RoleEnum.ADMIN:
             return True
 
+        # Regular users can read and update
         if action in ["update", "read"]:
             return True
 
         raise PermissionDenied("Action not allowed")
 
     def _check_instance_permissions(self, action: str, instance: User) -> bool:
-        if self.authorization_context is None:
-            raise PermissionDenied("Authorization context required")
+        """Check instance-level permissions for user operations"""
+        # System operations bypass all permission checks
+        if super()._check_instance_permissions(action, instance) and self._is_system_operation():
+            return True
 
+        # Users cannot delete themselves
         if action == "delete" and self.authorization_context.user_id == str(instance.id):
             raise PermissionDenied("Action not allowed")
 
+        # Admins can do everything
         if self.authorization_context.user_role == RoleEnum.ADMIN:
             return True
 
+        # Regular users can only access their own data
         if action in ["update", "read"] and self.authorization_context.user_id == str(instance.id):
             return True
 
         raise PermissionDenied("Action not allowed")
 
-    async def get_by_email(
-        self,
-        email: str,
-    ) -> User:
-        if not self._is_system_operation():
-            self._check_general_permissions("read")
+    async def get_by_email(self, email: str) -> User:
+        """Get user by email with access control"""
+        self._check_general_permissions("read")
 
-        user = await self.repository.find_by_email(
-            email=email,
-        )
+        user = await self.repository.find_by_email(email=email)
         if not user:
             raise UserNotFoundException
 
-        if not self._is_system_operation():
-            self._check_instance_permissions("read", user)
+        self._check_instance_permissions("read", user)
 
         return user
 
     async def get_by_clerk_id(self, clerk_id: str) -> User:
-        if not self._is_system_operation():
-            self._check_general_permissions("read")
+        """Get user by Clerk ID with access control"""
+        self._check_general_permissions("read")
 
         user = await self.repository.find_by_clerk_id(clerk_id)
         if not user:
             raise UserNotFoundException
 
-        if not self._is_system_operation():
-            self._check_instance_permissions("read", user)
+        self._check_instance_permissions("read", user)
 
         return user
 

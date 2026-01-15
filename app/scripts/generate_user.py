@@ -25,8 +25,7 @@ async def main():
                 clerk_id="local_user",
             )
         )
-        api_key_service = APIKeyService(session)
-        response = await api_key_service.generate_api_key(user)
+        response = await APIKeyService.for_system(session).generate_api_key(user)
         print(f"""
             User created:
             Email: {USER_EMAIL}

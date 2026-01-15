@@ -61,33 +61,63 @@ class BaseService(Generic[ModelType, RepositoryType]):
         return self.authorization_context is None
 
     def _check_general_permissions(self, action: str) -> bool:
-        """Check general permissions - override in subclass if needed"""
+        """
+        Check general permissions for an action.
         
-        if self.authorization_context is None:
-            raise PermissionDenied("Authorization context required")
+        Automatically bypasses permission checks for system operations.
+        Override in subclass to add custom permission logic for user operations.
+        
+        Args:
+            action: The action being performed (read, create, update, delete, etc.)
+            
+        Returns:
+            True if permission is granted
+            
+        Raises:
+            PermissionDenied: If permission is denied for user operations
+        """
+        # System operations bypass all permission checks
+        if self._is_system_operation():
+            return True
 
+        # Default: allow all actions for user operations
+        # Subclasses should override to add specific permission logic
         return True
 
     def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
-        """Check instance permissions - override in subclass if needed"""
-        if self.authorization_context is None:
-            raise PermissionDenied("Authorization context required")
+        """
+        Check instance-level permissions for an action on a specific entity.
+        
+        Automatically bypasses permission checks for system operations.
+        Override in subclass to add custom permission logic for user operations.
+        
+        Args:
+            action: The action being performed (read, update, delete, etc.)
+            instance: The entity instance being accessed
+            
+        Returns:
+            True if permission is granted
+            
+        Raises:
+            PermissionDenied: If permission is denied for user operations
+        """
+        # System operations bypass all permission checks
+        if self._is_system_operation():
+            return True
 
+        # Default: allow all actions for user operations
+        # Subclasses should override to add specific permission logic
         return True
 
     async def get_by_id(self, id: UUID) -> Optional[ModelType]:
-        """Get entity by ID with optional access control"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("read")
+        """Get entity by ID with access control"""
+        self._check_general_permissions("read")
 
         instance = await self.repository.get_by_id(str(id))
         if not instance:
             raise self.not_found_exception(f"Entity with id {id} not found")
 
-        # Check instance permissions only for user operations
-        if not self._is_system_operation():
-            self._check_instance_permissions("read", instance)
+        self._check_instance_permissions("read", instance)
 
         return instance
 
@@ -96,24 +126,20 @@ class ListServiceMixin(BaseService[ModelType, RepositoryType]):
     """Mixin for list/pagination operations"""
 
     async def get_paginated(self, filters: BaseFilterParams) -> dict:
-        """Get paginated entities with optional access control"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("list")
+        """Get paginated entities with access control"""
+        self._check_general_permissions("list")
 
         total_count, items = await self.repository.get_paginated(filters)
         return {"count": total_count, "data": items}
 
     async def get_ids(self, filters: BaseFilterParams) -> list[UUID]:
         """Get IDs of entities with access control"""
-        if not self._is_system_operation():
-            self._check_general_permissions("list")
+        self._check_general_permissions("list")
         return await self.repository.get_ids(filters=filters)
 
     async def get_all(self, filters: BaseFilterParams) -> list[ModelType]:
         """Get all entities with access control"""
-        if not self._is_system_operation():
-            self._check_general_permissions("list")
+        self._check_general_permissions("list")
         return await self.repository.get_all(filters=filters)
 
 
@@ -124,16 +150,13 @@ class CreateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Prepare data for creation - override in subclass if needed"""
         result = data.model_dump()
 
-        # Add created_by only for user operations
-        if not self._is_system_operation():
-            if self.authorization_context is None:
-                raise PermissionDenied("Authorization context required")
-
-            result["created_by"] = self.authorization_context.user_email
-            result["updated_by"] = self.authorization_context.user_email
-        else:
+        # Add audit fields based on operation type
+        if self._is_system_operation():
             result["created_by"] = "system"
             result["updated_by"] = "system"
+        else:
+            result["created_by"] = self.authorization_context.user_email
+            result["updated_by"] = self.authorization_context.user_email
 
         return result
 
@@ -142,10 +165,8 @@ class CreateServiceMixin(BaseService[ModelType, RepositoryType]):
         return True
 
     async def create(self, data: CreateSchemaType) -> ModelType:
-        """Create new entity with optional authorization"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("create")
+        """Create new entity with authorization"""
+        self._check_general_permissions("create")
 
         # Prepare data - override in subclass if needed
         create_data = self._prepare_create_data(data)
@@ -163,14 +184,11 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Prepare data for update - override in subclass if needed"""
         result = data.model_dump(exclude_unset=True)
 
-        # Add updated_by only for user operations
-        if not self._is_system_operation():
-            if self.authorization_context is None:
-                raise PermissionDenied("Authorization context required")
-
-            result["updated_by"] = self.authorization_context.user_email
-        else:
+        # Add audit field based on operation type
+        if self._is_system_operation():
             result["updated_by"] = "system"
+        else:
+            result["updated_by"] = self.authorization_context.user_email
 
         return result
 
@@ -179,19 +197,15 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         return True
 
     async def update(self, id: UUID, data: UpdateSchemaType) -> Optional[ModelType]:
-        """Update existing entity with optional authorization"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("update")
+        """Update existing entity with authorization"""
+        self._check_general_permissions("update")
 
-        # Get existing instance
+        # Get existing instance (already checks permissions via get_by_id)
         instance = await self.get_by_id(id)
         if instance is None:
             raise self.not_found_exception(f"Entity with id {id} not found")
 
-        # Check instance permissions only for user operations
-        if not self._is_system_operation():
-            self._check_instance_permissions("update", instance)
+        self._check_instance_permissions("update", instance)
 
         # Prepare update data - override in subclass if needed
         update_data = self._prepare_update_data(data)
@@ -206,18 +220,15 @@ class DeleteServiceMixin(BaseService[ModelType, RepositoryType]):
     """Mixin for delete operations"""
 
     async def delete(self, id: UUID) -> bool:
-        """Delete entity with optional authorization"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("delete")
+        """Delete entity with authorization"""
+        self._check_general_permissions("delete")
 
+        # Get existing instance (already checks permissions via get_by_id)
         instance = await self.get_by_id(id)
         if instance is None:
             raise self.not_found_exception(f"Entity with id {id} not found")
 
-        # Check instance permissions only for user operations
-        if not self._is_system_operation():
-            self._check_instance_permissions("delete", instance)
+        self._check_instance_permissions("delete", instance)
 
         return await self.repository.delete(instance)
 
@@ -229,13 +240,11 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Prepare data for update - override in subclass if needed"""
         result = data.model_dump(exclude_unset=True)
 
-        # Add updated_by only for user operations
-        if not self._is_system_operation():
-            if self.authorization_context is None:
-                raise PermissionDenied("Authorization context required")
-            result["updated_by"] = self.authorization_context.user_email
-        else:
+        # Add audit field based on operation type
+        if self._is_system_operation():
             result["updated_by"] = "system"
+        else:
+            result["updated_by"] = self.authorization_context.user_email
 
         return result
 
@@ -281,9 +290,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
             EntityNotFoundException: If any entity is not found
             ValidationError: If validation fails for any entity
         """
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("bulk_update")
+        self._check_general_permissions("bulk_update")
 
         # Fetch all instances in a single query
         filters = filter_class(id__in=[str(id) for id in ids], limit=100)
@@ -315,10 +322,8 @@ class BulkDeleteServiceMixin(BaseService[ModelType, RepositoryType]):
         return True
 
     async def bulk_delete(self, ids: list[UUID]) -> bool:
-        """Bulk delete entities with optional authorization"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("bulk_delete")
+        """Bulk delete entities with authorization"""
+        self._check_general_permissions("bulk_delete")
 
         # Validate deletion - override in subclass if needed
         await self._validate_bulk_delete(ids)
@@ -333,16 +338,13 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Prepare data for creation - override in subclass if needed"""
         result = data.model_dump()
 
-        # Add created_by only for user operations
-        if not self._is_system_operation():
-            if self.authorization_context is None:
-                raise PermissionDenied("Authorization context required")
-
-            result["created_by"] = self.authorization_context.user_email
-            result["updated_by"] = self.authorization_context.user_email
-        else:
+        # Add audit fields based on operation type
+        if self._is_system_operation():
             result["created_by"] = "system"
             result["updated_by"] = "system"
+        else:
+            result["created_by"] = self.authorization_context.user_email
+            result["updated_by"] = self.authorization_context.user_email
 
         return result
 
@@ -359,10 +361,8 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
             await self._validate_create(item)
 
     async def bulk_create(self, data: list[CreateSchemaType]) -> list[ModelType]:
-        """Create multiple entities with optional authorization"""
-        # Check permissions only for user operations
-        if not self._is_system_operation():
-            self._check_general_permissions("bulk_create")
+        """Create multiple entities with authorization"""
+        self._check_general_permissions("bulk_create")
 
         # Prepare data - override in subclass if needed
         create_data = [self._prepare_bulk_create_data(item) for item in data]

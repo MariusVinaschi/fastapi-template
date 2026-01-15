@@ -16,6 +16,22 @@ dependencies = [
     "sqlalchemy-utils>=0.42.1",
 ]
 
+[build-system]
+# Needed so uv can build the project in editable mode (to expose [project.scripts]).
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+# IMPORTANT: Explicitly limit package discovery to `app` only.
+# This avoids setuptools trying to treat `alembic/` and `var/` as top-level packages.
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["alembic*", "var*"]
+
 [dependency-groups]
 dev = [
     "asyncpg>=0.31.0",

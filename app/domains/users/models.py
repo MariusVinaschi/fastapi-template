@@ -30,6 +30,8 @@ class User(Base, UUIDMixin, TimestampMixin, CreatedByMixin):
         ),
         default="standard",
     )
+    clerk_id: Mapped[str] = mapped_column("clerk_id", nullable=True, index=True)
+
 
     api_key: Mapped[Optional["APIKey"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False

@@ -165,3 +165,12 @@ pytest tests/users/
 ## Environment Variables
 
 See `.env.example` for all available configuration options.
+
+
+## Generate migrations 
+
+uv run alembic revision --autogenerate -m "init"
+
+## Apply it 
+
+uv run alembic upgrade head
