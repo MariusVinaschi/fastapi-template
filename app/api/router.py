@@ -16,5 +16,5 @@ api_router.include_router(health_router, prefix="/health", tags=["health"])
 
 # Webhook router - separate from versioned API
 webhook_router = APIRouter()
-webhook_router.include_router(clerk_webhook_router, tags=["clerk"])
+webhook_router.include_router(clerk_webhook_router)
 

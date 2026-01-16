@@ -6,7 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "factory-boy>=3.3.3",
     "faker>=40.1.0",
-    "fastapi>=0.128.0",
+    "fastapi[standard]>=0.128.0",
     "jwt>=1.4.0",
     "prefect>=3.6.10",
     "pydantic-settings>=2.12.0",
