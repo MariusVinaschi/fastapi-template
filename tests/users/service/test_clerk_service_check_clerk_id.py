@@ -3,7 +3,7 @@ import pytest
 from app.domains.users.service import ClerkUserService
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_clerk_id():
     clerk_id = "123"
     data = {
@@ -14,7 +14,7 @@ async def test_check_clerk_id():
     assert find_clerk_id == clerk_id
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_clerk_id_missing():
     data = {
         "id": None,

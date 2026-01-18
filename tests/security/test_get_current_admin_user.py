@@ -8,7 +8,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_admin_user(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
@@ -26,7 +26,7 @@ async def test_get_admin_user(mocker: MockerFixture, db_session):
     assert result == user
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_admin_user_user_not_admin(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with non-admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -45,7 +45,7 @@ async def test_get_admin_user_user_not_admin(mocker: MockerFixture, db_session):
     assert "User is not an admin." in str(exc_info.value)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_admin_user_with_jwt_token(mocker: MockerFixture, db_session):
     """Test get_current_admin_user with JWT token"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)

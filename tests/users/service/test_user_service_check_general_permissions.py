@@ -1,6 +1,7 @@
+from uuid import uuid4
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import uuid4
 
 from app.domains.base.authorization import AuthorizationContext
 from app.domains.base.exceptions import PermissionDenied
@@ -27,63 +28,57 @@ class MockAuthorizationContext(AuthorizationContext):
         return self._user_role
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_admin_create():
-    context = MockAuthorizationContext(user_role=RoleEnum.ADMIN)
-    assert (
-        UserService.for_user(AsyncSession(), context)._check_general_permissions("create") is True
-    )
+    context = MockAuthorizationContext(user_role="admin")
+    assert UserService.for_user(AsyncSession(), context)._check_general_permissions("create") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_admin_read():
-    context = MockAuthorizationContext(user_role=RoleEnum.ADMIN)
+    context = MockAuthorizationContext(user_role="admin")
     assert UserService.for_user(AsyncSession(), context)._check_general_permissions("read") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_admin_list():
-    context = MockAuthorizationContext(user_role=RoleEnum.ADMIN)
+    context = MockAuthorizationContext(user_role="admin")
     assert UserService.for_user(AsyncSession(), context)._check_general_permissions("list") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_admin_delete():
-    context = MockAuthorizationContext(user_role=RoleEnum.ADMIN)
-    assert (
-        UserService.for_user(AsyncSession(), context)._check_general_permissions("delete") is True
-    )
+    context = MockAuthorizationContext(user_role="admin")
+    assert UserService.for_user(AsyncSession(), context)._check_general_permissions("delete") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_standard_create():
     context = MockAuthorizationContext(user_role=RoleEnum.STANDARD)
     with pytest.raises(PermissionDenied, match="Action not allowed"):
         UserService.for_user(AsyncSession(), context)._check_general_permissions("create")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_standard_update():
     context = MockAuthorizationContext(user_role=RoleEnum.STANDARD)
-    assert (
-        UserService.for_user(AsyncSession(), context)._check_general_permissions("update") is True
-    )
+    assert UserService.for_user(AsyncSession(), context)._check_general_permissions("update") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_standard_read():
     context = MockAuthorizationContext(user_role=RoleEnum.STANDARD)
     assert UserService.for_user(AsyncSession(), context)._check_general_permissions("read") is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_standard_list():
     context = MockAuthorizationContext(user_role=RoleEnum.STANDARD)
     with pytest.raises(PermissionDenied, match="Action not allowed"):
         UserService.for_user(AsyncSession(), context)._check_general_permissions("list")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_general_permissions_standard_delete():
     context = MockAuthorizationContext(user_role=RoleEnum.STANDARD)
     with pytest.raises(PermissionDenied, match="Action not allowed"):

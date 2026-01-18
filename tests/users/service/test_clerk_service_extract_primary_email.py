@@ -3,7 +3,7 @@ import pytest
 from app.domains.users.service import ClerkUserService
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_extract_primary_email_single_email():
     email = "test@example.com"
     data = {
@@ -17,7 +17,7 @@ async def test_extract_primary_email_single_email():
     assert primary_email == email
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_extract_primary_email_multiple_emails(db_session):
     email = "test@example.com"
     data = {
@@ -32,7 +32,7 @@ async def test_extract_primary_email_multiple_emails(db_session):
     assert primary_email == email
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_extract_primary_email_multiple_emails_no_primary(db_session):
     data = {
         "primary_email_address_id": "123",

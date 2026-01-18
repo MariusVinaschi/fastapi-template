@@ -8,7 +8,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_current_user_admin(mocker: MockerFixture, db_session):
     """Test get_current_user with admin user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
@@ -30,7 +30,7 @@ async def test_get_current_user_admin(mocker: MockerFixture, db_session):
     assert result == user
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_current_user_standard(mocker: MockerFixture, db_session):
     """Test get_current_user with standard user"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -52,7 +52,7 @@ async def test_get_current_user_standard(mocker: MockerFixture, db_session):
     assert result == user
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_current_user_with_api_key(mocker: MockerFixture, db_session):
     """Test get_current_user with API key authentication"""
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)

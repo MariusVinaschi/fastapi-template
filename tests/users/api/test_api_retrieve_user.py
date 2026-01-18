@@ -12,7 +12,7 @@ from tests.validations.validation_users import (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retrieve_admin_user(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     with DependencyOverrider(app, overrides={auth.get_current_user: lambda: user}):
@@ -22,7 +22,7 @@ async def test_retrieve_admin_user(app: FastAPI, client: AsyncClient, db_session
     valid_data_from_user_object(response.json(), user)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retrieve_standard_user(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     user_to_retrieve = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -33,7 +33,7 @@ async def test_retrieve_standard_user(app: FastAPI, client: AsyncClient, db_sess
     assert response.json() == {"detail": "User not found"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_invalid_user_id(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     with DependencyOverrider(app, overrides={auth.get_current_user: lambda: user}):

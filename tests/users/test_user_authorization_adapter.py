@@ -4,7 +4,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.models import UserAuthorizationAdapter
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_user_authorization_adapter(db_session):
     user = await UserFactory.create_async(session=db_session)
     adapter = UserAuthorizationAdapter(user)

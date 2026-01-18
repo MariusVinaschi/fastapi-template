@@ -1,9 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.api.security import VerifyAuth, UnauthenticatedException, UnauthorizedException
+from app.api.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
 from app.domains.users.models import User
 
 
@@ -59,7 +60,7 @@ class TestVerifyAuth:
         assert verify_auth.clerk_azp is not None
         assert verify_auth.jwks_client is not None
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_current_user_with_jwt_success(
         self,
         verify_auth,
@@ -70,9 +71,7 @@ class TestVerifyAuth:
         mock_request,
     ):
         """Test successful JWT authentication"""
-        with patch.object(
-            verify_auth, "_authenticate_with_jwt", return_value=mock_user_admin
-        ) as mock_jwt:
+        with patch.object(verify_auth, "_authenticate_with_jwt", return_value=mock_user_admin) as mock_jwt:
             result = await verify_auth.get_current_user(
                 security_scopes=mock_security_scopes,
                 session=db_session,
@@ -83,15 +82,13 @@ class TestVerifyAuth:
             assert result == mock_user_admin
             mock_jwt.assert_called_once_with(mock_security_scopes, db_session, mock_token)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_current_user_with_jwt_failure_then_api_key_success(
         self, verify_auth, mock_user_admin, mock_security_scopes, db_session, mock_request
     ):
         """Test JWT failure followed by successful API key authentication"""
         # Test with no token (JWT) but with API key
-        with patch.object(
-            verify_auth, "_authenticate_with_api_key", return_value=mock_user_admin
-        ) as mock_api:
+        with patch.object(verify_auth, "_authenticate_with_api_key", return_value=mock_user_admin) as mock_api:
             result = await verify_auth.get_current_user(
                 security_scopes=mock_security_scopes,
                 session=db_session,
@@ -102,7 +99,7 @@ class TestVerifyAuth:
             assert result == mock_user_admin
             mock_api.assert_called_once_with(db_session, "test-api-key")
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_current_admin_user_success(
         self,
         verify_auth,
@@ -123,7 +120,7 @@ class TestVerifyAuth:
 
             assert result == mock_user_admin
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_current_admin_user_not_admin(
         self,
         verify_auth,
@@ -145,7 +142,7 @@ class TestVerifyAuth:
 
             assert "User is not an admin." in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_authenticate_with_jwt_success(
         self, verify_auth, mock_user_admin, mock_token, mock_security_scopes, db_session
     ):
@@ -153,34 +150,28 @@ class TestVerifyAuth:
         mock_payload = {"email": "admin@test.com"}
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
-            with patch("app.security.UserService") as mock_user_service:
+            with patch("app.api.security.UserService") as mock_user_service:
                 mock_service_instance = AsyncMock()
                 mock_service_instance.get_by_email.return_value = mock_user_admin
-                mock_user_service.return_value = mock_service_instance
+                mock_user_service.for_system.return_value = mock_service_instance
 
-                result = await verify_auth._authenticate_with_jwt(
-                    mock_security_scopes, db_session, mock_token
-                )
+                result = await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
 
                 assert result == mock_user_admin
                 mock_service_instance.get_by_email.assert_called_once_with("admin@test.com")
 
-    @pytest.mark.asyncio
-    async def test_authenticate_with_jwt_invalid_token(
-        self, verify_auth, mock_token, mock_security_scopes, db_session
-    ):
+    @pytest.mark.anyio
+    async def test_authenticate_with_jwt_invalid_token(self, verify_auth, mock_token, mock_security_scopes, db_session):
         """Test JWT authentication with invalid token"""
         mock_payload = {"sub": "user123"}  # Missing email
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
             with pytest.raises(UnauthenticatedException) as exc_info:
-                await verify_auth._authenticate_with_jwt(
-                    mock_security_scopes, db_session, mock_token
-                )
+                await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
 
             assert "Invalid token" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_authenticate_with_jwt_user_not_found(
         self, verify_auth, mock_token, mock_security_scopes, db_session
     ):
@@ -188,24 +179,20 @@ class TestVerifyAuth:
         mock_payload = {"email": "nonexistent@test.com"}
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
-            with patch("app.security.UserService") as mock_user_service:
+            with patch("app.api.security.UserService") as mock_user_service:
                 mock_service_instance = AsyncMock()
                 mock_service_instance.get_by_email.side_effect = Exception("User not found")
-                mock_user_service.return_value = mock_service_instance
+                mock_user_service.for_system.return_value = mock_service_instance
 
                 with pytest.raises(UnauthenticatedException) as exc_info:
-                    await verify_auth._authenticate_with_jwt(
-                        mock_security_scopes, db_session, mock_token
-                    )
+                    await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
 
                 assert "User doesn't exist" in str(exc_info.value)
 
-    @pytest.mark.asyncio
-    async def test_authenticate_with_api_key_success(
-        self, verify_auth, mock_user_admin, db_session
-    ):
+    @pytest.mark.anyio
+    async def test_authenticate_with_api_key_success(self, verify_auth, mock_user_admin, db_session):
         """Test successful API key authentication"""
-        with patch("app.security.APIKeyService") as mock_api_key_service:
+        with patch("app.api.security.APIKeyService") as mock_api_key_service:
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
             mock_api_key_obj = MagicMock()
@@ -219,10 +206,10 @@ class TestVerifyAuth:
             mock_service_instance.hash_api_key.assert_called_once_with("test-api-key")
             mock_service_instance.get_by_api_key_hash.assert_called_once_with("hashed_key")
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_authenticate_with_api_key_invalid(self, verify_auth, db_session):
         """Test API key authentication with invalid key"""
-        with patch("app.security.APIKeyService") as mock_api_key_service:
+        with patch("app.api.security.APIKeyService") as mock_api_key_service:
             mock_service_instance = AsyncMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
             mock_service_instance.get_by_api_key_hash.side_effect = Exception("Key not found")
@@ -233,7 +220,7 @@ class TestVerifyAuth:
 
             assert "Invalid API key" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_verify_jwt_token_success(self, verify_auth, mock_token, mock_security_scopes):
         """Test successful JWT token verification"""
         mock_payload = {"sub": "user123", "scope": "read write", "azp": verify_auth.clerk_azp}
@@ -250,7 +237,7 @@ class TestVerifyAuth:
                 assert result == mock_payload
                 mock_decode.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_verify_jwt_token_no_token(self, verify_auth, mock_security_scopes):
         """Test JWT verification with no token"""
         with pytest.raises(UnauthenticatedException) as exc_info:
@@ -258,7 +245,7 @@ class TestVerifyAuth:
 
         assert "No token provided" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_verify_jwt_token_jwks_error(self, verify_auth, mock_token, mock_security_scopes):
         """Test JWT verification with JWKS client error"""
         import jwt.exceptions
@@ -273,10 +260,8 @@ class TestVerifyAuth:
 
             assert "JWKS error" in str(exc_info.value)
 
-    @pytest.mark.asyncio
-    async def test_verify_jwt_token_decode_error(
-        self, verify_auth, mock_token, mock_security_scopes
-    ):
+    @pytest.mark.anyio
+    async def test_verify_jwt_token_decode_error(self, verify_auth, mock_token, mock_security_scopes):
         """Test JWT verification with decode error"""
         mock_signing_key = "mock_signing_key"
 

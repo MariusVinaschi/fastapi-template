@@ -1,7 +1,5 @@
 import logging
-import os
 from pathlib import Path
-from sys import modules
 from typing import List
 
 from pydantic import PostgresDsn
@@ -100,10 +98,4 @@ class Settings(BaseSettings):
         return self.CORS_ORIGINS.split(",")
 
 
-class TestSettings(Settings):
-    @property
-    def DB_BASE(self):
-        return f"{self.APP_DB_NAME}_test"
-
-
-settings = TestSettings() if "pytest" in modules else Settings()
+settings = Settings()

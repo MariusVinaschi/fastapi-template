@@ -7,12 +7,12 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.models import UserAuthorizationAdapter
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_auth_context_standard_user(mocker: MockerFixture, db_session):
     # Arrange
     user = await UserFactory.create_async(session=db_session, role="standard")
     mocker.patch(
-        "app.security.auth.get_current_user",
+        "app.api.security.auth.get_current_user",
         return_value=user,
     )
 
@@ -27,12 +27,12 @@ async def test_get_auth_context_standard_user(mocker: MockerFixture, db_session)
     assert result.user_role == user.role
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_admin_auth_context(mocker: MockerFixture, db_session):
     # Arrange
     admin_user = await UserFactory.create_async(session=db_session, role="admin")
     mocker.patch(
-        "app.security.auth.get_current_admin_user",
+        "app.api.security.auth.get_current_admin_user",
         return_value=admin_user,
     )
 
@@ -47,7 +47,7 @@ async def test_get_admin_auth_context(mocker: MockerFixture, db_session):
     assert result.user_role == admin_user.role
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_auth_context_adapter_properties(db_session):
     # Arrange
     user = await UserFactory.create_async(

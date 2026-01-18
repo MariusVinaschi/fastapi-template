@@ -9,7 +9,7 @@ from tests.utils.override_dependencies import DependencyOverrider
 from tests.validations.validation_users import valid_dict_content
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_update_user(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     user_to_update = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -18,13 +18,6 @@ async def test_update_user(app: FastAPI, client: AsyncClient, db_session):
             f"/api/v1/users/{user_to_update.id}",
             json={
                 "role": "standard",
-                "configuration": {
-                    "widgets": [
-                        {"id": 1, "x": 0, "y": 0},
-                        {"id": 2, "x": 1, "y": 1},
-                        {"id": 3, "x": 2, "y": 2},
-                    ]
-                },
             },
         )
     assert response.status_code == 200
@@ -32,16 +25,9 @@ async def test_update_user(app: FastAPI, client: AsyncClient, db_session):
     assert response.json()["id"] == str(user_to_update.id)
     assert response.json()["email"] == user_to_update.email
     assert response.json()["role"] == "standard"
-    assert response.json()["configuration"] == {
-        "widgets": [
-            {"id": 1, "x": 0, "y": 0},
-            {"id": 2, "x": 1, "y": 1},
-            {"id": 3, "x": 2, "y": 2},
-        ]
-    }
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_invalid_user_id(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     with DependencyOverrider(app, overrides={auth.get_current_admin_user: lambda: user}):

@@ -5,7 +5,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.service import ClerkUserService
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete_user(db_session):
     clerk_id = "clerk_id_123"
     await UserFactory.create_async(session=db_session, clerk_id=clerk_id)
@@ -18,7 +18,7 @@ async def test_delete_user(db_session):
         await ClerkUserService.for_system(db_session).get_by_clerk_id(clerk_id)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete_user_not_found(db_session):
     clerk_id = "clerk_id_123"
     data = {

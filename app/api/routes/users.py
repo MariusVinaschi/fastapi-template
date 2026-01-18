@@ -2,6 +2,7 @@
 User management endpoints.
 This module contains all user-related HTTP routes.
 """
+
 import logging
 from typing import Annotated
 from uuid import UUID
@@ -10,23 +11,23 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import (
-    CurrentSession,
-    CurrentAuthContext,
     CurrentAdminAuthContext,
+    CurrentAuthContext,
+    CurrentSession,
     CurrentUser,
 )
 from app.api.exceptions import UserNotFoundHTTPException
 from app.domains.base.exceptions import PermissionDenied
-from app.domains.base.filters import BaseFilterParams
 from app.domains.base.schemas import PaginatedSchema, Status
 from app.domains.users.exceptions import UserNotFoundException
+from app.domains.users.filters import UserFilter
 from app.domains.users.schemas import (
+    APIKeyGenerated,
     UserCreate,
     UserPatch,
     UserRead,
-    APIKeyGenerated,
 )
-from app.domains.users.service import UserService, APIKeyService
+from app.domains.users.service import APIKeyService, UserService
 
 router = APIRouter(
     responses={404: {"description": "Not found"}},
@@ -39,7 +40,7 @@ log = logging.getLogger(__name__)
 async def get_users(
     session: CurrentSession,
     authorization_context: CurrentAuthContext,
-    filters: Annotated[BaseFilterParams, Query()],
+    filters: Annotated[UserFilter, Query()],
 ):
     """
     Get paginated list of users.
@@ -104,9 +105,7 @@ async def update_user(
     Requires admin privileges.
     """
     try:
-        return await UserService.for_user(session, authorization_context).update(
-            user_id, user_update
-        )
+        return await UserService.for_user(session, authorization_context).update(user_id, user_update)
     except UserNotFoundException:
         raise UserNotFoundHTTPException
 
@@ -170,4 +169,3 @@ async def revoke_api_key(
         return Status(detail="API key revoked successfully")
 
     return Status(detail="No API key found to revoke")
-

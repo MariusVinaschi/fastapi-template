@@ -17,7 +17,7 @@ class TestAuthInstance:
         assert auth.clerk_azp is not None
         assert auth.jwks_client is not None
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auth_get_current_user(self, mocker, db_session):
         """Test get_current_user using the global auth instance"""
         mock_user = MagicMock()
@@ -37,7 +37,7 @@ class TestAuthInstance:
 
         assert result == mock_user
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auth_get_current_admin_user(self, mocker, db_session):
         """Test get_current_admin_user using the global auth instance"""
         mock_user = MagicMock()
@@ -62,7 +62,7 @@ class TestAuthInstance:
         assert auth is auth_imported
         assert id(auth) == id(auth_imported)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auth_check_claims(self):
         """Test check_claims using the global auth instance"""
         payload = {"scope": "read write admin"}
@@ -71,7 +71,7 @@ class TestAuthInstance:
         # Should not raise exception
         auth._check_claims(payload, "scope", expected_scopes)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auth_verify_jwt_token_mock(self, mocker):
         """Test verify_jwt_token using the global auth instance with mocked dependencies"""
         mock_token = mocker.MagicMock()

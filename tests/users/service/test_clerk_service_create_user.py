@@ -4,7 +4,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.service import ClerkUserService
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_user(db_session):
     clerk_id = "clerk_id_123"
     data = {
@@ -19,7 +19,7 @@ async def test_create_user(db_session):
     assert created_user.email == "test@example.com"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_user_email_already_exists_not_the_same(db_session):
     clerk_id = "clerk_id_123"
     user = await UserFactory.create_async(
@@ -38,7 +38,7 @@ async def test_create_user_email_already_exists_not_the_same(db_session):
     assert updated_user.id == user.id
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_user_email_already_exists_the_same(db_session):
     clerk_id = "clerk_id_123"
     email = "test@example.com"
@@ -56,7 +56,7 @@ async def test_create_user_email_already_exists_the_same(db_session):
     assert updated_user.id == user.id
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_create_user_clerk_id_not_found_but_email_exists(db_session):
     clerk_id = "clerk_id_123"
     email = "test@example.com"

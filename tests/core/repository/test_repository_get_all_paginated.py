@@ -1,14 +1,14 @@
 from app.domains.base.filters import BaseFilterParams
 
 
-async def test_get_paginated_basic(repository, populated_db, auth_context_user_1):
+async def test_get_paginated_basic(repository, populated_db):
     """Test basic pagination functionality"""
     # Arrange
     filters = BaseFilterParams(offset=0, limit=1)
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -18,14 +18,14 @@ async def test_get_paginated_basic(repository, populated_db, auth_context_user_1
     assert isinstance(results[0], repository.model)
 
 
-async def test_get_paginated_empty_results(repository, auth_context_user_1):
+async def test_get_paginated_empty_results(repository):
     """Test pagination with empty database"""
     # Arrange
     filters = BaseFilterParams(offset=0, limit=10)
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -34,7 +34,7 @@ async def test_get_paginated_empty_results(repository, auth_context_user_1):
 
 
 async def test_get_paginated_with_ordering(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test pagination with ordering"""
     # Arrange
@@ -42,7 +42,7 @@ async def test_get_paginated_with_ordering(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -52,7 +52,7 @@ async def test_get_paginated_with_ordering(
 
 
 async def test_get_paginated_with_ordering_desc(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test pagination with descending ordering"""
     # Arrange
@@ -60,7 +60,7 @@ async def test_get_paginated_with_ordering_desc(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -70,7 +70,7 @@ async def test_get_paginated_with_ordering_desc(
 
 
 async def test_get_paginated_different_pages(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test accessing different pages with pagination"""
     # Arrange
@@ -93,10 +93,10 @@ async def test_get_paginated_different_pages(
 
     # Act
     total_count1, page1_results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters_page1
+        filters=filters_page1
     )
     total_count2, page2_results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters_page2
+        filters=filters_page2
     )
 
     # Assert
@@ -109,7 +109,7 @@ async def test_get_paginated_different_pages(
 
 
 async def test_get_paginated_offset_exceeds_total(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test pagination with offset exceeding total count"""
     # Arrange
@@ -117,7 +117,7 @@ async def test_get_paginated_offset_exceeds_total(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -126,7 +126,7 @@ async def test_get_paginated_offset_exceeds_total(
     assert len(results) == 0
 
 
-async def test_get_paginated_with_search(repository, populated_db, auth_context_user_1):
+async def test_get_paginated_with_search(repository, populated_db):
     """Test pagination with search filter"""
     # Arrange
     search_data = [
@@ -151,7 +151,7 @@ async def test_get_paginated_with_search(repository, populated_db, auth_context_
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -162,7 +162,7 @@ async def test_get_paginated_with_search(repository, populated_db, auth_context_
 
 
 async def test_get_paginated_with_search_no_results(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test pagination with search filter that matches nothing"""
     # Arrange
@@ -170,7 +170,7 @@ async def test_get_paginated_with_search_no_results(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -179,7 +179,7 @@ async def test_get_paginated_with_search_no_results(
 
 
 async def test_get_paginated_with_case_insensitive_search(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test that search is case insensitive"""
     # Arrange
@@ -196,7 +196,7 @@ async def test_get_paginated_with_case_insensitive_search(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert
@@ -206,7 +206,7 @@ async def test_get_paginated_with_case_insensitive_search(
 
 
 async def test_get_paginated_with_id_in_filter(
-    repository, populated_db, auth_context_user_1
+    repository, populated_db
 ):
     """Test pagination with id__in filter"""
     # Arrange
@@ -217,7 +217,7 @@ async def test_get_paginated_with_id_in_filter(
 
     # Act
     total_count, results = await repository.get_paginated(
-        authorization_context=auth_context_user_1, filters=filters
+        filters=filters
     )
 
     # Assert

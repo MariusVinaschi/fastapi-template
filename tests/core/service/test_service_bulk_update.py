@@ -6,18 +6,17 @@ from app.domains.base.exceptions import EntityNotFoundException
 from tests.core.conftest import UpdateModelSchema
 
 
-async def test_bulk_update_success(service, auth_context_user_1, populated_db):
+async def test_bulk_update_success(service_factory, auth_context_user_1, populated_db):
     """
     Test successful bulk update of entities with valid data.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     instance_ids = [instance.id for instance in populated_db[:2]]
     update_data = UpdateModelSchema(name="Updated Name")
 
     # Act
-    updated_instances = await service.bulk_update(
-        instance_ids, update_data, authorization_context=auth_context_user_1
-    )
+    updated_instances = await service.bulk_update(instance_ids, update_data)
 
     # Assert
     assert len(updated_instances) == len(instance_ids)
@@ -26,15 +25,16 @@ async def test_bulk_update_success(service, auth_context_user_1, populated_db):
         assert instance.updated_by == auth_context_user_1.user_email
 
 
-async def test_bulk_update_with_validation(service, auth_context_user_1, populated_db):
+async def test_bulk_update_with_validation(service_factory, auth_context_user_1, populated_db):
     """
     Test bulk update with custom validation logic.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     validation_called = False
     instance_ids = [instance.id for instance in populated_db[:2]]
 
-    async def custom_validate(instances, data, user):
+    async def custom_validate(instances, data):
         nonlocal validation_called
         validation_called = True
         # Custom validation logic - prevent names with "invalid"
@@ -48,9 +48,7 @@ async def test_bulk_update_with_validation(service, auth_context_user_1, populat
     valid_update = UpdateModelSchema(name="Valid name")
 
     # Act - valid update
-    updated_instances = await service.bulk_update(
-        instance_ids, valid_update, authorization_context=auth_context_user_1
-    )
+    updated_instances = await service.bulk_update(instance_ids, valid_update)
 
     # Assert - valid update
     assert validation_called
@@ -65,44 +63,40 @@ async def test_bulk_update_with_validation(service, auth_context_user_1, populat
 
     # Act & Assert - invalid update
     with pytest.raises(ValueError, match="Invalid name detected"):
-        await service.bulk_update(
-            instance_ids, invalid_update, authorization_context=auth_context_user_1
-        )
+        await service.bulk_update(instance_ids, invalid_update)
 
     assert validation_called
 
 
 async def test_bulk_update_with_missing_entity(
-    service, auth_context_user_1, populated_db
+    service_factory, auth_context_user_1, populated_db
 ):
     """
     Test bulk update with a non-existent entity ID.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     non_existent_id = str(uuid4())
     instance_ids = [populated_db[0].id, non_existent_id]
     update_data = UpdateModelSchema(name="Updated Name")
 
     # Act & Assert
     with pytest.raises(EntityNotFoundException) as exc_info:
-        await service.bulk_update(
-            instance_ids, update_data, authorization_context=auth_context_user_1
-        )
+        await service.bulk_update(instance_ids, update_data)
 
     assert str(non_existent_id) in str(exc_info.value)
 
 
-async def test_bulk_update_empty_list(service, auth_context_user_1):
+async def test_bulk_update_empty_list(service_factory, auth_context_user_1):
     """
     Test bulk update with empty list.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     update_data = UpdateModelSchema(name="Won't be used")
 
     # Act
-    updated_instances = await service.bulk_update(
-        [], update_data, authorization_context=auth_context_user_1
-    )
+    updated_instances = await service.bulk_update([], update_data)
 
     # Assert
     assert isinstance(updated_instances, list)
@@ -110,23 +104,27 @@ async def test_bulk_update_empty_list(service, auth_context_user_1):
 
 
 async def test_bulk_update_prepare_and_validate_flow(
-    service, auth_context_user_1, populated_db
+    service_factory, auth_context_user_1, populated_db
 ):
     """
     Test the complete bulk update flow including preparation and validation.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     prepare_called = False
     validate_called = False
 
     instance_ids = [instance.id for instance in populated_db[:2]]
 
-    def custom_prepare(data, user):
+    def custom_prepare(data):
         nonlocal prepare_called
         prepare_called = True
-        return {"name": f"{data.name}_prepared", "updated_by": user.user_email}
+        return {
+            "name": f"{data.name}_prepared",
+            "updated_by": service.authorization_context.user_email,
+        }
 
-    async def custom_validate(instances, data, user):
+    async def custom_validate(instances, data):
         nonlocal validate_called
         validate_called = True
         assert data["name"].endswith("_prepared")
@@ -138,9 +136,7 @@ async def test_bulk_update_prepare_and_validate_flow(
     update_data = UpdateModelSchema(name="Bulk Update")
 
     # Act
-    updated_instances = await service.bulk_update(
-        instance_ids, update_data, authorization_context=auth_context_user_1
-    )
+    updated_instances = await service.bulk_update(instance_ids, update_data)
 
     # Assert
     assert prepare_called, "Prepare should be called once"

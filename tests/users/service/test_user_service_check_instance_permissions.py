@@ -7,7 +7,7 @@ from app.domains.users.schemas import RoleEnum
 from app.domains.users.service import UserService
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_admin_read(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     context = UserAuthorizationAdapter(user)
@@ -16,7 +16,7 @@ async def test_check_instance_permissions_admin_read(db_session):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_admin_delete(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     context = UserAuthorizationAdapter(user)
@@ -24,7 +24,7 @@ async def test_check_instance_permissions_admin_delete(db_session):
         UserService.for_user(db_session, context)._check_instance_permissions("delete", user)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_admin_update(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     context = UserAuthorizationAdapter(user)
@@ -34,7 +34,7 @@ async def test_check_instance_permissions_admin_update(db_session):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_standard_update(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     user_to_update = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -45,7 +45,7 @@ async def test_check_instance_permissions_standard_update(db_session):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_standard_update_self(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     context = UserAuthorizationAdapter(user)
@@ -55,7 +55,7 @@ async def test_check_instance_permissions_standard_update_self(db_session):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_standard_read_self(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     context = UserAuthorizationAdapter(user)
@@ -64,7 +64,7 @@ async def test_check_instance_permissions_standard_read_self(db_session):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_check_instance_permissions_standard_delete_self(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     user_to_read = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)

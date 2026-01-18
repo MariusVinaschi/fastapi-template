@@ -25,7 +25,7 @@ from app.domains.base.service import (
     ListServiceMixin,
     UpdateServiceMixin,
 )
-from tests.core.models import TestModel, User
+from tests.core.models import TestModel, TestUser
 
 # Test UUID constants for consistent ID usage across tests
 USER_1_ID = uuid4()
@@ -127,31 +127,38 @@ async def repository(db_session, scope_strategy, test_model):
 
 
 @pytest.fixture
-def service(db_session, scope_strategy, test_model):
+def service_factory(db_session, scope_strategy, test_model):
     """
-    Creates a test service instance with a properly configured repository.
-    Uses a repository class factory to automatically inject scope strategy and model.
+    Creates a factory that builds services with an authorization context.
+    Uses a repository class factory to inject scope strategy and model.
     """
 
     def create_repository_class():
         class ConfiguredTestRepository(TestRepository):
-            def __init__(self, session: AsyncSession):
+            def __init__(self, session: AsyncSession, authorization_context=None):
                 super().__init__(
-                    session=session, scope_strategy=scope_strategy, model=test_model
+                    session=session,
+                    scope_strategy=scope_strategy,
+                    model=test_model,
+                    authorization_context=authorization_context,
                 )
 
         return ConfiguredTestRepository
 
-    return TestService(
-        session=db_session,
-        repository_class=create_repository_class(),
-    )
+    def create_service(authorization_context=None):
+        return TestService(
+            session=db_session,
+            repository_class=create_repository_class(),
+            authorization_context=authorization_context,
+        )
+
+    return create_service
 
 
 @pytest.fixture
 async def user_1(db_session):
     """Creates and persists the first regular user"""
-    user = User(
+    user = TestUser(
         id=USER_1_ID,
         email="user1@test.com",
         role="admin",
@@ -165,7 +172,7 @@ async def user_1(db_session):
 @pytest.fixture
 async def user_2(db_session):
     """Creates and persists the second regular user"""
-    user = User(
+    user = TestUser(
         id=USER_2_ID,
         email="user2@test.com",
         role="user",

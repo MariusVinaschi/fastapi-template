@@ -3,12 +3,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.domains.base.models import Base, CreatedByMixin, TimestampMixin, UUIDMixin
 
 
-class User(Base, UUIDMixin, TimestampMixin):
+class TestUser(Base, UUIDMixin, TimestampMixin):
     """
-    User model representing a user in the system.
+    Test user model for testing purposes.
+    Named differently to avoid conflict with app.domains.users.models.User
     """
 
-    __tablename__ = "users"
+    __tablename__ = "test_users"
 
     email: Mapped[str] = mapped_column("email", nullable=False, unique=True)
     role: Mapped[str] = mapped_column("role", nullable=False)

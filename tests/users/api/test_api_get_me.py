@@ -12,7 +12,7 @@ from tests.validations.validation_users import (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_me_user_admin(client: AsyncClient, app: FastAPI, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     with DependencyOverrider(
@@ -25,7 +25,7 @@ async def test_get_me_user_admin(client: AsyncClient, app: FastAPI, db_session):
         valid_data_from_user_object(response.json(), user)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_me_user_standard(client: AsyncClient, app: FastAPI, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     with DependencyOverrider(

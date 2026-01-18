@@ -3,17 +3,18 @@ import pytest
 from tests.core.conftest import CreateModelSchema
 
 
-async def test_create_success(service, auth_context_user_1):
+async def test_create_success(service_factory, auth_context_user_1):
     """
     Test successful creation of an entity with valid data.
     """
     # Arrange
+    service = service_factory(auth_context_user_1)
     test_data = CreateModelSchema(
         name="New Test Entity",
     )
 
     # Act
-    created_entity = await service.create(test_data, auth_context_user_1)
+    created_entity = await service.create(test_data)
 
     # Assert
     assert created_entity is not None
@@ -22,14 +23,15 @@ async def test_create_success(service, auth_context_user_1):
     assert created_entity.updated_by == auth_context_user_1.user_email
 
 
-async def test_create_with_custom_validation(service, auth_context_user_1):
+async def test_create_with_custom_validation(service_factory, auth_context_user_1):
     """
     Test create with custom validation logic.
     """
     validation_called = False
+    service = service_factory(auth_context_user_1)
 
     # Override validation method
-    async def custom_validate(data: dict, user):
+    async def custom_validate(data: dict):
         nonlocal validation_called
         validation_called = True
         assert data["name"] == "Custom Validation Test"
@@ -41,7 +43,7 @@ async def test_create_with_custom_validation(service, auth_context_user_1):
     test_data = CreateModelSchema(name="Custom Validation Test")
 
     # Act
-    created_entity = await service.create(test_data, auth_context_user_1)
+    created_entity = await service.create(test_data)
 
     # Assert
     assert validation_called, "Custom validation was not called"
@@ -49,11 +51,13 @@ async def test_create_with_custom_validation(service, auth_context_user_1):
     assert created_entity.name == test_data.name
 
 
-async def test_create_with_failed_validation(service, auth_context_user_1):
+async def test_create_with_failed_validation(service_factory, auth_context_user_1):
     """
     Test create when validation fails.
     """
 
+    # Arrange
+    service = service_factory(auth_context_user_1)
     # Override validation method to always fail
     async def validation_fail(*args, **kwargs):
         raise ValueError("Validation failed")
@@ -65,23 +69,24 @@ async def test_create_with_failed_validation(service, auth_context_user_1):
 
     # Act & Assert
     with pytest.raises(ValueError, match="Validation failed"):
-        await service.create(test_data, auth_context_user_1)
+        await service.create(test_data)
 
 
-async def test_create_prepares_data_correctly(service, auth_context_user_1):
+async def test_create_prepares_data_correctly(service_factory, auth_context_user_1):
     """
     Test that create method correctly prepares data before saving.
     """
     prepare_called = False
+    service = service_factory(auth_context_user_1)
 
     # Override prepare method to verify it's called with correct data
-    def custom_prepare(data, user):
+    def custom_prepare(data):
         nonlocal prepare_called
         prepare_called = True
         prepared_data = {
-            "name": f"{data.name}_prepared",  # On modifie légèrement le nom pour vérifier que la préparation a eu lieu
-            "created_by": user.user_email,
-            "updated_by": user.user_email,
+            "name": f"{data.name}_prepared",  # Slightly change name to confirm preparation ran
+            "created_by": service.authorization_context.user_email,
+            "updated_by": service.authorization_context.user_email,
         }
         return prepared_data
 
@@ -93,7 +98,7 @@ async def test_create_prepares_data_correctly(service, auth_context_user_1):
     )
 
     # Act
-    created_entity = await service.create(test_data, auth_context_user_1)
+    created_entity = await service.create(test_data)
 
     # Assert
     assert prepare_called, "Data preparation method was not called"

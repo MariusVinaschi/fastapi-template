@@ -20,7 +20,7 @@ async def create_test_users(db_session):
     return [user_1, user_2, user_3]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retrieve_users_admin(
     app: FastAPI,
     client: AsyncClient,
@@ -45,7 +45,7 @@ async def test_retrieve_users_admin(
             valid_data_from_user_object(user, expected_user)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retrieve_users_with_filters_email(
     app: FastAPI,
     client: AsyncClient,

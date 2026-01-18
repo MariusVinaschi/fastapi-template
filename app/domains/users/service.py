@@ -32,7 +32,7 @@ class UserService(
     def _check_general_permissions(self, action: str) -> bool:
         """Check general permissions for user operations"""
         # System operations bypass all permission checks
-        if super()._check_general_permissions(action) and self._is_system_operation():
+        if self._is_system_operation():
             return True
 
         # Admins can do everything
@@ -48,7 +48,7 @@ class UserService(
     def _check_instance_permissions(self, action: str, instance: User) -> bool:
         """Check instance-level permissions for user operations"""
         # System operations bypass all permission checks
-        if super()._check_instance_permissions(action, instance) and self._is_system_operation():
+        if self._is_system_operation():
             return True
 
         # Users cannot delete themselves

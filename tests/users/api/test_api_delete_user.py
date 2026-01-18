@@ -8,7 +8,7 @@ from app.domains.users.schemas import RoleEnum
 from tests.utils.override_dependencies import DependencyOverrider
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete_user(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     user_to_delete = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -21,7 +21,7 @@ async def test_delete_user(app: FastAPI, client: AsyncClient, db_session):
     assert response.json() == {"detail": f"Deleted user {id}"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_delete_invalid_id(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     invalid_user_id = "cc34ccb8-1b64-11ee-be56-0242ac120002"
@@ -31,7 +31,7 @@ async def test_delete_invalid_id(app: FastAPI, client: AsyncClient, db_session):
     assert response.json() == {"detail": "User not found"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_user_can_delete_himself(app: FastAPI, client: AsyncClient, db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     id = user.id
