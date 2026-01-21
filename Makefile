@@ -41,16 +41,16 @@ type-check: ## Type check code
 # =============================================================================
 
 migrate: ## Run database migrations
-	uvx alembic upgrade head
+	uv run alembic upgrade head
 
 migrate-create: ## Create a new migration (usage: make migrate-create MESSAGE="your message")
-	uvx alembic revision --autogenerate -m "$(MESSAGE)"
+	uv run alembic revision --autogenerate -m "$(MESSAGE)"
 
 migrate-down: ## Rollback one migration
-	uvx alembic downgrade -1
+	uv run alembic downgrade -1
 
 migrate-history: ## Show migration history
-	uvx alembic history
+	uv run alembic history
 
 # =============================================================================
 # Docker
@@ -88,8 +88,8 @@ docker-restart: docker-down docker-up ## Restart all services
 # Database Population
 # =============================================================================
 
-populate: ## Populate database with test data
-	python scripts/populate_database.py
+create-user: ## Create a new user
+	uv run generate-user
 
 # =============================================================================
 # Cleanup
