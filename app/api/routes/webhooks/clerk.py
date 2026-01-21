@@ -2,6 +2,7 @@
 Clerk webhook endpoints.
 Handles user synchronization with Clerk authentication service.
 """
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -47,4 +48,3 @@ async def clerk_webhook(
     except Exception as e:
         log.error(f"Error processing Clerk webhook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-

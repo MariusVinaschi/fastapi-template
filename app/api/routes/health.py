@@ -1,6 +1,7 @@
 """
 Health check endpoints.
 """
+
 from fastapi.routing import APIRouter
 
 from app.infrastructure.config import settings
@@ -15,4 +16,3 @@ async def health():
     Returns the current health status and testing mode.
     """
     return {"health": "UP", "testing": settings.TESTING}
-

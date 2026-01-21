@@ -1,97 +1,66 @@
-# Multi-stage Dockerfile for FastAPI API and Prefect Workers
-# Build with: docker build --target api -t myapp:api .
-#             docker build --target worker -t myapp:worker .
-
 # =============================================================================
-# Base stage - Common dependencies and setup
+# Base stage - Common configuration
 # =============================================================================
 FROM python:3.13-slim AS base
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-# Install uv
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Place executables in the environment at the front of the path
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Compile bytecode
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
-ENV UV_COMPILE_BYTECODE=1
-
-# uv Cache
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
-ENV UV_LINK_MODE=copy
-
-# Install dependencies
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project
-
-# Copy application configuration
-COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
-COPY ./scripts /app/scripts
-
-# Copy application code
-COPY ./app /app/app
-
-# Sync the project
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync
-
+COPY pyproject.toml uv.lock ./
 
 # =============================================================================
-# API stage - FastAPI HTTP server
-# =============================================================================
-FROM base AS api
-
-LABEL role="api"
-LABEL description="FastAPI HTTP server"
-
-# Expose HTTP port
-EXPOSE 80
-
-# Health check for the API
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost/api/v1/health/', timeout=5)" || exit 1
-
-# Run FastAPI with multiple workers
-CMD ["fastapi", "run", "--workers", "4", "--port", "80", "--host", "0.0.0.0", "app/api/main.py"]
-
-
-# =============================================================================
-# Worker stage - Prefect task execution
+# Worker stage 
 # =============================================================================
 FROM base AS worker
 
-LABEL role="worker"
-LABEL description="Prefect worker for async tasks"
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project
 
-# Workers don't need exposed ports typically
-# Add if your worker needs to expose metrics or health endpoints
+# We do NOT copy the 'app/api' folder here.
+COPY ./app/domains /app/app/domains
+COPY ./app/infrastructure /app/app/infrastructure
+COPY ./app/workers /app/app/workers
+COPY ./app/scripts /app/scripts
 
-# Run Prefect flows/tasks
-CMD ["python", "-m", "app.workers.main"]
-
+# No specific CMD, Prefect will inject the run command 
 
 # =============================================================================
-# Migrations stage - Database migrations (optional, for CI/CD)
+# API stage - Focus on FastAPI
+# =============================================================================
+FROM base AS api
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project
+
+# The API needs everything
+COPY ./app /app/app
+COPY ./alembic.ini /app/
+
+EXPOSE 80
+CMD ["fastapi", "run", "--workers", "4", "--port", "80", "--host", "0.0.0.0", "app/api/main.py"]
+
+# =============================================================================
+# Migrations stage - Database migrations
 # =============================================================================
 FROM base AS migrations
 
 LABEL role="migrations"
-LABEL description="Database migration runner"
 
-# Copy migrations directory
-COPY ./migrations /app/migrations
+# Install dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project
 
-# Run Alembic migrations
+# Migrations need models (domains) and alembic config
+COPY ./app /app/app
+COPY ./alembic.ini /app/
+COPY ./alembic /app/alembic
+
+# We define a CMD to run migrations
 CMD ["alembic", "upgrade", "head"]

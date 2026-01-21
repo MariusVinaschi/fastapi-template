@@ -15,42 +15,42 @@ install: ## Install dependencies with uv
 	uv sync
 
 dev: ## Run FastAPI in development mode
-	fastapi dev app/api/main.py
-
-worker: ## Run Prefect worker locally
-	python -m app.workers.main
+	uv run fastapi dev app/api/main.py 
 
 # =============================================================================
 # Testing & Quality
 # =============================================================================
 
 test: ## Run all tests
-	pytest
+	uv run pytest
 
 test-cov: ## Run tests with coverage
-	pytest --cov=app --cov-report=html --cov-report=term
+	uv run pytest --cov=app --cov-report=html --cov-report=term
 
 lint: ## Run linters (ruff)
-	ruff check app/
+	uvx ruff check app/
 
 format: ## Format code
-	ruff format app/
+	uvx ruff format app/
+
+type-check: ## Type check code
+	uvx ty check app/
 
 # =============================================================================
 # Database
 # =============================================================================
 
 migrate: ## Run database migrations
-	alembic upgrade head
+	uvx alembic upgrade head
 
 migrate-create: ## Create a new migration (usage: make migrate-create MESSAGE="your message")
-	alembic revision --autogenerate -m "$(MESSAGE)"
+	uvx alembic revision --autogenerate -m "$(MESSAGE)"
 
 migrate-down: ## Rollback one migration
-	alembic downgrade -1
+	uvx alembic downgrade -1
 
 migrate-history: ## Show migration history
-	alembic history
+	uvx alembic history
 
 # =============================================================================
 # Docker

@@ -2,6 +2,7 @@
 FastAPI dependencies - Framework specific dependency injection.
 These dependencies bridge the domain layer with FastAPI's DI system.
 """
+
 from typing import Annotated
 
 from fastapi import Depends
@@ -37,4 +38,3 @@ def get_admin_auth_context(
 # Authorization context dependencies
 CurrentAuthContext = Annotated[AuthorizationContext, Depends(get_auth_context)]
 CurrentAdminAuthContext = Annotated[AuthorizationContext, Depends(get_admin_auth_context)]
-

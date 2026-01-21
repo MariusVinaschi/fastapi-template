@@ -2,6 +2,7 @@
 User authorization strategies - Framework agnostic.
 Defines how user-related queries should be scoped.
 """
+
 from sqlalchemy import Select
 
 from app.domains.base.authorization import (
@@ -37,4 +38,3 @@ class APIKeyScopeStrategy(AuthorizationScopeStrategy):
     def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
         # API keys are scoped to the user who owns them
         return query.where(self.model.user_id == context.user_id)
-

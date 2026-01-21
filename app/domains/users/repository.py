@@ -33,9 +33,7 @@ class UserRepository(
         return instance.one_or_none()
 
     async def find_by_clerk_id(self, clerk_id: str) -> User | None:
-        instance = await self.session.scalars(
-            select(self.model).where(self.model.clerk_id == clerk_id)
-        )
+        instance = await self.session.scalars(select(self.model).where(self.model.clerk_id == clerk_id))
         return instance.one_or_none()
 
 
@@ -49,16 +47,12 @@ class APIKeyRepository(
 
     async def get_by_user_id(self, user_id: UUID) -> APIKey | None:
         instance = await self.session.scalars(
-            select(self.model)
-            .options(joinedload(self.model.user))
-            .where(self.model.user_id == user_id)
+            select(self.model).options(joinedload(self.model.user)).where(self.model.user_id == user_id)
         )
         return instance.one_or_none()
 
     async def get_by_api_key_hash(self, api_key_hash: str) -> APIKey | None:
         instance = await self.session.scalars(
-            select(self.model)
-            .options(joinedload(self.model.user))
-            .where(self.model.key_hash == api_key_hash)
+            select(self.model).options(joinedload(self.model.user)).where(self.model.key_hash == api_key_hash)
         )
         return instance.one_or_none()

@@ -2,6 +2,7 @@
 Authorization abstractions - Framework agnostic.
 Defines the interfaces for authorization contexts and scope strategies.
 """
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Optional
 
@@ -69,4 +70,3 @@ class AuthorizationScopeStrategy(ABC, Generic[T]):
         if context is None:
             return query
         return query
-

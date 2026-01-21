@@ -2,6 +2,7 @@
 API exceptions - FastAPI specific HTTP exceptions.
 These wrap domain exceptions for HTTP responses.
 """
+
 from fastapi import HTTPException
 
 
@@ -24,4 +25,3 @@ class APIKeyNotFoundHTTPException(NotFoundHTTPException):
 
     def __init__(self, message: str = "API key not found") -> None:
         super().__init__(message)
-

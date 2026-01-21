@@ -82,28 +82,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # =============================================================================
-  # Worker - Prefect task execution (optional)
-  # =============================================================================
-  worker:
-    build:
-      context: .
-      dockerfile: dockerfile
-      target: worker
-    container_name: fastapi-worker
-    env_file:
-      - .env
-    depends_on:
-      dbapp:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-    restart: always
-    networks:
-      - app_network
-      - prefect_network
-    # Uncomment if you want to run workers locally instead of via Prefect server
-    # command: ["python", "-m", "app.workers.main"]
 
   # =============================================================================
   # Prefect Worker - Managed by Prefect server

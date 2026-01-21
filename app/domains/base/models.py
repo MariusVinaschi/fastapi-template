@@ -2,6 +2,7 @@
 Base ORM models - Framework agnostic SQLAlchemy models.
 These are the foundation for all domain entities.
 """
+
 import uuid
 from datetime import datetime
 
@@ -26,9 +27,7 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=convention)
 
     def __repr__(self) -> str:
-        columns = ", ".join(
-            [f"{k}={repr(v)}" for k, v in self.__dict__.items() if not k.startswith("_")]
-        )
+        columns = ", ".join([f"{k}={repr(v)}" for k, v in self.__dict__.items() if not k.startswith("_")])
         return f"<{self.__class__.__name__}({columns})>"
 
 
@@ -36,17 +35,13 @@ class TimestampMixin:
     """Mixin for created_at and updated_at timestamps"""
 
     created_at: Mapped[datetime] = mapped_column("created_at", default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
-        "updated_at", default=datetime.now, onupdate=datetime.now
-    )
+    updated_at: Mapped[datetime] = mapped_column("updated_at", default=datetime.now, onupdate=datetime.now)
 
 
 class UUIDMixin:
     """Mixin for UUID primary key"""
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        "id", UUID(as_uuid=True), default=uuid.uuid4, primary_key=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column("id", UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
 
 
 class CreatedByMixin:
@@ -54,4 +49,3 @@ class CreatedByMixin:
 
     created_by: Mapped[str] = mapped_column("created_by", nullable=False)
     updated_by: Mapped[str] = mapped_column("updated_by", nullable=False)
-

@@ -2,6 +2,7 @@
 Base repository - Framework agnostic data access layer.
 Contains all the generic CRUD operations for domain entities.
 """
+
 from collections.abc import Sequence
 from typing import Generic, Optional, Tuple, Type, TypeVar
 
@@ -310,11 +311,7 @@ class BulkDeleteRepositoryMixin(BaseRepository):
         if not ids:
             return 0
 
-        stmt = (
-            delete(self.model)
-            .where(self.model.id.in_(ids))
-            .execution_options(synchronize_session=False)
-        )
+        stmt = delete(self.model).where(self.model.id.in_(ids)).execution_options(synchronize_session=False)
 
         # Execute deletion
         result = await self.session.execute(stmt)
@@ -322,4 +319,3 @@ class BulkDeleteRepositoryMixin(BaseRepository):
 
         # Return number of deleted records
         return getattr(result, "rowcount", 0) or 0
-

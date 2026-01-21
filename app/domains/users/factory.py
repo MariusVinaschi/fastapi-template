@@ -2,6 +2,7 @@
 User factories - For testing and seeding data.
 These use factory_boy for generating test data.
 """
+
 import factory
 from faker import Faker
 
@@ -32,4 +33,3 @@ class APIKeyFactory(BaseFactory):
 
     key_hash = factory.Faker("sha256")
     user = factory.SubFactory(UserFactory)
-

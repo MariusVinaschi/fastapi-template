@@ -10,9 +10,7 @@ log = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), env_file_encoding="utf-8", extra="ignore")
 
     VERSION: str = "1.0"
     DOCS_URL: str = "/docs"

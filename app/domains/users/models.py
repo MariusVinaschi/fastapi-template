@@ -1,15 +1,15 @@
 """
 User domain models - Framework agnostic SQLAlchemy models.
 """
+
 from typing import Literal, Optional
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, JSON
+from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domains.base.authorization import AuthorizationContext
-from app.domains.base.models import Base, TimestampMixin, UUIDMixin, CreatedByMixin
-
+from app.domains.base.models import Base, CreatedByMixin, TimestampMixin, UUIDMixin
 
 RoleUser = Literal["standard", "admin"]
 
@@ -32,7 +32,6 @@ class User(Base, UUIDMixin, TimestampMixin, CreatedByMixin):
     )
     clerk_id: Mapped[str] = mapped_column("clerk_id", nullable=True, index=True)
 
-
     api_key: Mapped[Optional["APIKey"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -47,9 +46,7 @@ class APIKey(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "api_keys"
 
     key_hash: Mapped[str] = mapped_column("key_hash", nullable=False, unique=True, index=True)
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id"), nullable=False, unique=True, index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, unique=True, index=True)
 
     user: Mapped["User"] = relationship(back_populates="api_key")
 
@@ -75,4 +72,3 @@ class UserAuthorizationAdapter(AuthorizationContext):
     @property
     def user_role(self) -> RoleUser:
         return self._user.role
-

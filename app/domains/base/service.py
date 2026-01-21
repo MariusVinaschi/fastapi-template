@@ -2,6 +2,7 @@
 Base service - Framework agnostic business logic layer.
 Contains all the generic CRUD operations and business rules.
 """
+
 from typing import Generic, Optional, Type, TypeVar
 from uuid import UUID
 
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.base.authorization import AuthorizationContext
-from app.domains.base.exceptions import EntityNotFoundException, PermissionDenied
+from app.domains.base.exceptions import EntityNotFoundException
 from app.domains.base.filters import BaseFilterParams
 from app.domains.base.repository import BaseRepository
 
@@ -63,16 +64,16 @@ class BaseService(Generic[ModelType, RepositoryType]):
     def _check_general_permissions(self, action: str) -> bool:
         """
         Check general permissions for an action.
-        
+
         Automatically bypasses permission checks for system operations.
         Override in subclass to add custom permission logic for user operations.
-        
+
         Args:
             action: The action being performed (read, create, update, delete, etc.)
-            
+
         Returns:
             True if permission is granted
-            
+
         Raises:
             PermissionDenied: If permission is denied for user operations
         """
@@ -87,17 +88,17 @@ class BaseService(Generic[ModelType, RepositoryType]):
     def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
         """
         Check instance-level permissions for an action on a specific entity.
-        
+
         Automatically bypasses permission checks for system operations.
         Override in subclass to add custom permission logic for user operations.
-        
+
         Args:
             action: The action being performed (read, update, delete, etc.)
             instance: The entity instance being accessed
-            
+
         Returns:
             True if permission is granted
-            
+
         Raises:
             PermissionDenied: If permission is denied for user operations
         """
@@ -252,9 +253,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Validate update - override in subclass if needed"""
         pass
 
-    async def _validate_bulk_update(
-        self, instances: list[ModelType], data: dict
-    ) -> bool:
+    async def _validate_bulk_update(self, instances: list[ModelType], data: dict) -> bool:
         """
         Validate bulk update operation - override in subclass if needed.
 
@@ -371,4 +370,3 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
         await self._validate_bulk_create(create_data)
 
         return await self.repository.bulk_create(create_data)
-

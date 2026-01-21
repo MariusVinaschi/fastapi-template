@@ -63,9 +63,23 @@ app/
 │   └── security.py         # Authentication (Clerk JWT, API keys)
 ```
 
-### 3. Single Docker Image, Multiple Roles
+### 3. Adding a New Domain
 
-One repository, **one multi-stage Dockerfile**, multiple optimized images:
+1. Create the domain folder: `app/domains/myentity/`
+2. Add the files:
+   - `models.py` - ORM models
+   - `schemas.py` - Pydantic DTOs
+   - `repository.py` - Data access layer
+   - `service.py` - Business logic
+   - `exceptions.py` - Domain exceptions
+   - `authorization.py` - Scope strategies (if needed)
+3. Register models in `app/models.py` and `migrations/env.py`
+4. Create API routes in `app/api/routes/`
+5. (Optional) Create Prefect tasks/flows in `app/workers/`
+
+### 4. Single Docker Image, Multiple Roles
+
+One repository, **one multi-stage Dockerfile**, multiple images:
 
 ```bash
 # Build different images from the same Dockerfile
@@ -77,8 +91,6 @@ docker build --target migrations -t myapp:migrations .
 docker run -p 8000:80 myapp:api
 docker run myapp:worker
 ```
-
-Each stage is optimized for its specific role. See [DOCKER.md](DOCKER.md) for details.
 
 ## Quick Start
 
@@ -135,42 +147,7 @@ make migrate-create       # Create new migration
 make populate             # Populate database with test data
 ```
 
-## Adding a New Domain
-
-1. Create the domain folder: `app/domains/myentity/`
-2. Add the files:
-   - `models.py` - ORM models
-   - `schemas.py` - Pydantic DTOs
-   - `repository.py` - Data access layer
-   - `service.py` - Business logic
-   - `exceptions.py` - Domain exceptions
-   - `authorization.py` - Scope strategies (if needed)
-3. Register models in `app/models.py` and `migrations/env.py`
-4. Create API routes in `app/api/routes/`
-5. (Optional) Create Prefect tasks/flows in `app/workers/`
-
-## Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app
-
-# Run specific domain tests
-pytest tests/users/
-```
 
 ## Environment Variables
 
 See `.env.example` for all available configuration options.
-
-
-## Generate migrations 
-
-uv run alembic revision --autogenerate -m "init"
-
-## Apply it 
-
-uv run alembic upgrade head

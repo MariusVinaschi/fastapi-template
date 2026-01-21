@@ -2,6 +2,7 @@
 User schemas - Framework agnostic Pydantic models.
 These are pure DTOs with no delivery layer dependencies.
 """
+
 from enum import Enum
 from typing import Optional
 from uuid import UUID
@@ -32,6 +33,7 @@ class UserBase(UserEmail):
 
 class UserRead(UserBase, UUIDSchema, TimestampSchema):
     """Schema for reading user data"""
+
     pass
 
 
@@ -71,4 +73,3 @@ class APIKeyCreate(BaseModel):
 
     user_id: UUID
     key_hash: str
-

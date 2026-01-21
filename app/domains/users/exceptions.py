@@ -3,6 +3,7 @@ User domain exceptions - Framework agnostic.
 These exceptions are raised by user services and should be
 caught and transformed by the delivery layer.
 """
+
 from app.domains.base.exceptions import EntityNotFoundException
 
 
@@ -18,4 +19,3 @@ class APIKeyNotFoundException(EntityNotFoundException):
 
     def __init__(self, message: str = "API key not found") -> None:
         super().__init__(message)
-

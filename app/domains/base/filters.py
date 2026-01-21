@@ -2,6 +2,7 @@
 Filter parameters - Framework agnostic.
 These are pure Pydantic models for filtering and pagination.
 """
+
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -18,4 +19,3 @@ class BaseFilterParams(BaseModel):
 
     class Config:
         extra = "forbid"
-

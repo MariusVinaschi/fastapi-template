@@ -2,6 +2,7 @@
 Base factory - For testing and seeding data.
 Framework agnostic factory_boy base class.
 """
+
 from factory import Factory
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,4 +25,3 @@ class BaseFactory(Factory):
     async def create_batch_async(cls, size, **kwargs):
         """Create multiple instances asynchronously"""
         return [await cls.create_async(**kwargs) for _ in range(size)]
-

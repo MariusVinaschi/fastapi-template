@@ -2,6 +2,7 @@
 Base schemas - Framework agnostic Pydantic models.
 These are pure data transfer objects with no framework dependencies.
 """
+
 from datetime import datetime
 from typing import Generic, List, TypeVar
 from uuid import UUID
@@ -36,4 +37,3 @@ class Status(BaseModel):
     """Simple status response"""
 
     detail: str
-

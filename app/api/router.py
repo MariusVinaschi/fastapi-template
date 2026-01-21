@@ -2,6 +2,7 @@
 API router configuration.
 Aggregates all route modules into the main routers.
 """
+
 from fastapi.routing import APIRouter
 
 from app.api.routes.health import router as health_router
@@ -17,4 +18,3 @@ api_router.include_router(health_router, prefix="/health", tags=["health"])
 # Webhook router - separate from versioned API
 webhook_router = APIRouter()
 webhook_router.include_router(clerk_webhook_router)
-

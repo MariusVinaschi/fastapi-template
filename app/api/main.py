@@ -2,6 +2,7 @@
 FastAPI application factory and configuration.
 This is the entry point for the HTTP API.
 """
+
 import logging
 import sys
 
@@ -55,4 +56,3 @@ def create_application() -> FastAPI:
 
 # Create the application instance
 app = create_application()
-

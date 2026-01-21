@@ -5,4 +5,3 @@
 from app.domains.base.models import Base
 
 __all__ = ["Base"]
-

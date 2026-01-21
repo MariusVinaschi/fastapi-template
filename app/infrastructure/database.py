@@ -45,8 +45,6 @@ def get_prefect_session(
     # Create engine and session for Prefect
     prefect_engine = create_async_engine(db_url, echo=False, future=True)
 
-    prefect_session = async_sessionmaker(
-        bind=prefect_engine, autoflush=False, expire_on_commit=False
-    )
+    prefect_session = async_sessionmaker(bind=prefect_engine, autoflush=False, expire_on_commit=False)
 
     return prefect_session()
