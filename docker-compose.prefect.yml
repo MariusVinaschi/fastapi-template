@@ -43,6 +43,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      PREFECT_SERVER_API_AUTH_STRING: ${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}
       PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${PREFECT_DB_USER:-prefect}:${PREFECT_DB_PASSWORD:-prefect}@prefectdb:5432/${PREFECT_DB_NAME:-prefect}
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_MESSAGING_BROKER: prefect_redis.messaging
@@ -67,6 +68,7 @@ services:
         condition: service_healthy
     environment:
       PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${PREFECT_DB_USER:-prefect}:${PREFECT_DB_PASSWORD:-prefect}@prefectdb:5432/${PREFECT_DB_NAME:-prefect}
+      PREFECT_SERVER_API_AUTH_STRING: "${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}"
       PREFECT_MESSAGING_BROKER: prefect_redis.messaging
       PREFECT_MESSAGING_CACHE: prefect_redis.messaging
       PREFECT_REDIS_MESSAGING_HOST: redis

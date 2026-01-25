@@ -67,22 +67,45 @@ docker-build-migrations: ## Build Migrations Docker image
 
 docker-build-all: docker-build-api docker-build-worker docker-build-migrations ## Build all Docker images
 
-docker-up: ## Start all services with docker-compose
+docker-up: docker-up-app docker-up-prefect ## Start all services (app + prefect)
+
+docker-up-app: ## Start only FastAPI app services
 	docker-compose up -d
 
-docker-down: ## Stop all services
+docker-up-prefect: ## Start only Prefect services
+	docker-compose -f docker-compose.prefect.yml up -d
+
+docker-down: docker-down-app docker-down-prefect ## Stop all services (app + prefect)
+
+docker-down-app: ## Stop only app services
 	docker-compose down
 
-docker-logs: ## Show logs from all services
+docker-down-prefect: ## Stop only Prefect services
+	docker-compose -f docker-compose.prefect.yml down
+
+docker-logs: ## Show logs from app services (use docker-logs-app or docker-logs-prefect for specific)
 	docker-compose logs -f
+
+docker-logs-app: ## Show logs from app services
+	docker-compose logs -f
+
+docker-logs-prefect: ## Show logs from Prefect services
+	docker-compose -f docker-compose.prefect.yml logs -f
 
 docker-logs-api: ## Show API logs
 	docker-compose logs -f api
 
-docker-logs-worker: ## Show Worker logs
-	docker-compose logs -f worker
+docker-logs-worker: ## Show Prefect worker logs
+	docker-compose logs -f prefect-worker
+
+docker-logs-prefect-server: ## Show Prefect server logs
+	docker-compose -f docker-compose.prefect.yml logs -f prefect-server prefect-services
 
 docker-restart: docker-down docker-up ## Restart all services
+
+docker-restart-app: docker-down-app docker-up-app ## Restart only app services
+
+docker-restart-prefect: docker-down-prefect docker-up-prefect ## Restart only Prefect services
 
 # =============================================================================
 # Database Population
@@ -105,6 +128,7 @@ clean: ## Clean up cache and temporary files
 	find . -type f -name ".coverage" -delete
 	rm -rf htmlcov/ .coverage coverage.xml
 
-clean-docker: ## Remove all Docker images and volumes
+clean-docker: ## Remove all Docker images and volumes (app + prefect)
 	docker-compose down -v
+	docker-compose -f docker-compose.prefect.yml down -v
 	docker rmi fastapi-template:api fastapi-template:worker fastapi-template:migrations 2>/dev/null || true

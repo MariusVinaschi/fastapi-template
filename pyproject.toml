@@ -129,3 +129,4 @@ pythonpath = ["."]
 
 [project.scripts]
 generate-user = "app.scripts.generate_user:cli"
+init-prefect = "app.scripts.init_prefect:cli"
