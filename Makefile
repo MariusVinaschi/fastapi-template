@@ -114,6 +114,14 @@ docker-restart-prefect: docker-down-prefect docker-up-prefect ## Restart only Pr
 create-user: ## Create a new user
 	uv run generate-user
 
+
+# =============================================================================
+# Setup prefect
+# =============================================================================
+
+init-prefect: ## Initialize Prefect
+	uv run init-prefect
+
 # =============================================================================
 # Cleanup
 # =============================================================================

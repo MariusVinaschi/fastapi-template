@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -75,7 +76,13 @@ async def ensure_work_pool():
 
 def main():
     save_block(build_db_secret(), "appdb")
+    ensure_work_pool()
+
+
+def cli():
+    """Entry point for the console script"""
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    main()
+    cli()

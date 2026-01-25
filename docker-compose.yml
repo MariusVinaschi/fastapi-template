@@ -92,6 +92,7 @@ services:
     environment:
       PREFECT_API_URL: ${PREFECT_API_URL}
       WORK_POOL_NAME: ${WORK_POOL_NAME}
+      PREFECT_API_AUTH_STRING: "${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
