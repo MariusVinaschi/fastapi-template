@@ -573,6 +573,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "jwt" },
     { name = "prefect" },
+    { name = "prefect-sqlalchemy" },
     { name = "pydantic", extra = ["email", "timezone"] },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -598,6 +599,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },
     { name = "jwt", specifier = ">=1.4.0" },
     { name = "prefect", specifier = ">=3.6.10" },
+    { name = "prefect-sqlalchemy", specifier = ">=0.5.3" },
     { name = "pydantic", extras = ["email", "timezone"], specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pyjwt", specifier = ">=2.10.1" },
@@ -1290,6 +1292,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d1/16/235e08208e73b52712e8a93c64b76e6beafa5f7e34a0c512a2039d9dc096/prefect-3.6.10.tar.gz", hash = "sha256:b300aecdb26fde32f34c6689d29a2f9782fdcbe54107460470ba6097201e3179", size = 10666953, upload-time = "2026-01-08T21:17:36.466Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/45/a8/283556be5310e61a8360766e510ed72a751433c1679c3f907f85798f7ccf/prefect-3.6.10-py3-none-any.whl", hash = "sha256:6544c33fe87be657a7b3187f4ef42edd1b153ffc75531717cc05afcb2c8392fe", size = 11369646, upload-time = "2026-01-08T21:17:34.111Z" },
+]
+
+[[package]]
+name = "prefect-sqlalchemy"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prefect" },
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fa/ad/694929d2f3139ce9d52e3b36dd09519cdc518d5a5e86872799a5cbef8416/prefect_sqlalchemy-0.5.3.tar.gz", hash = "sha256:c84482e00fa02c28a2b5229fc0b943e6bcd1c21d981b6f1e15def3828a051a95", size = 18010, upload-time = "2025-05-19T13:35:32.989Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/7e/c18c9c6dd38237926b11646db9fa9534996310e82646ee077187893b9f20/prefect_sqlalchemy-0.5.3-py3-none-any.whl", hash = "sha256:e03d48313039e7cd30d67c244c3a81049a5e38cbd407e4cb35df40d45392dfb9", size = 14481, upload-time = "2025-05-19T13:35:31.334Z" },
 ]
 
 [[package]]
