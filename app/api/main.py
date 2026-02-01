@@ -9,15 +9,16 @@ import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.router import api_router, webhook_router
+
 # Import all models to ensure they are registered with SQLAlchemy
 # This must be done before creating the FastAPI app to avoid circular import issues
 from app.infrastructure.config import settings
-from app.api.router import api_router, webhook_router
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("app.log")],
+    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/app.log")],
 )
 
 logger = logging.getLogger(__name__)
