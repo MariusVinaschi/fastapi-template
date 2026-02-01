@@ -1,11 +1,12 @@
 import logging
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from prefect_sqlalchemy.database import SqlAlchemyConnector
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
-    AsyncSession,
 )
 
 from app.infrastructure.config import settings
@@ -25,26 +26,14 @@ async def get_session() -> AsyncGenerator:
         logger.exception(e)
 
 
-# Prefect-specific database session
-def get_prefect_session(
-    db_host: str,
-    db_port: int,
-    db_user: str,
-    db_password: str,
-    db_name: str,
-) -> AsyncSession:
-    """
-    Create a database session specifically for Prefect tasks.
-    This function uses environment variables that are set by Prefect.
-    """
-    logger.info("Creating Prefect database session")
-
-    # Create database URL for Prefect tasks
-    db_url = f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-
-    # Create engine and session for Prefect
-    prefect_engine = create_async_engine(db_url, echo=False, future=True)
-
-    prefect_session = async_sessionmaker(bind=prefect_engine, autoflush=False, expire_on_commit=False)
-
-    return prefect_session()
+@asynccontextmanager
+async def get_prefect_db_session(block_name: str):
+    """Context manager to load the connector and create the session."""
+    async with await SqlAlchemyConnector.load(block_name) as connector:
+        engine = connector.get_engine()
+        session_factory = async_sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        session = session_factory()
+        try:
+            yield session
+        finally:
+            await session.close()

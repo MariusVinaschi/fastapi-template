@@ -3,28 +3,28 @@ import json
 import os
 from pathlib import Path
 
-from prefect.blocks.system import Secret
 from prefect.client.orchestration import get_client
 from prefect.client.schemas.actions import WorkPoolCreate
+from prefect_sqlalchemy import AsyncDriver, ConnectionComponents, SqlAlchemyConnector
 
 
-def build_db_secret():
-    """Construct the DB secret payload from environment variables."""
-    return Secret(
-        name="appdb",
-        value={
-            "db_host": os.getenv("APP_DB_HOST", "appdb"),
-            "db_port": int(os.getenv("APP_DB_PORT", "5432")),
-            "db_user": os.getenv("APP_DB_USER", "user"),
-            "db_password": os.getenv("APP_DB_PASSWORD", "password"),
-            "db_name": os.getenv("APP_DB_NAME", "db"),
-        },
+def build_db_connector() -> SqlAlchemyConnector:
+    """Construct the SQLAlchemyConnector block with connection URI."""
+    return SqlAlchemyConnector(
+        connection_info=ConnectionComponents(
+            driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+            username=os.getenv("APP_DB_USER", "fastapitemplateuser"),
+            password=os.getenv("APP_DB_PASSWORD", "fastapitemplatepassword"),
+            host=os.getenv("APP_DB_HOST", "localhost"),
+            port=os.getenv("APP_DB_PORT", 5432),
+            database=os.getenv("APP_DB_NAME", "fastapitemplatedb"),
+        )
     )
 
 
-def save_block(block, slug):
+async def save_block(block, slug):
     """Persist the block and provide a short confirmation."""
-    block.save(slug, overwrite=True)
+    await block.save(slug, overwrite=True)
     print(f"Saved Prefect block '{slug}'")
 
 
@@ -74,9 +74,9 @@ async def ensure_work_pool():
         print(f"Ensured Prefect work pool '{name}' exists/updated.")
 
 
-def main():
-    save_block(build_db_secret(), "appdb")
-    ensure_work_pool()
+async def main():
+    await save_block(build_db_connector(), os.getenv("WORK_POOL_NAME", "dbapp-sqlalchemy"))
+    # ensure_work_pool()
 
 
 def cli():
