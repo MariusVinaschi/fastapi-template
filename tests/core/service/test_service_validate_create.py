@@ -1,4 +1,3 @@
-
 from tests.core.conftest import CreateModelSchema
 
 

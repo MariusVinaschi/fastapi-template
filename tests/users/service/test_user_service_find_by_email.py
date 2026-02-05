@@ -9,9 +9,7 @@ from app.domains.users.service import UserService
 @pytest.mark.anyio
 async def test_find_by_email(db_session):
     user = await UserFactory.create_async(session=db_session)
-    user = await UserService.for_user(db_session, UserAuthorizationAdapter(user)).get_by_email(
-        user.email
-    )
+    user = await UserService.for_user(db_session, UserAuthorizationAdapter(user)).get_by_email(user.email)
     assert user == user
 
 
@@ -19,6 +17,4 @@ async def test_find_by_email(db_session):
 async def test_find_by_email_not_found(db_session):
     user = await UserFactory.create_async(session=db_session)
     with pytest.raises(UserNotFoundException):
-        await UserService.for_user(db_session, UserAuthorizationAdapter(user)).get_by_email(
-            "nonexistent@example.com"
-        )
+        await UserService.for_user(db_session, UserAuthorizationAdapter(user)).get_by_email("nonexistent@example.com")

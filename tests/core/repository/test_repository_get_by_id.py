@@ -22,9 +22,7 @@ async def test_get_by_id_not_found(repository):
     non_existent_id = str(uuid.uuid4())
 
     # Act
-    result = await repository.get_by_id(
-        id=non_existent_id
-    )
+    result = await repository.get_by_id(id=non_existent_id)
 
     # Assert
     assert result is None

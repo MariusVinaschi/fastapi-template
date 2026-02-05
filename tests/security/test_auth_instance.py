@@ -81,9 +81,7 @@ class TestAuthInstance:
         mock_payload = {"sub": "user123", "scope": "read write", "azp": auth.clerk_azp}
 
         # Mock the JWKS client and JWT decode
-        with patch.object(
-            auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")
-        ):
+        with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
                 result = await auth._verify_jwt_token(mock_security_scopes, mock_token)
 

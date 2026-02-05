@@ -121,9 +121,7 @@ async def repository(db_session, scope_strategy, test_model):
     Creates a test repository instance with database session and scope strategy.
     Used for direct repository testing.
     """
-    return TestRepository(
-        session=db_session, scope_strategy=scope_strategy, model=test_model
-    )
+    return TestRepository(session=db_session, scope_strategy=scope_strategy, model=test_model)
 
 
 @pytest.fixture
@@ -186,17 +184,13 @@ async def user_2(db_session):
 @pytest.fixture
 def auth_context_user_1():
     """Creates an authorization context for user 1"""
-    return FakeAuthorizationContext(
-        user_id=USER_1_ID, email="user1@test.com", role="admin"
-    )
+    return FakeAuthorizationContext(user_id=USER_1_ID, email="user1@test.com", role="admin")
 
 
 @pytest.fixture
 def auth_context_user_2():
     """Creates an authorization context for user 2"""
-    return FakeAuthorizationContext(
-        user_id=USER_2_ID, email="user2@test.com", role="user"
-    )
+    return FakeAuthorizationContext(user_id=USER_2_ID, email="user2@test.com", role="user")
 
 
 @pytest.fixture

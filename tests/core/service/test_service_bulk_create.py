@@ -64,9 +64,7 @@ async def test_bulk_create_with_custom_validation(service_factory, auth_context_
     # Assert
     assert len(validated_items) == 2
     assert len(created_entities) == 2
-    assert all(
-        item["created_by"] == auth_context_user_1.user_email for item in validated_items
-    )
+    assert all(item["created_by"] == auth_context_user_1.user_email for item in validated_items)
 
 
 async def test_bulk_create_with_failed_validation(service_factory, auth_context_user_1):
@@ -76,6 +74,7 @@ async def test_bulk_create_with_failed_validation(service_factory, auth_context_
 
     # Arrange
     service = service_factory(auth_context_user_1)
+
     # Override validation method to always fail
     async def validation_fail(*args, **kwargs):
         raise ValueError("Bulk validation failed")

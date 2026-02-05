@@ -68,9 +68,7 @@ async def test_bulk_update_with_validation(service_factory, auth_context_user_1,
     assert validation_called
 
 
-async def test_bulk_update_with_missing_entity(
-    service_factory, auth_context_user_1, populated_db
-):
+async def test_bulk_update_with_missing_entity(service_factory, auth_context_user_1, populated_db):
     """
     Test bulk update with a non-existent entity ID.
     """
@@ -103,9 +101,7 @@ async def test_bulk_update_empty_list(service_factory, auth_context_user_1):
     assert len(updated_instances) == 0
 
 
-async def test_bulk_update_prepare_and_validate_flow(
-    service_factory, auth_context_user_1, populated_db
-):
+async def test_bulk_update_prepare_and_validate_flow(service_factory, auth_context_user_1, populated_db):
     """
     Test the complete bulk update flow including preparation and validation.
     """
@@ -142,6 +138,4 @@ async def test_bulk_update_prepare_and_validate_flow(
     assert prepare_called, "Prepare should be called once"
     assert validate_called, "Validate should be called once"
     assert all(inst.name == "Bulk Update_prepared" for inst in updated_instances)
-    assert all(
-        inst.updated_by == auth_context_user_1.user_email for inst in updated_instances
-    )
+    assert all(inst.updated_by == auth_context_user_1.user_email for inst in updated_instances)

@@ -22,9 +22,7 @@ async def test_create_user(db_session):
 @pytest.mark.anyio
 async def test_create_user_email_already_exists_not_the_same(db_session):
     clerk_id = "clerk_id_123"
-    user = await UserFactory.create_async(
-        session=db_session, clerk_id=clerk_id, email="test2@example.com"
-    )
+    user = await UserFactory.create_async(session=db_session, clerk_id=clerk_id, email="test2@example.com")
     data = {
         "id": clerk_id,
         "primary_email_address_id": "123",

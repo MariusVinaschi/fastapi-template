@@ -55,9 +55,7 @@ async def test_bulk_delete_empty_list(service_factory, populated_db, auth_contex
     assert deleted_count == 0, "Should return 0 for empty list"
 
 
-async def test_bulk_delete_validation_failure_prevents_deletion(
-    service_factory, populated_db, auth_context_user_1
-):
+async def test_bulk_delete_validation_failure_prevents_deletion(service_factory, populated_db, auth_context_user_1):
     """
     Test that validation failure prevents deletion of any entities.
     """
@@ -80,9 +78,7 @@ async def test_bulk_delete_validation_failure_prevents_deletion(
         assert result is not None
 
 
-async def test_bulk_delete_partial_existence(
-    service_factory, populated_db, auth_context_user_1
-):
+async def test_bulk_delete_partial_existence(service_factory, populated_db, auth_context_user_1):
     """
     Test bulk delete with mix of existing and non-existent IDs.
     """
@@ -101,9 +97,7 @@ async def test_bulk_delete_partial_existence(
     assert result is None
 
 
-async def test_bulk_delete_all_non_existent(
-    service_factory, populated_db, auth_context_user_1
-):
+async def test_bulk_delete_all_non_existent(service_factory, populated_db, auth_context_user_1):
     """
     Test bulk delete with only non-existent IDs.
     """

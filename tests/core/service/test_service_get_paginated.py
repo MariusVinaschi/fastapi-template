@@ -27,9 +27,7 @@ async def test_get_paginated_with_search(service_factory, populated_db, auth_con
         CreateModelSchema(
             name="Another Search Term",
         ),
-        CreateModelSchema(
-            name="No Match"
-        ),
+        CreateModelSchema(name="No Match"),
     ]
     for item in items:
         await service.create(item)

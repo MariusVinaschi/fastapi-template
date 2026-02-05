@@ -50,9 +50,7 @@ async def test_get_admin_auth_context(mocker: MockerFixture, db_session):
 @pytest.mark.anyio
 async def test_get_auth_context_adapter_properties(db_session):
     # Arrange
-    user = await UserFactory.create_async(
-        session=db_session, email="test@example.com", role="standard"
-    )
+    user = await UserFactory.create_async(session=db_session, email="test@example.com", role="standard")
 
     # Act
     adapter = UserAuthorizationAdapter(user)

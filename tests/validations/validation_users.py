@@ -6,9 +6,7 @@ def valid_data_from_user_object(data: dict, user: UserRead):
     assert data["role"] == user.role
 
 
-def valid_dict_from_value(
-    data: dict, email: str, role: str
-):
+def valid_dict_from_value(data: dict, email: str, role: str):
     assert data["email"] == email
     assert data["role"] == role
 

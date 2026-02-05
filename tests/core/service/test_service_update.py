@@ -22,9 +22,7 @@ async def test_update_success(service_factory, auth_context_user_1, populated_db
     # Assert
     assert updated_instance.id == instance.id  # Same instance
     assert updated_instance.name == "Updated Name"  # Updated field
-    assert (
-        updated_instance.updated_by == auth_context_user_1.user_email
-    )  # Audit field updated
+    assert updated_instance.updated_by == auth_context_user_1.user_email  # Audit field updated
 
 
 async def test_update_not_found(service_factory, auth_context_user_1):

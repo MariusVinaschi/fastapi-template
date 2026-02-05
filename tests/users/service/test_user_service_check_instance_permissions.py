@@ -11,9 +11,7 @@ from app.domains.users.service import UserService
 async def test_check_instance_permissions_admin_read(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     context = UserAuthorizationAdapter(user)
-    assert (
-        UserService.for_user(db_session, context)._check_instance_permissions("read", user) is True
-    )
+    assert UserService.for_user(db_session, context)._check_instance_permissions("read", user) is True
 
 
 @pytest.mark.anyio
@@ -28,10 +26,7 @@ async def test_check_instance_permissions_admin_delete(db_session):
 async def test_check_instance_permissions_admin_update(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     context = UserAuthorizationAdapter(user)
-    assert (
-        UserService.for_user(db_session, context)._check_instance_permissions("update", user)
-        is True
-    )
+    assert UserService.for_user(db_session, context)._check_instance_permissions("update", user) is True
 
 
 @pytest.mark.anyio
@@ -40,28 +35,21 @@ async def test_check_instance_permissions_standard_update(db_session):
     user_to_update = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     context = UserAuthorizationAdapter(user)
     with pytest.raises(PermissionDenied, match="Action not allowed"):
-        UserService.for_user(db_session, context)._check_instance_permissions(
-            "update", user_to_update
-        )
+        UserService.for_user(db_session, context)._check_instance_permissions("update", user_to_update)
 
 
 @pytest.mark.anyio
 async def test_check_instance_permissions_standard_update_self(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     context = UserAuthorizationAdapter(user)
-    assert (
-        UserService.for_user(db_session, context)._check_instance_permissions("update", user)
-        is True
-    )
+    assert UserService.for_user(db_session, context)._check_instance_permissions("update", user) is True
 
 
 @pytest.mark.anyio
 async def test_check_instance_permissions_standard_read_self(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     context = UserAuthorizationAdapter(user)
-    assert (
-        UserService.for_user(db_session, context)._check_instance_permissions("read", user) is True
-    )
+    assert UserService.for_user(db_session, context)._check_instance_permissions("read", user) is True
 
 
 @pytest.mark.anyio

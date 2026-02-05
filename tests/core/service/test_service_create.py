@@ -58,6 +58,7 @@ async def test_create_with_failed_validation(service_factory, auth_context_user_
 
     # Arrange
     service = service_factory(auth_context_user_1)
+
     # Override validation method to always fail
     async def validation_fail(*args, **kwargs):
         raise ValueError("Validation failed")
