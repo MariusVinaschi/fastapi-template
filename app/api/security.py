@@ -1,19 +1,18 @@
 import jwt
-from jwt.exceptions import DecodeError, PyJWKClientError
-from fastapi import HTTPException, Security, status
+from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import (
     APIKeyHeader,
     HTTPAuthorizationCredentials,
     HTTPBearer,
     SecurityScopes,
 )
-from fastapi import Depends
+from jwt.exceptions import DecodeError, PyJWKClientError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.config import settings
-from app.infrastructure.database import get_session
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
+from app.infrastructure.config import settings
+from app.infrastructure.database import get_session
 
 
 class UnauthorizedException(HTTPException):
