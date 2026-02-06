@@ -81,9 +81,9 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
+          POSTGRES_USER: fastapitemplateuser
+          POSTGRES_PASSWORD: fastapitemplatepassword
+          POSTGRES_DB: fastapitemplatedb
         ports:
           - 5432:5432
         options: >-
