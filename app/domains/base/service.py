@@ -3,6 +3,7 @@ Base service - Framework agnostic business logic layer.
 Contains all the generic CRUD operations and business rules.
 """
 
+from collections.abc import Sequence
 from typing import Generic, Optional, Type, TypeVar
 from uuid import UUID
 
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.base.authorization import AuthorizationContext
 from app.domains.base.exceptions import EntityNotFoundException
 from app.domains.base.filters import BaseFilterParams
-from app.domains.base.repository import BaseRepository
+from app.domains.base.repository import BaseRepository, RepositoryFactory
 
 ModelType = TypeVar("ModelType")
 RepositoryType = TypeVar("RepositoryType", bound=BaseRepository)
@@ -27,23 +28,25 @@ class BaseService(Generic[ModelType, RepositoryType]):
     def __init__(
         self,
         session: AsyncSession,
-        repository_class: Type[RepositoryType],
+        repository_class: RepositoryFactory[RepositoryType],
         authorization_context: AuthorizationContext | None = None,
         not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
     ):
         self.session = session
         self.authorization_context = authorization_context
-        self.repository = repository_class(session, authorization_context=authorization_context)
+        self.repository: RepositoryType = repository_class(
+            session, authorization_context=authorization_context
+        )
         self.not_found_exception = not_found_exception
 
     @classmethod
     def for_user(
         cls,
         session: AsyncSession,
-        repository_class: Type[RepositoryType],
+        repository_class: RepositoryFactory[RepositoryType],
         authorization_context: AuthorizationContext,
         not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
-    ):
+    ) -> "BaseService[ModelType, RepositoryType]":
         """Factory method for user operations (with authorization)"""
         return cls(session, repository_class, authorization_context, not_found_exception)
 
@@ -51,9 +54,9 @@ class BaseService(Generic[ModelType, RepositoryType]):
     def for_system(
         cls,
         session: AsyncSession,
-        repository_class: Type[RepositoryType],
+        repository_class: RepositoryFactory[RepositoryType],
         not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
-    ):
+    ) -> "BaseService[ModelType, RepositoryType]":
         """Factory method for system operations (without authorization)"""
         return cls(session, repository_class, None, not_found_exception)
 
@@ -133,12 +136,13 @@ class ListServiceMixin(BaseService[ModelType, RepositoryType]):
         total_count, items = await self.repository.get_paginated(filters)
         return {"count": total_count, "data": items}
 
-    async def get_ids(self, filters: BaseFilterParams) -> list[UUID]:
+    async def get_ids(self, filters: BaseFilterParams) -> Sequence[UUID]:
         """Get IDs of entities with access control"""
         self._check_general_permissions("list")
-        return await self.repository.get_ids(filters=filters)
+        str_ids = await self.repository.get_ids(filters=filters)
+        return [UUID(sid) for sid in str_ids]
 
-    async def get_all(self, filters: BaseFilterParams) -> list[ModelType]:
+    async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
         """Get all entities with access control"""
         self._check_general_permissions("list")
         return await self.repository.get_all(filters=filters)
@@ -156,6 +160,7 @@ class CreateServiceMixin(BaseService[ModelType, RepositoryType]):
             result["created_by"] = "system"
             result["updated_by"] = "system"
         else:
+            assert self.authorization_context is not None  # narrow type for type checker
             result["created_by"] = self.authorization_context.user_email
             result["updated_by"] = self.authorization_context.user_email
 
@@ -189,6 +194,7 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         if self._is_system_operation():
             result["updated_by"] = "system"
         else:
+            assert self.authorization_context is not None  # narrow type for type checker
             result["updated_by"] = self.authorization_context.user_email
 
         return result
@@ -245,6 +251,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         if self._is_system_operation():
             result["updated_by"] = "system"
         else:
+            assert self.authorization_context is not None
             result["updated_by"] = self.authorization_context.user_email
 
         return result
@@ -253,12 +260,14 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Validate update - override in subclass if needed"""
         pass
 
-    async def _validate_bulk_update(self, instances: list[ModelType], data: dict) -> bool:
+    async def _validate_bulk_update(
+        self, instances: Sequence[ModelType], data: dict
+    ) -> bool:
         """
         Validate bulk update operation - override in subclass if needed.
 
         Args:
-            instances: List of existing model instances
+            instances: Existing model instances (read-only view)
             data: Update data dictionary to apply to all instances
 
         Raises:
@@ -274,7 +283,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         ids: list[UUID],
         data: BulkUpdateSchemaType,
         filter_class: Type[BaseFilterParams] = BaseFilterParams,
-    ) -> list[ModelType]:
+    ) -> Sequence[ModelType]:
         """
         Update multiple entities with the same data in a single operation.
 
@@ -320,14 +329,16 @@ class BulkDeleteServiceMixin(BaseService[ModelType, RepositoryType]):
         """Validate bulk deletion - override in subclass if needed"""
         return True
 
-    async def bulk_delete(self, ids: list[UUID]) -> bool:
+    async def bulk_delete(self, ids: list[UUID]) -> int:
         """Bulk delete entities with authorization"""
         self._check_general_permissions("bulk_delete")
 
         # Validate deletion - override in subclass if needed
         await self._validate_bulk_delete(ids)
 
-        return await self.repository.bulk_delete(ids)
+        str_ids = [str(id) for id in ids]
+        deleted_count = await self.repository.bulk_delete(str_ids)
+        return deleted_count
 
 
 class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
@@ -342,6 +353,7 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
             result["created_by"] = "system"
             result["updated_by"] = "system"
         else:
+            assert self.authorization_context is not None  # narrow type for type checker
             result["created_by"] = self.authorization_context.user_email
             result["updated_by"] = self.authorization_context.user_email
 
@@ -359,7 +371,7 @@ class BulkCreateServiceMixin(BaseService[ModelType, RepositoryType]):
         for item in items:
             await self._validate_create(item)
 
-    async def bulk_create(self, data: list[CreateSchemaType]) -> list[ModelType]:
+    async def bulk_create(self, data: list[CreateSchemaType]) -> Sequence[ModelType]:
         """Create multiple entities with authorization"""
         self._check_general_permissions("bulk_create")
 

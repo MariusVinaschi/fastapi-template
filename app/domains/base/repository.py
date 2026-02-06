@@ -4,7 +4,7 @@ Contains all the generic CRUD operations for domain entities.
 """
 
 from collections.abc import Sequence
-from typing import Generic, Optional, Tuple, Type, TypeVar
+from typing import Generic, Optional, Protocol, Tuple, Type, TypeVar
 
 from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +18,22 @@ from app.domains.base.filters import BaseFilterParams
 from app.domains.base.models import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
+RepositoryType = TypeVar("RepositoryType", bound="BaseRepository")
+
+
+class RepositoryFactory(Protocol[RepositoryType]):
+    """
+    Protocol for repository classes that can be instantiated with only
+    session and optional authorization_context (concrete repos inject
+    scope_strategy and model in their own __init__).
+    """
+
+    def __call__(
+        self,
+        session: AsyncSession,
+        *,
+        authorization_context: AuthorizationContext | None = None,
+    ) -> RepositoryType: ...
 
 
 class BaseRepository(Generic[ModelType]):
@@ -58,6 +74,40 @@ class BaseRepository(Generic[ModelType]):
     def _is_system_operation(self) -> bool:
         """Check if this is a system operation (no authorization context)"""
         return self.authorization_context is None
+
+    async def get_by_id(self, id: str) -> Optional[ModelType]:
+        raise NotImplementedError
+
+    async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
+        raise NotImplementedError
+
+    async def get_paginated(
+        self, filters: BaseFilterParams
+    ) -> Tuple[int, Sequence[ModelType]]:
+        raise NotImplementedError
+
+    async def get_ids(self, filters: BaseFilterParams) -> Sequence[str]:
+        raise NotImplementedError
+
+    async def create(self, data: dict) -> ModelType:
+        raise NotImplementedError
+
+    async def update(self, instance: ModelType, data: dict) -> ModelType:
+        raise NotImplementedError
+
+    async def delete(self, instance: ModelType) -> bool:
+        raise NotImplementedError
+
+    async def bulk_update(
+        self, instances: Sequence[ModelType], data: dict
+    ) -> Sequence[ModelType]:
+        raise NotImplementedError
+
+    async def bulk_delete(self, ids: list[str]) -> int:
+        raise NotImplementedError
+
+    async def bulk_create(self, data: list[dict]) -> Sequence[ModelType]:
+        raise NotImplementedError
 
 
 class ListRepositoryMixin(BaseRepository):
@@ -235,16 +285,18 @@ class DeleteRepositoryMixin(BaseRepository):
 class BulkUpdateRepositoryMixin(BaseRepository):
     """Mixin for bulk update operations"""
 
-    async def bulk_update(self, instances: list[ModelType], data: dict) -> list[ModelType]:
+    async def bulk_update(
+        self, instances: Sequence[ModelType], data: dict
+    ) -> Sequence[ModelType]:
         """
         Update multiple instances in the database with the same data.
 
         Args:
-            instances: List of model instances to update
+            instances: Model instances to update (read-only view)
             data: Dictionary containing updates to apply to all instances
 
         Returns:
-            list[ModelType]: List of updated model instances
+            The same sequence of updated model instances
         """
         if not instances:
             return []

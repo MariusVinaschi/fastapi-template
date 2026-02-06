@@ -129,6 +129,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
 
+[tool.ty.src]
+include = ["app"]
+exclude = ["app/scripts/*"]
+
 [project.scripts]
 generate-user = "app.scripts.generate_user:cli"
 init-prefect = "app.scripts.init_prefect:cli"
