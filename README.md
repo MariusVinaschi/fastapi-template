@@ -188,6 +188,51 @@ make docker-down
 | `make clean` | Remove caches (__pycache__, .pytest_cache, .ruff_cache, .coverage, htmlcov, etc.) |
 | `make clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
+## Versioning & Releases
+
+This project uses an automated versioning workflow with Release Candidates (RC).
+
+### How It Works
+
+```
+Push to main  →  0.1.1-rc.1 (automatic)
+Push to main  →  0.1.1-rc.2 (automatic)
+Push to main  →  0.1.1-rc.3 (automatic)
+
+Manual release (patch)  →  0.1.1 + tag v0.1.1
+Push to main  →  0.1.2-rc.1 (new cycle)
+
+Manual release (minor)  →  0.2.0 + tag v0.2.0
+Push to main  →  0.2.1-rc.1 (new cycle)
+
+Manual release (major)  →  1.0.0 + tag v1.0.0
+```
+
+### Creating a Stable Release
+
+1. Go to **GitHub Actions** → **Release**
+2. Click **Run workflow**
+3. Choose release type:
+
+| Type | Example | When to use |
+|------|---------|-------------|
+| `patch` | 1.2.3 → 1.2.4 | Bug fixes, small improvements |
+| `minor` | 1.2.3 → 1.3.0 | New features, backward compatible |
+| `major` | 1.2.3 → 2.0.0 | Breaking changes |
+
+### Commit Style (Recommended)
+
+While commits don't affect versioning, we recommend using clear prefixes for readability:
+
+```bash
+feat: add user dashboard
+fix: resolve login timeout issue
+docs: update API documentation
+refactor: simplify auth middleware
+test: add integration tests for users
+chore: update dependencies
+```
+
 ## Environment Variables
 
 See `.env.sample` for all available configuration options.
