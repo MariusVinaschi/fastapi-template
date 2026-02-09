@@ -4,7 +4,7 @@ Defines the interfaces for authorization contexts and scope strategies.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar
 
 from sqlalchemy import Select
 
@@ -49,24 +49,28 @@ class AuthorizationScopeStrategy(ABC, Generic[T]):
 
     This abstract class defines the interface for all scope strategies
     that filter query results based on the authorization context.
+
+    Note: apply_scope always receives a non-None context. The None-check
+    is handled by the repository's _apply_user_scope method, which decides
+    IF scope should be applied. This strategy only decides HOW to apply it.
     """
 
     def __init__(self, model: type[T] = None):
         self.model = model
 
-    def apply_scope(self, query: Select, context: Optional[AuthorizationContext]) -> Select:
+    @abstractmethod
+    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
         """
-        Apply scope with an optional context.
+        Apply scope filtering to a query for the given user context.
+
+        This method is only called for user operations (never for system operations).
+        The repository layer handles the system/user distinction before calling this.
 
         Args:
             query: The SQL query to filter
-            context: The authorization context containing user information,
-                    None for system operations
+            context: The authorization context containing user information (never None)
 
         Returns:
             The filtered query according to the strategy
         """
-        # If no context provided (system operation), return unfiltered query
-        if context is None:
-            return query
-        return query
+        ...

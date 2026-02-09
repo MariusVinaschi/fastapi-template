@@ -77,7 +77,208 @@ app/
 4. Create API routes in `app/api/routes/`
 5. (Optional) Create Prefect tasks/flows in `app/workers/`
 
-### 4. Single Docker Image, Multiple Roles
+### 4. Authorization Architecture
+
+This template implements a **two-layer defense-in-depth authorization system** that separates **permissions** (what actions are allowed) from **data scoping** (what data is visible).
+
+#### Overview
+
+The authorization system operates at two independent layers:
+
+1. **Service Layer** (`_check_*_permissions`): Validates **whether** a user can perform an action
+2. **Repository Layer** (`_apply_user_scope`): Filters **which** data the user can see
+
+This separation ensures that a bug in one layer doesn't compromise the other, following security best practices.
+
+#### Architecture Flow
+
+```
+API Route
+  ↓
+Service (for_user/for_system)
+  ↓
+  ├─→ Permission Checks (CAN the user DO this?)
+  │   ├─→ _check_general_permissions(action)
+  │   └─→ _check_instance_permissions(action, instance)
+  │
+  └─→ Repository Operations
+      ↓
+      └─→ Scope Filtering (WHAT data can the user SEE?)
+          └─→ _apply_user_scope(query)
+              ├─→ context is None? → return unfiltered query (system)
+              └─→ context exists? → scope_strategy.apply_scope(query, context)
+```
+
+#### Key Components
+
+**1. AuthorizationContext** (`app/domains/base/authorization.py`)
+
+Abstract interface that provides user information:
+
+```python
+class AuthorizationContext(ABC):
+    @property
+    @abstractmethod
+    def user_id(self) -> str: ...
+    
+    @property
+    @abstractmethod
+    def user_email(self) -> str: ...
+    
+    @property
+    @abstractmethod
+    def user_role(self) -> str: ...
+```
+
+**2. AuthorizationScopeStrategy** (`app/domains/base/authorization.py`)
+
+Defines **how** to filter queries based on user context. Each domain implements its own strategy:
+
+```python
+class AuthorizationScopeStrategy(ABC, Generic[T]):
+    @abstractmethod
+    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
+        """Filter query results based on user context"""
+        ...
+```
+
+**Example Implementation** (`app/domains/users/authorization.py`):
+
+```python
+class APIKeyScopeStrategy(AuthorizationScopeStrategy):
+    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
+        # Only show API keys owned by the user
+        return query.where(self.model.user_id == context.user_id)
+```
+
+**3. Repository Layer** (`app/domains/base/repository.py`)
+
+The repository is the **guardian** that decides **IF** scope should be applied:
+
+```python
+def _apply_user_scope(self, query: Select) -> Select:
+    """Apply user scope using the repository's authorization context"""
+    if self.authorization_context is None:
+        return query  # System operation: no filtering
+    
+    return self.scope_strategy.apply_scope(query, self.authorization_context)
+```
+
+**Important**: The repository handles the `None` check **before** calling `apply_scope`. The scope strategy **never** receives `None` - it only decides **how** to filter when a user context exists.
+
+**4. Service Layer** (`app/domains/base/service.py`)
+
+The service validates **permissions** before delegating to the repository:
+
+```python
+def _check_general_permissions(self, action: str) -> bool:
+    """Check if user can perform this action type"""
+    if self._is_system_operation():
+        return True  # System operations bypass checks
+    
+    # Override in subclasses for domain-specific logic
+    return True
+
+def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
+    """Check if user can perform this action on this specific instance"""
+    if self._is_system_operation():
+        return True
+    
+    # Override in subclasses for domain-specific logic
+    return True
+```
+
+#### Factory Methods: Explicit System vs User Operations
+
+Services provide two factory methods that make the authorization mode explicit:
+
+```python
+# User operation: with authorization context
+service = UserService.for_user(session, authorization_context)
+
+# System operation: bypasses all checks (use with caution!)
+service = UserService.for_system(session)
+```
+
+**When to use `for_system()`:**
+- Background jobs / workers
+- Webhook handlers (e.g., Clerk user sync)
+- Admin scripts
+- Internal system operations
+
+**When to use `for_user()`:**
+- All API endpoints handling user requests
+- Any operation triggered by an authenticated user
+
+#### Security Guarantees
+
+1. **Defense in Depth**: Both service permissions and repository scoping must be bypassed for unauthorized access
+2. **Query-Level Filtering**: Data filtering happens at the SQL query level - unauthorized data never leaves the database
+3. **Explicit System Mode**: `for_system()` makes privileged operations visible in code reviews
+4. **Type Safety**: Type checker enforces that scope strategies receive non-None contexts
+
+#### Adding Authorization to a New Domain
+
+1. **Create Scope Strategy** (`app/domains/myentity/authorization.py`):
+
+```python
+from app.domains.base.authorization import AuthorizationScopeStrategy, AuthorizationContext
+from sqlalchemy import Select
+
+class MyEntityScopeStrategy(AuthorizationScopeStrategy):
+    def __init__(self):
+        super().__init__(MyEntity)
+    
+    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
+        # Example: filter by owner
+        return query.where(self.model.owner_id == context.user_id)
+```
+
+2. **Register in Repository** (`app/domains/myentity/repository.py`):
+
+```python
+class MyEntityRepository(ListRepositoryMixin, ...):
+    def __init__(self, session: AsyncSession, authorization_context=None):
+        super().__init__(
+            session, 
+            MyEntityScopeStrategy(),  # Pass strategy here
+            MyEntity, 
+            authorization_context
+        )
+```
+
+3. **Override Permission Checks** (`app/domains/myentity/service.py`):
+
+```python
+class MyEntityService(BaseService):
+    def _check_general_permissions(self, action: str) -> bool:
+        if self._is_system_operation():
+            return True
+        
+        # Add your permission logic here
+        if action == "delete" and self.authorization_context.user_role != "admin":
+            raise PermissionDenied("Only admins can delete")
+        
+        return True
+    
+    def _check_instance_permissions(self, action: str, instance: MyEntity) -> bool:
+        if self._is_system_operation():
+            return True
+        
+        # Add your instance-level checks here
+        if action == "update" and instance.owner_id != self.authorization_context.user_id:
+            raise PermissionDenied("Can only update own entities")
+        
+        return True
+```
+
+#### Important Notes
+
+- **Custom Repository Methods**: Methods like `find_by_email()` that bypass `_apply_user_scope` **must** have their permissions checked in the service layer after fetching
+- **System Operations**: Always use `for_system()` explicitly - never pass `None` as `authorization_context` to constructors directly
+- **Scope Strategy Contract**: `apply_scope` always receives a non-None `AuthorizationContext` - the repository handles the None check before calling it
+
+### 5. Single Docker Image, Multiple Roles
 
 One repository, **one multi-stage Dockerfile**, multiple images:
 
