@@ -23,42 +23,37 @@ BulkUpdateSchemaType = TypeVar("BulkUpdateSchemaType", bound=BaseModel)
 
 
 class BaseService(Generic[ModelType, RepositoryType]):
-    """Base service with common functionality for all entities"""
+    """
+    Base service with common functionality for all entities.
+
+    Subclasses must declare:
+        repository_class: the repository class to use for data access
+        not_found_exception: the exception to raise when an entity is not found
+    """
+
+    repository_class: RepositoryFactory[RepositoryType]
+    not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException
 
     def __init__(
         self,
         session: AsyncSession,
-        repository_class: RepositoryFactory[RepositoryType],
         authorization_context: AuthorizationContext | None = None,
-        not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
     ):
         self.session = session
         self.authorization_context = authorization_context
-        self.repository: RepositoryType = repository_class(
+        self.repository: RepositoryType = self.repository_class(
             session, authorization_context=authorization_context
         )
-        self.not_found_exception = not_found_exception
 
     @classmethod
-    def for_user(
-        cls,
-        session: AsyncSession,
-        repository_class: RepositoryFactory[RepositoryType],
-        authorization_context: AuthorizationContext,
-        not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
-    ) -> "BaseService[ModelType, RepositoryType]":
+    def for_user(cls, session: AsyncSession, authorization_context: AuthorizationContext):
         """Factory method for user operations (with authorization)"""
-        return cls(session, repository_class, authorization_context, not_found_exception)
+        return cls(session, authorization_context)
 
     @classmethod
-    def for_system(
-        cls,
-        session: AsyncSession,
-        repository_class: RepositoryFactory[RepositoryType],
-        not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException,
-    ) -> "BaseService[ModelType, RepositoryType]":
+    def for_system(cls, session: AsyncSession):
         """Factory method for system operations (without authorization)"""
-        return cls(session, repository_class, None, not_found_exception)
+        return cls(session)
 
     def _is_system_operation(self) -> bool:
         """Check if this is a system operation (no authorization context)"""
@@ -260,9 +255,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Validate update - override in subclass if needed"""
         pass
 
-    async def _validate_bulk_update(
-        self, instances: Sequence[ModelType], data: dict
-    ) -> bool:
+    async def _validate_bulk_update(self, instances: Sequence[ModelType], data: dict) -> bool:
         """
         Validate bulk update operation - override in subclass if needed.
 

@@ -100,7 +100,8 @@ class TestService(
     BulkCreateServiceMixin[TestModel, TestRepository],
     BulkUpdateServiceMixin[TestModel, TestRepository],
     BulkDeleteServiceMixin[TestModel, TestRepository],
-): ...  # noqa
+):
+    pass
 
 
 @pytest.fixture
@@ -128,25 +129,24 @@ async def repository(db_session, scope_strategy, test_model):
 def service_factory(db_session, scope_strategy, test_model):
     """
     Creates a factory that builds services with an authorization context.
-    Uses a repository class factory to inject scope strategy and model.
+    Uses a dynamically configured repository and service to inject scope strategy and model.
     """
 
-    def create_repository_class():
-        class ConfiguredTestRepository(TestRepository):
-            def __init__(self, session: AsyncSession, authorization_context=None):
-                super().__init__(
-                    session=session,
-                    scope_strategy=scope_strategy,
-                    model=test_model,
-                    authorization_context=authorization_context,
-                )
+    class ConfiguredTestRepository(TestRepository):
+        def __init__(self, session: AsyncSession, authorization_context=None):
+            super().__init__(
+                session=session,
+                scope_strategy=scope_strategy,
+                model=test_model,
+                authorization_context=authorization_context,
+            )
 
-        return ConfiguredTestRepository
+    class ConfiguredTestService(TestService):
+        repository_class = ConfiguredTestRepository
 
     def create_service(authorization_context=None):
-        return TestService(
+        return ConfiguredTestService(
             session=db_session,
-            repository_class=create_repository_class(),
             authorization_context=authorization_context,
         )
 

@@ -6,7 +6,6 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.config import settings
-from app.domains.base.authorization import AuthorizationContext
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.base.service import (
     CreateServiceMixin,
@@ -26,8 +25,8 @@ class UserService(
     CreateServiceMixin[User, UserRepository],
     DeleteServiceMixin[User, UserRepository],
 ):
-    def __init__(self, session: AsyncSession, authorization_context=None):
-        super().__init__(session, UserRepository, authorization_context, UserNotFoundException)
+    repository_class = UserRepository
+    not_found_exception = UserNotFoundException
 
     def _check_general_permissions(self, action: str) -> bool:
         """Check general permissions for user operations"""
@@ -88,14 +87,6 @@ class UserService(
         self._check_instance_permissions("read", user)
 
         return user
-
-    @classmethod
-    def for_user(cls, session: AsyncSession, authorization_context: AuthorizationContext):
-        return cls(session, authorization_context)
-
-    @classmethod
-    def for_system(cls, session: AsyncSession):
-        return cls(session)
 
 
 class ClerkUserService(
@@ -172,18 +163,13 @@ class APIKeyService(
     CreateServiceMixin[APIKey, APIKeyRepository],
     DeleteServiceMixin[APIKey, APIKeyRepository],
 ):
+    repository_class = APIKeyRepository
+    not_found_exception = APIKeyNotFoundException
+
     def __init__(self, session: AsyncSession, authorization_context=None):
-        super().__init__(session, APIKeyRepository, authorization_context, APIKeyNotFoundException)
+        super().__init__(session, authorization_context)
         # Use HMAC-SHA256 for API key hashing - deterministic and secure
         self.secret_key = settings.SECRET_KEY.encode("utf-8")
-
-    @classmethod
-    def for_user(cls, session: AsyncSession, authorization_context: AuthorizationContext):
-        return cls(session, authorization_context)
-
-    @classmethod
-    def for_system(cls, session: AsyncSession):
-        return cls(session)
 
     def _prepare_create_data(self, data: APIKeyCreate) -> dict:
         return data.model_dump()
