@@ -1,7 +1,7 @@
 from prefect import flow, task
 
 from app.domains.users.models import User
-from app.domains.users.schemas import UserCreate
+from app.domains.users.schemas import RoleEnum, UserCreate
 from app.domains.users.service import UserService
 from app.infrastructure.database import get_prefect_db_session
 
@@ -12,7 +12,7 @@ async def create_user(email: str, role: str, clerk_id: str) -> User:
         return await UserService.for_system(session).create(
             UserCreate(
                 email=email,
-                role=role,
+                role=RoleEnum(role),
                 clerk_id=clerk_id,
             )
         )
