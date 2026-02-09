@@ -5,7 +5,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.config import settings
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.base.service import (
     CreateServiceMixin,
@@ -17,6 +16,7 @@ from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundEx
 from app.domains.users.models import APIKey, User
 from app.domains.users.repository import APIKeyRepository, UserRepository
 from app.domains.users.schemas import APIKeyCreate, APIKeyGenerated, ClerkUserUpdate, RoleEnum, UserCreate
+from app.infrastructure.config import settings
 
 
 class UserService(
@@ -34,6 +34,7 @@ class UserService(
         if self._is_system_operation():
             return True
 
+        assert self.authorization_context is not None
         # Admins can do everything
         if self.authorization_context.user_role == RoleEnum.ADMIN:
             return True
@@ -50,6 +51,7 @@ class UserService(
         if self._is_system_operation():
             return True
 
+        assert self.authorization_context is not None
         # Users cannot delete themselves
         if action == "delete" and self.authorization_context.user_id == str(instance.id):
             raise PermissionDenied("Action not allowed")
