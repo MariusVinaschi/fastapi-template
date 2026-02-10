@@ -2,7 +2,6 @@ from collections.abc import Iterator
 from typing import AsyncGenerator
 
 import pytest
-import pytest_asyncio
 from faker import Faker
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -26,7 +25,7 @@ async def client(app: FastAPI) -> AsyncGenerator:
         yield client
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest.fixture(scope="function")
 async def db_session() -> AsyncGenerator:
     async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
     async with async_session() as session:

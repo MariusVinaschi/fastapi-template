@@ -55,7 +55,7 @@ class TestSecurityIntegration:
         scopes.scopes = []
         return scopes
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_complete_jwt_authentication_flow(
         self,
         mock_admin_user,
@@ -85,7 +85,7 @@ class TestSecurityIntegration:
                     assert result == mock_admin_user
                     mock_service_instance.get_by_email.assert_called_once_with("admin@test.com")
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_complete_api_key_authentication_flow(
         self, mock_standard_user, mock_security_scopes, db_session, mock_request_with_api_key
     ):
@@ -109,7 +109,7 @@ class TestSecurityIntegration:
             mock_service_instance.hash_api_key.assert_called_once_with("test-api-key")
             mock_service_instance.get_by_api_key_hash.assert_called_once_with("hashed_key")
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_jwt_fallback_to_api_key_authentication(
         self, mock_standard_user, mock_security_scopes, db_session, mock_request_with_api_key
     ):
@@ -133,7 +133,7 @@ class TestSecurityIntegration:
 
             assert result == mock_standard_user
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_admin_authentication_success(
         self,
         mock_admin_user,
@@ -153,7 +153,7 @@ class TestSecurityIntegration:
 
             assert result == mock_admin_user
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_admin_authentication_failure_non_admin(
         self,
         mock_standard_user,
@@ -174,7 +174,7 @@ class TestSecurityIntegration:
 
             assert "User is not an admin." in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_no_authentication_methods_provided(
         self, mock_security_scopes, db_session, mock_request_without_auth
     ):
@@ -189,7 +189,7 @@ class TestSecurityIntegration:
 
         assert "No valid authentication method provided" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_jwt_token_verification_with_scopes(self, mock_jwt_token, db_session, mock_request_without_auth):
         """Test JWT token verification with security scopes"""
         mock_payload = {
@@ -217,7 +217,7 @@ class TestSecurityIntegration:
 
                     assert result is not None
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_jwt_token_verification_missing_scope(self, mock_jwt_token, db_session, mock_request_without_auth):
         """Test JWT token verification with missing required scope"""
         mock_payload = {"email": "admin@test.com", "scope": "read write", "azp": auth.clerk_azp}
@@ -243,7 +243,7 @@ class TestSecurityIntegration:
 
                     assert "Invalid token" in str(exc_info.value)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_api_key_authentication_invalid_key(
         self, mock_security_scopes, db_session, mock_request_with_api_key
     ):
