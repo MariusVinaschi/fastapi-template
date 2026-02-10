@@ -73,9 +73,9 @@ jobs:
     env:
       APP_DB_HOST: localhost
       APP_DB_PORT: 5432
-      APP_DB_USER: testuser
-      APP_DB_PASSWORD: testpassword
-      APP_DB_NAME: testdb
+      APP_DB_USER: fastapitemplateuser
+      APP_DB_PASSWORD: fastapitemplatepassword
+      APP_DB_NAME: fastapitemplatedb
 
     services:
       postgres:
