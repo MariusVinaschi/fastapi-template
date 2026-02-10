@@ -30,7 +30,6 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
 
     steps:
-      # 🔑 Checkout avec TON PAT (pas GITHUB_TOKEN)
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -49,11 +48,11 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 🔑 Assure que les push utilisent le PAT
-      - name: Set remote with PAT
+      # Ensure push uses the same token as checkout (GITHUB_TOKEN = bypass as Integration)
+      - name: Set remote URL for push
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.CI_CD_TOKEN }}@github.com/${{ github.repository }}.git
 

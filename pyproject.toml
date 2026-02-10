@@ -155,8 +155,10 @@ prerelease_token = "rc"
 
 # Changelog generation
 [tool.semantic_release.changelog]
-changelog_file = "CHANGELOG.md"
 exclude_commit_patterns = []
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
 
 # Don't auto-detect version from commits (manual control)
 [tool.semantic_release.commit_parser_options]
