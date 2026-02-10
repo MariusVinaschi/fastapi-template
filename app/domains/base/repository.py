@@ -81,9 +81,7 @@ class BaseRepository(Generic[ModelType]):
     async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
         raise NotImplementedError
 
-    async def get_paginated(
-        self, filters: BaseFilterParams
-    ) -> Tuple[int, Sequence[ModelType]]:
+    async def get_paginated(self, filters: BaseFilterParams) -> Tuple[int, Sequence[ModelType]]:
         raise NotImplementedError
 
     async def get_ids(self, filters: BaseFilterParams) -> Sequence[str]:
@@ -98,9 +96,7 @@ class BaseRepository(Generic[ModelType]):
     async def delete(self, instance: ModelType) -> bool:
         raise NotImplementedError
 
-    async def bulk_update(
-        self, instances: Sequence[ModelType], data: dict
-    ) -> Sequence[ModelType]:
+    async def bulk_update(self, instances: Sequence[ModelType], data: dict) -> Sequence[ModelType]:
         raise NotImplementedError
 
     async def bulk_delete(self, ids: list[str]) -> int:
@@ -285,9 +281,7 @@ class DeleteRepositoryMixin(BaseRepository):
 class BulkUpdateRepositoryMixin(BaseRepository):
     """Mixin for bulk update operations"""
 
-    async def bulk_update(
-        self, instances: Sequence[ModelType], data: dict
-    ) -> Sequence[ModelType]:
+    async def bulk_update(self, instances: Sequence[ModelType], data: dict) -> Sequence[ModelType]:
         """
         Update multiple instances in the database with the same data.
 

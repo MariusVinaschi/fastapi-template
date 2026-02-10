@@ -41,9 +41,7 @@ class BaseService(Generic[ModelType, RepositoryType]):
     ):
         self.session = session
         self.authorization_context = authorization_context
-        self.repository: RepositoryType = self.repository_class(
-            session, authorization_context=authorization_context
-        )
+        self.repository: RepositoryType = self.repository_class(session, authorization_context=authorization_context)
 
     @classmethod
     def for_user(cls, session: AsyncSession, authorization_context: AuthorizationContext):
