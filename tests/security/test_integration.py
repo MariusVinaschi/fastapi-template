@@ -70,8 +70,9 @@ class TestSecurityIntegration:
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
                 with patch("app.api.security.UserService") as mock_user_service:
-                    mock_service_instance = AsyncMock()
-                    mock_service_instance.get_by_email.return_value = mock_admin_user
+                    # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+                    mock_service_instance = MagicMock()
+                    mock_service_instance.get_by_email = AsyncMock(return_value=mock_admin_user)
                     mock_user_service.for_system.return_value = mock_service_instance
 
                     result = await auth.get_current_user(
@@ -115,11 +116,12 @@ class TestSecurityIntegration:
         """Test JWT failure with successful API key fallback"""
         # Test with no JWT token but with API key
         with patch("app.api.security.APIKeyService") as mock_api_key_service:
-            mock_service_instance = AsyncMock()
+            # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+            mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
             mock_api_key_obj = MagicMock()
             mock_api_key_obj.user = mock_standard_user
-            mock_service_instance.get_by_api_key_hash.return_value = mock_api_key_obj
+            mock_service_instance.get_by_api_key_hash = AsyncMock(return_value=mock_api_key_obj)
             mock_api_key_service.for_system.return_value = mock_service_instance
 
             result = await auth.get_current_user(
@@ -141,7 +143,7 @@ class TestSecurityIntegration:
         mock_jwt_token,
     ):
         """Test successful admin authentication"""
-        with patch.object(auth, "get_current_user", return_value=mock_admin_user):
+        with patch.object(auth, "get_current_user", new=AsyncMock(return_value=mock_admin_user)):
             result = await auth.get_current_admin_user(
                 security_scopes=mock_security_scopes,
                 session=db_session,
@@ -161,7 +163,7 @@ class TestSecurityIntegration:
         mock_jwt_token,
     ):
         """Test admin authentication failure with non-admin user"""
-        with patch.object(auth, "get_current_user", return_value=mock_standard_user):
+        with patch.object(auth, "get_current_user", new=AsyncMock(return_value=mock_standard_user)):
             with pytest.raises(UnauthorizedException) as exc_info:
                 await auth.get_current_admin_user(
                     security_scopes=mock_security_scopes,
@@ -201,8 +203,9 @@ class TestSecurityIntegration:
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
                 with patch("app.api.security.UserService") as mock_user_service:
-                    mock_service_instance = AsyncMock()
-                    mock_service_instance.get_by_email.return_value = MagicMock(role="admin")
+                    # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+                    mock_service_instance = MagicMock()
+                    mock_service_instance.get_by_email = AsyncMock(return_value=MagicMock(role="admin"))
                     mock_user_service.for_system.return_value = mock_service_instance
 
                     result = await auth.get_current_user(
@@ -224,8 +227,9 @@ class TestSecurityIntegration:
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
                 with patch("app.api.security.UserService") as mock_user_service:
-                    mock_service_instance = AsyncMock()
-                    mock_service_instance.get_by_email.return_value = MagicMock(role="admin")
+                    # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+                    mock_service_instance = MagicMock()
+                    mock_service_instance.get_by_email = AsyncMock(return_value=MagicMock(role="admin"))
                     mock_user_service.for_system.return_value = mock_service_instance
 
                     # The UnauthorizedException is caught and converted to UnauthenticatedException
@@ -245,9 +249,10 @@ class TestSecurityIntegration:
     ):
         """Test API key authentication with invalid key"""
         with patch("app.api.security.APIKeyService") as mock_api_key_service:
-            mock_service_instance = AsyncMock()
+            # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+            mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
-            mock_service_instance.get_by_api_key_hash.side_effect = Exception("Key not found")
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=Exception("Key not found"))
             mock_api_key_service.for_system.return_value = mock_service_instance
 
             with pytest.raises(UnauthenticatedException) as exc_info:

@@ -110,7 +110,7 @@ class TestVerifyAuth:
         mock_token,
     ):
         """Test successful admin user authentication"""
-        with patch.object(verify_auth, "get_current_user", return_value=mock_user_admin):
+        with patch.object(verify_auth, "get_current_user", new=AsyncMock(return_value=mock_user_admin)):
             result = await verify_auth.get_current_admin_user(
                 security_scopes=mock_security_scopes,
                 session=db_session,
@@ -131,7 +131,7 @@ class TestVerifyAuth:
         mock_token,
     ):
         """Test failure when user is not admin"""
-        with patch.object(verify_auth, "get_current_user", return_value=mock_user_standard):
+        with patch.object(verify_auth, "get_current_user", new=AsyncMock(return_value=mock_user_standard)):
             with pytest.raises(UnauthorizedException) as exc_info:
                 await verify_auth.get_current_admin_user(
                     security_scopes=mock_security_scopes,
