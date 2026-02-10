@@ -43,9 +43,9 @@ class UUIDMixin:
 
     id: Mapped[uuid.UUID] = mapped_column(
         "id",
-        UUID(as_uuid=True),
+        UUID(as_uuid=True),  # type: ignore[no-matching-overload]
         default=uuid.uuid4,
-        primary_key=True,  # type: ignore[no-matching-overload]
+        primary_key=True,
     )
 
 
