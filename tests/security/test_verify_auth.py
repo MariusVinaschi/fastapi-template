@@ -151,8 +151,9 @@ class TestVerifyAuth:
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
             with patch("app.api.security.UserService") as mock_user_service:
-                mock_service_instance = AsyncMock()
-                mock_service_instance.get_by_email.return_value = mock_user_admin
+                # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+                mock_service_instance = MagicMock()
+                mock_service_instance.get_by_email = AsyncMock(return_value=mock_user_admin)
                 mock_user_service.for_system.return_value = mock_service_instance
 
                 result = await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
@@ -180,8 +181,9 @@ class TestVerifyAuth:
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
             with patch("app.api.security.UserService") as mock_user_service:
-                mock_service_instance = AsyncMock()
-                mock_service_instance.get_by_email.side_effect = Exception("User not found")
+                # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+                mock_service_instance = MagicMock()
+                mock_service_instance.get_by_email = AsyncMock(side_effect=Exception("User not found"))
                 mock_user_service.for_system.return_value = mock_service_instance
 
                 with pytest.raises(UnauthenticatedException) as exc_info:
@@ -210,9 +212,10 @@ class TestVerifyAuth:
     async def test_authenticate_with_api_key_invalid(self, verify_auth, db_session):
         """Test API key authentication with invalid key"""
         with patch("app.api.security.APIKeyService") as mock_api_key_service:
-            mock_service_instance = AsyncMock()
+            # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
+            mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
-            mock_service_instance.get_by_api_key_hash.side_effect = Exception("Key not found")
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=Exception("Key not found"))
             mock_api_key_service.for_system.return_value = mock_service_instance
 
             with pytest.raises(UnauthenticatedException) as exc_info:
