@@ -1,15 +1,15 @@
-from app.core.filters import BaseFilterParams
+import pytest
+from app.domains.base.filters import BaseFilterParams
 
 
-async def test_get_all_success(repository, populated_db, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_success(repository, populated_db):
     """Test retrieval of all entities"""
     # Arrange
     filters = BaseFilterParams()
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) == len(populated_db)
@@ -17,22 +17,22 @@ async def test_get_all_success(repository, populated_db, auth_context_user_1):
         assert isinstance(result, repository.model)
 
 
-async def test_get_all_empty_database(repository, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_empty_database(repository):
     """Test get_all with empty database"""
     # Arrange
     filters = BaseFilterParams()
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) == 0
     assert isinstance(results, list)
 
 
-async def test_get_all_with_search(repository, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_with_search(repository):
     """Test get_all with search filter"""
     # Arrange
     search_data = [
@@ -57,9 +57,7 @@ async def test_get_all_with_search(repository, auth_context_user_1):
     filters = BaseFilterParams(search="Search")
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) == 2
@@ -67,55 +65,49 @@ async def test_get_all_with_search(repository, auth_context_user_1):
         assert "search" in result.name.lower()
 
 
-async def test_get_all_with_ordering_asc(repository, populated_db, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_with_ordering_asc(repository, populated_db):
     """Test get_all with ascending ordering"""
     # Arrange
     filters = BaseFilterParams(order_by="name")
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     names = [result.name for result in results]
     assert names == sorted(names)
 
 
-async def test_get_all_with_ordering_desc(
-    repository, populated_db, auth_context_user_1
-):
+@pytest.mark.anyio
+async def test_get_all_with_ordering_desc(repository, populated_db):
     """Test get_all with descending ordering"""
     # Arrange
     filters = BaseFilterParams(order_by="-name")
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     names = [result.name for result in results]
     assert names == sorted(names, reverse=True)
 
 
-async def test_get_all_invalid_ordering(repository, populated_db, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_invalid_ordering(repository, populated_db):
     """Test get_all with invalid ordering field"""
     # Arrange
     filters = BaseFilterParams(order_by="non_existent_field")
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) > 0
 
 
-async def test_get_all_with_mixed_case_search(
-    repository, populated_db, auth_context_user_1
-):
+@pytest.mark.anyio
+async def test_get_all_with_mixed_case_search(repository, populated_db):
     """Test get_all with case-insensitive search"""
     # Arrange
     test_name = "UniqueSearchTerm"
@@ -130,16 +122,15 @@ async def test_get_all_with_mixed_case_search(
     filters = BaseFilterParams(search=test_name.lower())
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) == 1
     assert results[0].name == test_name.upper()
 
 
-async def test_get_all_with_id_in_filter(repository, populated_db, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_all_with_id_in_filter(repository, populated_db):
     """Test get_all with id__in filter"""
     # Arrange
     org_1_items = [item for item in populated_db]
@@ -148,9 +139,7 @@ async def test_get_all_with_id_in_filter(repository, populated_db, auth_context_
     filters = BaseFilterParams(id__in=selected_ids)
 
     # Act
-    results = await repository.get_all(
-        authorization_context=auth_context_user_1, filters=filters
-    )
+    results = await repository.get_all(filters=filters)
 
     # Assert
     assert len(results) == len(selected_ids)

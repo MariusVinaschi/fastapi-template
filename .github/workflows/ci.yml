@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # Type Checking with ty
+  # =============================================================================
+  type-check:
+    name: Type Check (ty)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run type checker
+        run: uv run ty check app/
+
+  # =============================================================================
+  # Linting with Ruff
+  # =============================================================================
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Ruff linter
+        run: uv run ruff check app/ tests/
+
+      - name: Run Ruff formatter check
+        run: uv run ruff format --check app/ tests/
+
+  # =============================================================================
+  # Tests with Pytest
+  # =============================================================================
+  test:
+    name: Tests (Pytest)
+    runs-on: ubuntu-latest
+
+    env:
+      APP_DB_HOST: localhost
+      APP_DB_PORT: 5432
+      APP_DB_USER: fastapitemplateuser
+      APP_DB_PASSWORD: fastapitemplatepassword
+      APP_DB_NAME: fastapitemplatedb
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fastapitemplateuser
+          POSTGRES_PASSWORD: fastapitemplatepassword
+          POSTGRES_DB: fastapitemplatedb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests
+        run: uv run pytest -v

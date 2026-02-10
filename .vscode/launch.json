@@ -1,0 +1,50 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "fastapi",
+            "args": ["run", "app/main.py", "--port", "8000", "--host", "0.0.0.0"],
+        },
+        {
+            "name": "Debug Tests with UV",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "-s",
+                "--tb=short"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "Debug Specific Test File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${file}",
+                "-v",
+                "-s",
+                "--tb=short"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+    ]
+}

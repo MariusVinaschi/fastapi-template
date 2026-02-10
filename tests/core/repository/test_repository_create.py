@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 
+@pytest.mark.anyio
 async def test_create_success(repository, sample_data):
     """Test successful creation of a single entity"""
     # Arrange
@@ -20,6 +21,7 @@ async def test_create_success(repository, sample_data):
     assert instance.updated_by == data["updated_by"]
 
 
+@pytest.mark.anyio
 async def test_create_with_missing_required_field(repository):
     """Test creation with missing required field"""
     # Arrange
@@ -33,6 +35,7 @@ async def test_create_with_missing_required_field(repository):
         await repository.create(incomplete_data)
 
 
+@pytest.mark.anyio
 async def test_create_verify_in_db(repository, db_session, sample_data):
     """Test that created entity is actually persisted in database"""
     # Arrange
@@ -56,6 +59,7 @@ async def test_create_verify_in_db(repository, db_session, sample_data):
     assert db_instance.updated_by == data["updated_by"]
 
 
+@pytest.mark.anyio
 async def test_create_with_extra_field(repository):
     """Test creation with extra field that doesn't exist in model"""
     # Arrange

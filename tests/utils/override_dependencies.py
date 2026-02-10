@@ -4,9 +4,7 @@ from fastapi import FastAPI
 
 
 class DependencyOverrider:
-    def __init__(
-        self, app: FastAPI, overrides: typing.Mapping[typing.Callable, typing.Callable]
-    ) -> None:
+    def __init__(self, app: FastAPI, overrides: typing.Mapping[typing.Callable, typing.Callable]) -> None:
         self.overrides = overrides
         self._app = app
         self._old_overrides = {}

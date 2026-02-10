@@ -1,7 +1,9 @@
+import pytest
 import uuid
 
 
-async def test_get_by_id_success(repository, populated_db, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_by_id_success(repository, populated_db):
     """Test retrieval of an entity by ID"""
     # Arrange
     item_to_retrieve = populated_db[0]
@@ -9,7 +11,6 @@ async def test_get_by_id_success(repository, populated_db, auth_context_user_1):
     # Act
     result = await repository.get_by_id(
         id=str(item_to_retrieve.id),
-        authorization_context=auth_context_user_1,
     )
 
     # Assert
@@ -17,15 +18,14 @@ async def test_get_by_id_success(repository, populated_db, auth_context_user_1):
     assert result.id == item_to_retrieve.id
 
 
-async def test_get_by_id_not_found(repository, auth_context_user_1):
+@pytest.mark.anyio
+async def test_get_by_id_not_found(repository):
     """Test get_by_id with a non-existent ID"""
     # Arrange
     non_existent_id = str(uuid.uuid4())
 
     # Act
-    result = await repository.get_by_id(
-        id=non_existent_id, authorization_context=auth_context_user_1
-    )
+    result = await repository.get_by_id(id=non_existent_id)
 
     # Assert
     assert result is None

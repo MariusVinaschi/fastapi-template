@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import func, select
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_success(repository, populated_db):
     """Test successful bulk deletion of entities"""
     # Arrange
@@ -22,6 +23,7 @@ async def test_bulk_delete_success(repository, populated_db):
     assert len(result.all()) == 0
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_empty_list(repository):
     """Test bulk deletion with empty list"""
     # Arrange
@@ -34,6 +36,7 @@ async def test_bulk_delete_empty_list(repository):
     assert deleted_count == 0
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_partial_existing_ids(repository, populated_db):
     """Test bulk deletion with mix of existing and non-existing IDs"""
     # Arrange
@@ -56,6 +59,7 @@ async def test_bulk_delete_partial_existing_ids(repository, populated_db):
     assert len(result.all()) == 0
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_verify_other_instances(repository, populated_db):
     """Test that bulk delete only removes specified instances"""
     # Arrange
@@ -76,6 +80,7 @@ async def test_bulk_delete_verify_other_instances(repository, populated_db):
     assert remaining_instance.id == instance_to_keep.id
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_invalid_id_format(repository, populated_db):
     """Test bulk delete with invalid UUID format"""
     # Arrange
@@ -93,6 +98,7 @@ async def test_bulk_delete_invalid_id_format(repository, populated_db):
     assert "invalid UUID" in str(exc_info.value)
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_verify_count(repository, populated_db):
     """Test that bulk delete returns correct count"""
     # Arrange
@@ -111,6 +117,7 @@ async def test_bulk_delete_verify_count(repository, populated_db):
     assert remaining_count == initial_count - len(ids_to_delete)
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_duplicate_ids(repository, populated_db):
     """Test bulk delete with duplicate IDs"""
     # Arrange

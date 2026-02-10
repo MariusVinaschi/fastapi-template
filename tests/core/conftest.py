@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.authorization import AuthorizationContext, AuthorizationScopeStrategy
-from app.core.repository import (
+from app.domains.base.authorization import AuthorizationContext, AuthorizationScopeStrategy
+from app.domains.base.repository import (
     BulkCreateRepositoryMixin,
     BulkDeleteRepositoryMixin,
     BulkUpdateRepositoryMixin,
@@ -16,7 +16,7 @@ from app.core.repository import (
     ReadRepositoryMixin,
     UpdateRepositoryMixin,
 )
-from app.core.service import (
+from app.domains.base.service import (
     BulkCreateServiceMixin,
     BulkDeleteServiceMixin,
     BulkUpdateServiceMixin,
@@ -25,7 +25,7 @@ from app.core.service import (
     ListServiceMixin,
     UpdateServiceMixin,
 )
-from tests.core.models import TestModel, User
+from tests.core.models import TestModel, TestUser
 
 # Test UUID constants for consistent ID usage across tests
 USER_1_ID = uuid4()
@@ -100,7 +100,8 @@ class TestService(
     BulkCreateServiceMixin[TestModel, TestRepository],
     BulkUpdateServiceMixin[TestModel, TestRepository],
     BulkDeleteServiceMixin[TestModel, TestRepository],
-): ...  # noqa
+):
+    pass
 
 
 @pytest.fixture
@@ -121,37 +122,41 @@ async def repository(db_session, scope_strategy, test_model):
     Creates a test repository instance with database session and scope strategy.
     Used for direct repository testing.
     """
-    return TestRepository(
-        session=db_session, scope_strategy=scope_strategy, model=test_model
-    )
+    return TestRepository(session=db_session, scope_strategy=scope_strategy, model=test_model)
 
 
 @pytest.fixture
-def service(db_session, scope_strategy, test_model):
+def service_factory(db_session, scope_strategy, test_model):
     """
-    Creates a test service instance with a properly configured repository.
-    Uses a repository class factory to automatically inject scope strategy and model.
+    Creates a factory that builds services with an authorization context.
+    Uses a dynamically configured repository and service to inject scope strategy and model.
     """
 
-    def create_repository_class():
-        class ConfiguredTestRepository(TestRepository):
-            def __init__(self, session: AsyncSession):
-                super().__init__(
-                    session=session, scope_strategy=scope_strategy, model=test_model
-                )
+    class ConfiguredTestRepository(TestRepository):
+        def __init__(self, session: AsyncSession, authorization_context=None):
+            super().__init__(
+                session=session,
+                scope_strategy=scope_strategy,
+                model=test_model,
+                authorization_context=authorization_context,
+            )
 
-        return ConfiguredTestRepository
+    class ConfiguredTestService(TestService):
+        repository_class = ConfiguredTestRepository
 
-    return TestService(
-        session=db_session,
-        repository_class=create_repository_class(),
-    )
+    def create_service(authorization_context=None):
+        return ConfiguredTestService(
+            session=db_session,
+            authorization_context=authorization_context,
+        )
+
+    return create_service
 
 
 @pytest.fixture
 async def user_1(db_session):
     """Creates and persists the first regular user"""
-    user = User(
+    user = TestUser(
         id=USER_1_ID,
         email="user1@test.com",
         role="admin",
@@ -165,7 +170,7 @@ async def user_1(db_session):
 @pytest.fixture
 async def user_2(db_session):
     """Creates and persists the second regular user"""
-    user = User(
+    user = TestUser(
         id=USER_2_ID,
         email="user2@test.com",
         role="user",
@@ -179,17 +184,13 @@ async def user_2(db_session):
 @pytest.fixture
 def auth_context_user_1():
     """Creates an authorization context for user 1"""
-    return FakeAuthorizationContext(
-        user_id=USER_1_ID, email="user1@test.com", role="admin"
-    )
+    return FakeAuthorizationContext(user_id=USER_1_ID, email="user1@test.com", role="admin")
 
 
 @pytest.fixture
 def auth_context_user_2():
     """Creates an authorization context for user 2"""
-    return FakeAuthorizationContext(
-        user_id=USER_2_ID, email="user2@test.com", role="user"
-    )
+    return FakeAuthorizationContext(user_id=USER_2_ID, email="user2@test.com", role="user")
 
 
 @pytest.fixture
