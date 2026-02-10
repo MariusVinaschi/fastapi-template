@@ -6,6 +6,7 @@ from app.domains.base.exceptions import EntityNotFoundException
 from tests.core.conftest import UpdateModelSchema
 
 
+@pytest.mark.anyio
 async def test_bulk_update_success(service_factory, auth_context_user_1, populated_db):
     """
     Test successful bulk update of entities with valid data.
@@ -25,6 +26,7 @@ async def test_bulk_update_success(service_factory, auth_context_user_1, populat
         assert instance.updated_by == auth_context_user_1.user_email
 
 
+@pytest.mark.anyio
 async def test_bulk_update_with_validation(service_factory, auth_context_user_1, populated_db):
     """
     Test bulk update with custom validation logic.
@@ -68,6 +70,7 @@ async def test_bulk_update_with_validation(service_factory, auth_context_user_1,
     assert validation_called
 
 
+@pytest.mark.anyio
 async def test_bulk_update_with_missing_entity(service_factory, auth_context_user_1, populated_db):
     """
     Test bulk update with a non-existent entity ID.
@@ -85,6 +88,7 @@ async def test_bulk_update_with_missing_entity(service_factory, auth_context_use
     assert str(non_existent_id) in str(exc_info.value)
 
 
+@pytest.mark.anyio
 async def test_bulk_update_empty_list(service_factory, auth_context_user_1):
     """
     Test bulk update with empty list.
@@ -101,6 +105,7 @@ async def test_bulk_update_empty_list(service_factory, auth_context_user_1):
     assert len(updated_instances) == 0
 
 
+@pytest.mark.anyio
 async def test_bulk_update_prepare_and_validate_flow(service_factory, auth_context_user_1, populated_db):
     """
     Test the complete bulk update flow including preparation and validation.

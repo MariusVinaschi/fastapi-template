@@ -1,6 +1,8 @@
+import pytest
 from tests.core.conftest import CreateModelSchema
 
 
+@pytest.mark.anyio
 async def test_prepare_create_data(service_factory, auth_context_user_1):
     """
     Test that _prepare_create_data correctly prepares data for entity creation

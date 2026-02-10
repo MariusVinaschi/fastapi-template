@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import func, select
 
 
+@pytest.mark.anyio
 async def test_delete_success(repository, populated_db):
     """Test successful deletion of an entity"""
     # Arrange
@@ -20,6 +21,7 @@ async def test_delete_success(repository, populated_db):
     assert result.one_or_none() is None
 
 
+@pytest.mark.anyio
 async def test_delete_verify_other_instances_remain(repository, populated_db):
     """Test that deleting one instance doesn't affect others"""
     # Arrange
@@ -37,6 +39,7 @@ async def test_delete_verify_other_instances_remain(repository, populated_db):
     assert db_instance.id == remaining_instance.id
 
 
+@pytest.mark.anyio
 async def test_delete_and_commit_rollback(repository, populated_db, db_session):
     """Test deletion with transaction rollback on error"""
     # Arrange
@@ -64,6 +67,7 @@ async def test_delete_and_commit_rollback(repository, populated_db, db_session):
     assert result.one_or_none() is not None
 
 
+@pytest.mark.anyio
 async def test_delete_invalid_instance(repository):
     """Test deleting an instance that was never persisted"""
     # Arrange
@@ -74,6 +78,7 @@ async def test_delete_invalid_instance(repository):
         await repository.delete(invalid_instance)
 
 
+@pytest.mark.anyio
 async def test_delete_all_instances(repository, populated_db):
     """Test deleting all instances sequentially"""
     # Act

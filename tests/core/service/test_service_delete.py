@@ -5,6 +5,7 @@ import pytest
 from app.domains.base.exceptions import EntityNotFoundException
 
 
+@pytest.mark.anyio
 async def test_delete_success(service_factory, populated_db, auth_context_user_1):
     """
     Test successful deletion of an entity.
@@ -24,6 +25,7 @@ async def test_delete_success(service_factory, populated_db, auth_context_user_1
         await service.get_by_id(instance_id)
 
 
+@pytest.mark.anyio
 async def test_delete_non_existent_entity(service_factory, auth_context_user_1):
     """
     Test deletion of non-existent entity.

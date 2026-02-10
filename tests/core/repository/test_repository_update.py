@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 
+@pytest.mark.anyio
 async def test_update_success(repository, populated_db):
     """Test successful update of an entity"""
     # Arrange
@@ -19,6 +20,7 @@ async def test_update_success(repository, populated_db):
     assert updated_instance.updated_by == "user1@test.com"
 
 
+@pytest.mark.anyio
 async def test_update_verify_in_db(repository, db_session, populated_db):
     """Test that updated entity is actually persisted in database"""
     # Arrange
@@ -37,6 +39,7 @@ async def test_update_verify_in_db(repository, db_session, populated_db):
     assert db_instance.name == "Verified Update"
 
 
+@pytest.mark.anyio
 async def test_update_partial(repository, populated_db):
     """Test partial update of an entity (only some fields)"""
     # Arrange
@@ -50,6 +53,7 @@ async def test_update_partial(repository, populated_db):
     assert updated_instance.name == "Partial Update"
 
 
+@pytest.mark.anyio
 async def test_update_with_null_required_field(repository, populated_db):
     """Test update with NULL value for required field"""
     # Arrange
@@ -61,6 +65,7 @@ async def test_update_with_null_required_field(repository, populated_db):
         await repository.update(instance, invalid_data)
 
 
+@pytest.mark.anyio
 async def test_update_preserves_created_at(repository, populated_db):
     """Test that update doesn't modify created_at timestamp"""
     # Arrange
@@ -75,6 +80,7 @@ async def test_update_preserves_created_at(repository, populated_db):
     assert updated_instance.created_at == original_created_at
 
 
+@pytest.mark.anyio
 async def test_update_empty_data(repository, populated_db):
     """Test update with empty data dict"""
     # Arrange

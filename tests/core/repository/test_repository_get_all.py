@@ -1,6 +1,8 @@
+import pytest
 from app.domains.base.filters import BaseFilterParams
 
 
+@pytest.mark.anyio
 async def test_get_all_success(repository, populated_db):
     """Test retrieval of all entities"""
     # Arrange
@@ -15,6 +17,7 @@ async def test_get_all_success(repository, populated_db):
         assert isinstance(result, repository.model)
 
 
+@pytest.mark.anyio
 async def test_get_all_empty_database(repository):
     """Test get_all with empty database"""
     # Arrange
@@ -28,6 +31,7 @@ async def test_get_all_empty_database(repository):
     assert isinstance(results, list)
 
 
+@pytest.mark.anyio
 async def test_get_all_with_search(repository):
     """Test get_all with search filter"""
     # Arrange
@@ -61,6 +65,7 @@ async def test_get_all_with_search(repository):
         assert "search" in result.name.lower()
 
 
+@pytest.mark.anyio
 async def test_get_all_with_ordering_asc(repository, populated_db):
     """Test get_all with ascending ordering"""
     # Arrange
@@ -74,6 +79,7 @@ async def test_get_all_with_ordering_asc(repository, populated_db):
     assert names == sorted(names)
 
 
+@pytest.mark.anyio
 async def test_get_all_with_ordering_desc(repository, populated_db):
     """Test get_all with descending ordering"""
     # Arrange
@@ -87,6 +93,7 @@ async def test_get_all_with_ordering_desc(repository, populated_db):
     assert names == sorted(names, reverse=True)
 
 
+@pytest.mark.anyio
 async def test_get_all_invalid_ordering(repository, populated_db):
     """Test get_all with invalid ordering field"""
     # Arrange
@@ -99,6 +106,7 @@ async def test_get_all_invalid_ordering(repository, populated_db):
     assert len(results) > 0
 
 
+@pytest.mark.anyio
 async def test_get_all_with_mixed_case_search(repository, populated_db):
     """Test get_all with case-insensitive search"""
     # Arrange
@@ -121,6 +129,7 @@ async def test_get_all_with_mixed_case_search(repository, populated_db):
     assert results[0].name == test_name.upper()
 
 
+@pytest.mark.anyio
 async def test_get_all_with_id_in_filter(repository, populated_db):
     """Test get_all with id__in filter"""
     # Arrange

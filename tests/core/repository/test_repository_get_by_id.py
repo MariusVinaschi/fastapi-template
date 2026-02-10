@@ -1,6 +1,8 @@
+import pytest
 import uuid
 
 
+@pytest.mark.anyio
 async def test_get_by_id_success(repository, populated_db):
     """Test retrieval of an entity by ID"""
     # Arrange
@@ -16,6 +18,7 @@ async def test_get_by_id_success(repository, populated_db):
     assert result.id == item_to_retrieve.id
 
 
+@pytest.mark.anyio
 async def test_get_by_id_not_found(repository):
     """Test get_by_id with a non-existent ID"""
     # Arrange

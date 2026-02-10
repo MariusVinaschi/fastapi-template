@@ -1,6 +1,8 @@
+import pytest
 from app.domains.base.filters import BaseFilterParams
 
 
+@pytest.mark.anyio
 async def test_get_paginated_basic(repository, populated_db):
     """Test basic pagination functionality"""
     # Arrange
@@ -16,6 +18,7 @@ async def test_get_paginated_basic(repository, populated_db):
     assert isinstance(results[0], repository.model)
 
 
+@pytest.mark.anyio
 async def test_get_paginated_empty_results(repository):
     """Test pagination with empty database"""
     # Arrange
@@ -29,6 +32,7 @@ async def test_get_paginated_empty_results(repository):
     assert len(results) == 0
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_ordering(repository, populated_db):
     """Test pagination with ordering"""
     # Arrange
@@ -43,6 +47,7 @@ async def test_get_paginated_with_ordering(repository, populated_db):
     assert names == sorted(names)
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_ordering_desc(repository, populated_db):
     """Test pagination with descending ordering"""
     # Arrange
@@ -57,6 +62,7 @@ async def test_get_paginated_with_ordering_desc(repository, populated_db):
     assert names == sorted(names, reverse=True)
 
 
+@pytest.mark.anyio
 async def test_get_paginated_different_pages(repository, populated_db):
     """Test accessing different pages with pagination"""
     # Arrange
@@ -88,6 +94,7 @@ async def test_get_paginated_different_pages(repository, populated_db):
     assert page1_results[0].id != page2_results[0].id  # Different items on different pages
 
 
+@pytest.mark.anyio
 async def test_get_paginated_offset_exceeds_total(repository, populated_db):
     """Test pagination with offset exceeding total count"""
     # Arrange
@@ -102,6 +109,7 @@ async def test_get_paginated_offset_exceeds_total(repository, populated_db):
     assert len(results) == 0
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_search(repository, populated_db):
     """Test pagination with search filter"""
     # Arrange
@@ -135,6 +143,7 @@ async def test_get_paginated_with_search(repository, populated_db):
         assert "search" in result.name.lower()
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_search_no_results(repository, populated_db):
     """Test pagination with search filter that matches nothing"""
     # Arrange
@@ -148,6 +157,7 @@ async def test_get_paginated_with_search_no_results(repository, populated_db):
     assert len(results) == 0
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_case_insensitive_search(repository, populated_db):
     """Test that search is case insensitive"""
     # Arrange
@@ -171,6 +181,7 @@ async def test_get_paginated_with_case_insensitive_search(repository, populated_
     assert results[0].name == test_name.upper()
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_id_in_filter(repository, populated_db):
     """Test pagination with id__in filter"""
     # Arrange

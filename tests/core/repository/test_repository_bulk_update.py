@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 
+@pytest.mark.anyio
 async def test_bulk_update_success(repository, populated_db):
     """Test successful bulk update of entities"""
     # Arrange
@@ -18,6 +19,7 @@ async def test_bulk_update_success(repository, populated_db):
         assert updated.name == data["name"]
 
 
+@pytest.mark.anyio
 async def test_bulk_update_verify_in_db(repository, db_session, populated_db):
     """Test that bulk updated entities are actually persisted in database"""
     # Arrange
@@ -39,6 +41,7 @@ async def test_bulk_update_verify_in_db(repository, db_session, populated_db):
         assert db_instance.name == data["name"]
 
 
+@pytest.mark.anyio
 async def test_bulk_update_empty_lists(repository):
     """Test bulk update with empty lists"""
     # Arrange
@@ -52,6 +55,7 @@ async def test_bulk_update_empty_lists(repository):
     assert result == []
 
 
+@pytest.mark.anyio
 async def test_bulk_update_partial(repository, populated_db):
     """Test partial bulk update (only updating name field)"""
     # Arrange
@@ -66,6 +70,7 @@ async def test_bulk_update_partial(repository, populated_db):
         assert updated.name == data["name"]
 
 
+@pytest.mark.anyio
 async def test_bulk_update_preserves_created_at(repository, populated_db):
     """Test that bulk update doesn't modify created_at timestamps"""
     # Arrange
@@ -82,6 +87,7 @@ async def test_bulk_update_preserves_created_at(repository, populated_db):
         assert updated.name == data["name"]
 
 
+@pytest.mark.anyio
 async def test_bulk_update_with_null_required_field(repository, populated_db):
     """Test bulk update with NULL value for required field"""
     # Arrange

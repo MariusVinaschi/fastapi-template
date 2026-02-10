@@ -1,6 +1,8 @@
+import pytest
 from tests.core.conftest import CreateModelSchema
 
 
+@pytest.mark.anyio
 async def test_validate_create(service_factory, auth_context_user_1):
     """
     Test that _validate_create correctly validates data for entity creation

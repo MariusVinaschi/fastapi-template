@@ -3,6 +3,7 @@ import pytest
 from tests.core.conftest import CreateModelSchema
 
 
+@pytest.mark.anyio
 async def test_bulk_create_success(service_factory, auth_context_user_1):
     """
     Test successful bulk creation of entities with valid data.
@@ -22,6 +23,7 @@ async def test_bulk_create_success(service_factory, auth_context_user_1):
         assert entity.updated_by == auth_context_user_1.user_email
 
 
+@pytest.mark.anyio
 async def test_bulk_create_empty_list(service_factory, auth_context_user_1):
     """
     Test bulk creation with empty list returns empty list.
@@ -37,6 +39,7 @@ async def test_bulk_create_empty_list(service_factory, auth_context_user_1):
     assert len(created_entities) == 0
 
 
+@pytest.mark.anyio
 async def test_bulk_create_with_custom_validation(service_factory, auth_context_user_1):
     """
     Test bulk create with custom validation logic.
@@ -67,6 +70,7 @@ async def test_bulk_create_with_custom_validation(service_factory, auth_context_
     assert all(item["created_by"] == auth_context_user_1.user_email for item in validated_items)
 
 
+@pytest.mark.anyio
 async def test_bulk_create_with_failed_validation(service_factory, auth_context_user_1):
     """
     Test bulk create when validation fails.
@@ -89,6 +93,7 @@ async def test_bulk_create_with_failed_validation(service_factory, auth_context_
         await service.bulk_create(test_data)
 
 
+@pytest.mark.anyio
 async def test_bulk_create_prepares_each_item(service_factory, auth_context_user_1):
     """
     Test that bulk create correctly prepares each item before saving.

@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 
+@pytest.mark.anyio
 async def test_validate_bulk_delete_default(service_factory, auth_context_user_1):
     """
     Test that default _validate_bulk_delete implementation returns True.
@@ -16,6 +17,7 @@ async def test_validate_bulk_delete_default(service_factory, auth_context_user_1
     assert result is True
 
 
+@pytest.mark.anyio
 async def test_validate_bulk_delete_custom(service_factory, auth_context_user_1):
     """
     Test custom validation logic in _validate_bulk_delete.
@@ -42,6 +44,7 @@ async def test_validate_bulk_delete_custom(service_factory, auth_context_user_1)
     assert validation_called, "Custom validation should have been called"
 
 
+@pytest.mark.anyio
 async def test_validate_bulk_delete_custom_failure(service_factory, auth_context_user_1):
     """
     Test that _validate_bulk_delete can properly raise exceptions.

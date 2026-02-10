@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.anyio
 async def test_validate_update(service_factory, auth_context_user_1):
     """
     Test that _validate_update allows valid updates by default.
@@ -20,6 +21,7 @@ async def test_validate_update(service_factory, auth_context_user_1):
     await service._validate_update(instance, update_data)
 
 
+@pytest.mark.anyio
 async def test_validate_update_custom_validation(service_factory, auth_context_user_1):
     """
     Test that custom validation logic in _validate_update works.

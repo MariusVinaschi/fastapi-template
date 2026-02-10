@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_success(service_factory, populated_db, auth_context_user_1):
     """
     Test successful bulk deletion with validation.
@@ -32,6 +33,7 @@ async def test_bulk_delete_success(service_factory, populated_db, auth_context_u
         assert result is None
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_empty_list(service_factory, populated_db, auth_context_user_1):
     """
     Test bulk delete with empty list.
@@ -55,6 +57,7 @@ async def test_bulk_delete_empty_list(service_factory, populated_db, auth_contex
     assert deleted_count == 0, "Should return 0 for empty list"
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_validation_failure_prevents_deletion(service_factory, populated_db, auth_context_user_1):
     """
     Test that validation failure prevents deletion of any entities.
@@ -78,6 +81,7 @@ async def test_bulk_delete_validation_failure_prevents_deletion(service_factory,
         assert result is not None
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_partial_existence(service_factory, populated_db, auth_context_user_1):
     """
     Test bulk delete with mix of existing and non-existent IDs.
@@ -97,6 +101,7 @@ async def test_bulk_delete_partial_existence(service_factory, populated_db, auth
     assert result is None
 
 
+@pytest.mark.anyio
 async def test_bulk_delete_all_non_existent(service_factory, populated_db, auth_context_user_1):
     """
     Test bulk delete with only non-existent IDs.

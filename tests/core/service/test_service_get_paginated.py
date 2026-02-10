@@ -1,7 +1,9 @@
+import pytest
 from app.domains.base.filters import BaseFilterParams
 from tests.core.conftest import CreateModelSchema
 
 
+@pytest.mark.anyio
 async def test_get_paginated_basic(service_factory, populated_db, auth_context_user_1):
     """Test basic pagination functionality of the service"""
     # Arrange
@@ -16,6 +18,7 @@ async def test_get_paginated_basic(service_factory, populated_db, auth_context_u
     assert len(result["data"]) == len(populated_db)
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_search(service_factory, populated_db, auth_context_user_1):
     """Test pagination with search functionality"""
     # Arrange
@@ -43,6 +46,7 @@ async def test_get_paginated_with_search(service_factory, populated_db, auth_con
     assert all("search" in item.name.lower() for item in result["data"])
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_id_filter(service_factory, populated_db, auth_context_user_1):
     """Test pagination with id__in filter"""
     # Arrange
@@ -67,6 +71,7 @@ async def test_get_paginated_with_id_filter(service_factory, populated_db, auth_
     assert all(id in selected_ids for id in result_ids)
 
 
+@pytest.mark.anyio
 async def test_get_paginated_with_offset(service_factory, populated_db, auth_context_user_1):
     """Test pagination with offset"""
     # Arrange

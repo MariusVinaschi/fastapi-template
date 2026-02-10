@@ -1,6 +1,8 @@
+import pytest
 from tests.core.conftest import UpdateModelSchema
 
 
+@pytest.mark.anyio
 async def test_prepare_update_data(service_factory, auth_context_user_1):
     """
     Test that _prepare_update_data correctly prepares data for entity update.
@@ -19,6 +21,7 @@ async def test_prepare_update_data(service_factory, auth_context_user_1):
     assert set(prepared_data.keys()) == {"name", "updated_by"}
 
 
+@pytest.mark.anyio
 async def test_prepare_update_data_partial(service_factory, auth_context_user_1):
     """
     Test that _prepare_update_data correctly handles partial updates.

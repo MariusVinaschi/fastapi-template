@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 
+@pytest.mark.anyio
 async def test_bulk_create_success(repository, sample_data):
     """Test successful bulk creation of entities"""
     # Act
@@ -20,6 +21,7 @@ async def test_bulk_create_success(repository, sample_data):
         assert instance.updated_by == data["updated_by"]
 
 
+@pytest.mark.anyio
 async def test_bulk_create_empty_list(repository):
     """Test bulk creation with empty list"""
     # Arrange
@@ -32,6 +34,7 @@ async def test_bulk_create_empty_list(repository):
     assert instances == []
 
 
+@pytest.mark.anyio
 async def test_bulk_create_verify_in_db(repository, db_session, sample_data):
     """Test that bulk created entities are actually persisted in database"""
     # Act
@@ -51,6 +54,7 @@ async def test_bulk_create_verify_in_db(repository, db_session, sample_data):
         assert instance.updated_by == data["updated_by"]
 
 
+@pytest.mark.anyio
 async def test_bulk_create_with_duplicate_data(repository, populated_db):
     """Test bulk creation with duplicate data"""
     # Arrange
@@ -67,6 +71,7 @@ async def test_bulk_create_with_duplicate_data(repository, populated_db):
         await repository.bulk_create(duplicate_data)
 
 
+@pytest.mark.anyio
 async def test_bulk_create_with_invalid_data(repository):
     """Test bulk creation with invalid data"""
     # Arrange

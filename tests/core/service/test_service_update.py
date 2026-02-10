@@ -6,6 +6,7 @@ from app.domains.base.exceptions import EntityNotFoundException
 from tests.core.conftest import UpdateModelSchema
 
 
+@pytest.mark.anyio
 async def test_update_success(service_factory, auth_context_user_1, populated_db):
     """
     Test successful entity update with valid data.
@@ -25,6 +26,7 @@ async def test_update_success(service_factory, auth_context_user_1, populated_db
     assert updated_instance.updated_by == auth_context_user_1.user_email  # Audit field updated
 
 
+@pytest.mark.anyio
 async def test_update_not_found(service_factory, auth_context_user_1):
     """
     Test update with non-existent ID.
@@ -39,6 +41,7 @@ async def test_update_not_found(service_factory, auth_context_user_1):
         await service.update(non_existent_id, update_data)
 
 
+@pytest.mark.anyio
 async def test_update_validation_failure(service_factory, auth_context_user_1, populated_db):
     """
     Test update with failing validation.
@@ -59,6 +62,7 @@ async def test_update_validation_failure(service_factory, auth_context_user_1, p
         await service.update(instance.id, update_data)
 
 
+@pytest.mark.anyio
 async def test_update_full_flow(service_factory, auth_context_user_1, populated_db):
     """
     Test the complete update flow with preparation and validation.

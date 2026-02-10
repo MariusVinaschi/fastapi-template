@@ -3,6 +3,7 @@ import pytest
 from tests.core.conftest import CreateModelSchema
 
 
+@pytest.mark.anyio
 async def test_create_success(service_factory, auth_context_user_1):
     """
     Test successful creation of an entity with valid data.
@@ -23,6 +24,7 @@ async def test_create_success(service_factory, auth_context_user_1):
     assert created_entity.updated_by == auth_context_user_1.user_email
 
 
+@pytest.mark.anyio
 async def test_create_with_custom_validation(service_factory, auth_context_user_1):
     """
     Test create with custom validation logic.
@@ -51,6 +53,7 @@ async def test_create_with_custom_validation(service_factory, auth_context_user_
     assert created_entity.name == test_data.name
 
 
+@pytest.mark.anyio
 async def test_create_with_failed_validation(service_factory, auth_context_user_1):
     """
     Test create when validation fails.
@@ -73,6 +76,7 @@ async def test_create_with_failed_validation(service_factory, auth_context_user_
         await service.create(test_data)
 
 
+@pytest.mark.anyio
 async def test_create_prepares_data_correctly(service_factory, auth_context_user_1):
     """
     Test that create method correctly prepares data before saving.

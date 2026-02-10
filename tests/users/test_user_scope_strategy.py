@@ -1,6 +1,6 @@
 import uuid
 
-import pytest_asyncio
+import pytest
 from sqlalchemy import select
 
 from app.domains.users.authorization import UserScopeStrategy
@@ -8,7 +8,7 @@ from app.domains.users.factory import UserFactory
 from app.domains.users.models import User, UserAuthorizationAdapter
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def setup_multiple_users(db_session):
     # Create test users
     user1 = await UserFactory.create_async(session=db_session)
@@ -17,6 +17,7 @@ async def setup_multiple_users(db_session):
     return user1, user2
 
 
+@pytest.mark.anyio
 async def test_apply_scope_filters_by_user_id(db_session, setup_multiple_users):
     user1, user2 = setup_multiple_users
 
@@ -38,6 +39,7 @@ async def test_apply_scope_filters_by_user_id(db_session, setup_multiple_users):
     assert users[1].id == user2.id
 
 
+@pytest.mark.anyio
 async def test_apply_scope_returns_empty_for_nonexistent_user(
     db_session,
 ):
