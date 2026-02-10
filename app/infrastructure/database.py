@@ -29,7 +29,13 @@ async def get_session() -> AsyncGenerator:
 @asynccontextmanager
 async def get_prefect_db_session(block_name: str):
     """Context manager to load the connector and create the session."""
-    async with await SqlAlchemyConnector.load(block_name) as connector:
+    load_result = SqlAlchemyConnector.load(block_name)
+    if load_result is None:
+        raise ValueError(f"Prefect block {block_name!r} not found")
+    connector_cm = await load_result
+    if connector_cm is None:
+        raise ValueError(f"Prefect block {block_name!r} failed to load")
+    async with connector_cm as connector:
         engine = connector.get_engine()
         session_factory = async_sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         session = session_factory()

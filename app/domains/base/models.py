@@ -41,7 +41,9 @@ class TimestampMixin:
 class UUIDMixin:
     """Mixin for UUID primary key"""
 
-    id: Mapped[uuid.UUID] = mapped_column("id", UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        "id", UUID(as_uuid=True), default=uuid.uuid4, primary_key=True  # type: ignore[no-matching-overload]
+    )
 
 
 class CreatedByMixin:

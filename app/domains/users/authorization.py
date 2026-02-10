@@ -9,7 +9,7 @@ from app.domains.base.authorization import (
     AuthorizationContext,
     AuthorizationScopeStrategy,
 )
-from app.domains.users.models import User, APIKey
+from app.domains.users.models import APIKey, User
 
 
 class UserScopeStrategy(AuthorizationScopeStrategy):

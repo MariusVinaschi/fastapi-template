@@ -55,7 +55,7 @@ class AuthorizationScopeStrategy(ABC, Generic[T]):
     IF scope should be applied. This strategy only decides HOW to apply it.
     """
 
-    def __init__(self, model: type[T] = None):
+    def __init__(self, model: type[T]):
         self.model = model
 
     @abstractmethod
