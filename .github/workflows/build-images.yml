@@ -22,11 +22,14 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout the released commit
+      - name: Checkout the release branch HEAD
         uses: actions/checkout@v4
         with:
-          # We build images from the exact commit that the Release workflow ran on.
-          ref: ${{ github.event.workflow_run.head_sha }}
+          # IMPORTANT:
+          # The Release workflow amends/creates a new commit and pushes tags.
+          # `workflow_run.head_sha` points to the SHA at workflow start, which may differ from the final pushed commit.
+          # So we checkout the branch HEAD after the Release workflow completed.
+          ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
 
       - name: Fetch tags
@@ -37,13 +40,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SHA="${{ github.event.workflow_run.head_sha }}"
-          TAG="$(git tag --points-at "$SHA" | head -n 1 || true)"
+          TAG="$(git tag --points-at HEAD | grep -E '^v[0-9]+' | head -n 1 || true)"
 
           if [ -z "$TAG" ]; then
-            # No tag means this was not a stable release (e.g. RC). Skip image build/push.
+            # No tag means this was not a stable release (or the tag wasn't pushed). Skip image build/push.
             echo "tag=" >> "$GITHUB_OUTPUT"
-            echo "No tag points at $SHA; skipping image build."
+            echo "No release tag points at HEAD; skipping image build."
             exit 0
           fi
 
