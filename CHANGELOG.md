@@ -2,6 +2,10 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-02-16)
+
+- Initial Release
+
 ## v0.3.0-rc.1 (2026-02-16)
 
 - Initial Release
