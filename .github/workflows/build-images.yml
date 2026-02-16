@@ -1,14 +1,14 @@
 name: Build & Push Images
 
 on:
-  # Build images only after the "Release" workflow has completed.
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
+  # Triggered when the Release workflow pushes a stable version tag (e.g. v1.0.0).
+  # RC versions (e.g. v1.0.0-rc.1) are never tagged, so this never runs for RCs.
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
-# Avoid duplicate runs for the same release commit.
 concurrency:
-  group: build-images-${{ github.event.workflow_run.head_sha }}
+  group: build-images-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -17,60 +17,33 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Build & push API/Worker images (tagged releases only)
+    name: Build & push API/Worker images
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout the release branch HEAD
+      - name: Checkout tagged commit
         uses: actions/checkout@v4
-        with:
-          # IMPORTANT:
-          # The Release workflow amends/creates a new commit and pushes tags.
-          # `workflow_run.head_sha` points to the SHA at workflow start, which may differ from the final pushed commit.
-          # So we checkout the branch HEAD after the Release workflow completed.
-          ref: ${{ github.event.workflow_run.head_branch }}
-          fetch-depth: 0
 
-      - name: Fetch tags
-        run: git fetch --force --tags
-
-      - name: Resolve git tag for this commit
+      - name: Extract tag name
         id: meta
-        shell: bash
         run: |
-          set -euo pipefail
-          TAG="$(git tag --points-at HEAD | grep -E '^v[0-9]+' | head -n 1 || true)"
-
-          if [ -z "$TAG" ]; then
-            # No tag means this was not a stable release (or the tag wasn't pushed). Skip image build/push.
-            echo "tag=" >> "$GITHUB_OUTPUT"
-            echo "No release tag points at HEAD; skipping image build."
-            exit 0
-          fi
-
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Using tag: $TAG"
+          echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          echo "Building images for tag: ${{ github.ref_name }}"
 
       - name: Set up QEMU
-        if: steps.meta.outputs.tag != ''
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.meta.outputs.tag != ''
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
-        if: steps.meta.outputs.tag != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          # GITHUB_TOKEN is automatically provided by GitHub Actions (no repo secret needed).
           password: ${{ github.token }}
 
       - name: Build and push API image
-        if: steps.meta.outputs.tag != ''
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -83,7 +56,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Worker image
-        if: steps.meta.outputs.tag != ''
         uses: docker/build-push-action@v6
         with:
           context: .
