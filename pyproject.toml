@@ -1,6 +1,6 @@
 [project]
 name = "fastapi-template"
-version = "0.3.0"
+version = "0.3.0-rc.1"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
