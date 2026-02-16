@@ -24,10 +24,12 @@ jobs:
       - name: Checkout tagged commit
         uses: actions/checkout@v4
 
-      - name: Extract tag name
+      - name: Extract tag and image prefix
         id: meta
         run: |
           echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          # GHCR requires lowercase repository names
+          echo "image_prefix=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
           echo "Building images for tag: ${{ github.ref_name }}"
 
       - name: Set up QEMU
@@ -51,7 +53,7 @@ jobs:
           target: api
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/api:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_prefix }}/api:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -63,6 +65,6 @@ jobs:
           target: worker
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/worker:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_prefix }}/worker:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
