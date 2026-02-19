@@ -389,6 +389,45 @@ make docker-down
 | `make clean` | Remove caches (__pycache__, .pytest_cache, .ruff_cache, .coverage, htmlcov, etc.) |
 | `make clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
+## CI/CD Overview
+
+This repository uses three GitHub Actions workflows to validate code, publish versions, and build container images.
+
+### Workflows and Triggers
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| CI | `.github/workflows/ci.yml` | `pull_request` and `push` on `main` | Runs type check (`ty`), lint/format check (`ruff`), and tests (`pytest`) |
+| Release | `.github/workflows/release.yml` | `push` on `main` and manual `workflow_dispatch` | Creates RC/stable versions, commits release changes, pushes tags, and creates GitHub Release for stable versions |
+| Build & Push Images | `.github/workflows/build-images.yml` | `push` tags matching `vX.Y.Z` | Builds and pushes API/Worker images to GHCR |
+
+### End-to-End Flow
+
+1. Open a PR to `main`: the `CI` workflow validates code quality and tests.
+2. Merge to `main`: the `Release` workflow creates the next RC (`-rc.N`) automatically.
+3. Run `Release` manually with `patch`, `minor`, or `major`: it creates a stable version and pushes tag `vX.Y.Z`.
+4. Pushing `vX.Y.Z` triggers `Build & Push Images`, which publishes Docker images to GHCR.
+
+### Deploy Key Setup for Release
+
+The `Release` workflow pushes back to `main`, so it uses an SSH deploy key stored in `DEPLOY_KEY`.
+
+1. Generate a dedicated SSH key pair on your machine:
+
+```bash
+ssh-keygen -t ed25519 -C "fastapi-template-release" -f ./fastapi-template-deploy-key -N ""
+```
+
+2. Add the public key in GitHub:
+   - Repository `Settings` -> `Deploy keys` -> `Add deploy key`
+   - Paste `fastapi-template-deploy-key.pub`
+   - Enable `Allow write access`
+
+3. Add the private key as an Actions secret:
+   - Repository `Settings` -> `Secrets and variables` -> `Actions`
+   - Create secret `DEPLOY_KEY`
+   - Paste full content of `fastapi-template-deploy-key`
+
 ## Versioning & Releases
 
 This project uses an automated versioning workflow with Release Candidates (RC).
