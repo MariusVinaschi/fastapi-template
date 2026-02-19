@@ -1,0 +1,27 @@
+name: fastapi-template-workers
+prefect-version: 3.0.0
+
+build: null
+
+push: null
+
+pull: null
+
+deployments:
+  - name: create-user-flow
+    description: "Flow to create a user"  
+    entrypoint: app/workers/task_database.py:create_user_flow
+    work_pool:
+      name: ${WORK_POOL_NAME}
+      work_queue_name: ${WORK_QUEUE_NAME}
+      job_variables:
+        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
+
+  - name: web-scrapper-flow
+    description: "Flow to scrape the web"
+    entrypoint: app/workers/simple_web_scrapper.py:scrape_flow
+    work_pool:
+      name: ${WORK_POOL_NAME}
+      work_queue_name: ${WORK_QUEUE_NAME}
+      job_variables:
+        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
