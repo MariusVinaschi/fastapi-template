@@ -19,7 +19,7 @@ deployments:
 
   - name: web-scrapper-flow
     description: "Flow to scrape the web"
-    entrypoint: app/workers/simple_web_scrapper.py:scrape_flow
+    entrypoint: app/workers/simple_web_scrapper.py:scrape
     work_pool:
       name: ${WORK_POOL_NAME}
       work_queue_name: ${WORK_QUEUE_NAME}

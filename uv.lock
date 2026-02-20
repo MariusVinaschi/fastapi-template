@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 
 [[package]]
@@ -605,6 +605,7 @@ dependencies = [
     { name = "faker" },
     { name = "fastapi", extra = ["standard"] },
     { name = "prefect" },
+    { name = "prefect-docker" },
     { name = "prefect-sqlalchemy" },
     { name = "pydantic", extra = ["email", "timezone"] },
     { name = "pydantic-settings" },
@@ -632,6 +633,7 @@ requires-dist = [
     { name = "faker", specifier = ">=40.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },
     { name = "prefect", specifier = ">=3.6.10" },
+    { name = "prefect-docker", specifier = ">=0.7.1" },
     { name = "prefect-sqlalchemy", specifier = ">=0.5.3" },
     { name = "pydantic", extras = ["email", "timezone"], specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
@@ -1348,6 +1350,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d1/16/235e08208e73b52712e8a93c64b76e6beafa5f7e34a0c512a2039d9dc096/prefect-3.6.10.tar.gz", hash = "sha256:b300aecdb26fde32f34c6689d29a2f9782fdcbe54107460470ba6097201e3179", size = 10666953, upload-time = "2026-01-08T21:17:36.466Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/45/a8/283556be5310e61a8360766e510ed72a751433c1679c3f907f85798f7ccf/prefect-3.6.10-py3-none-any.whl", hash = "sha256:6544c33fe87be657a7b3187f4ef42edd1b153ffc75531717cc05afcb2c8392fe", size = 11369646, upload-time = "2026-01-08T21:17:34.111Z" },
+]
+
+[[package]]
+name = "prefect-docker"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docker" },
+    { name = "exceptiongroup" },
+    { name = "prefect" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/77/76/477cb000395452edbd641734aa1d2b41680b35e9172c11ace685a74b2e54/prefect_docker-0.7.1.tar.gz", hash = "sha256:7d5053bcc049d56b5498ca4629c9b08b31d96f5387e1eb34f510ec322d5aad89", size = 41684, upload-time = "2026-01-15T22:53:06.477Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/5c/20f573c6f800ad784603c7bd5787770ef648758289af2970d12c39072534/prefect_docker-0.7.1-py3-none-any.whl", hash = "sha256:b4fe1760c12206d3eaec2826d63acb1235bd41756921eb0c6b5feeb20b157e37", size = 28254, upload-time = "2026-01-15T22:53:04.998Z" },
 ]
 
 [[package]]

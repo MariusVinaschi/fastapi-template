@@ -15,7 +15,7 @@ def build_db_connector() -> SqlAlchemyConnector:
             driver=AsyncDriver.POSTGRESQL_ASYNCPG,
             username=os.getenv("APP_DB_USER", "fastapitemplateuser"),
             password=os.getenv("APP_DB_PASSWORD", "fastapitemplatepassword"),
-            host=os.getenv("APP_DB_HOST", "localhost"),
+            host=os.getenv("APP_DB_HOST", "dbapp"),
             port=os.getenv("APP_DB_PORT", 5432),
             database=os.getenv("APP_DB_NAME", "fastapitemplatedb"),
         )
@@ -75,8 +75,9 @@ async def ensure_work_pool():
 
 
 async def main():
-    await save_block(build_db_connector(), os.getenv("WORK_POOL_NAME", "dbapp-sqlalchemy"))
-    # ensure_work_pool()
+    block_slug = os.getenv("PREFECT_BLOCK_NAME_SQLALCHEMY", "dbapp-sqlalchemy")
+    await save_block(build_db_connector(), block_slug)
+    await ensure_work_pool()
 
 
 def cli():
