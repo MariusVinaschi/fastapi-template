@@ -374,7 +374,7 @@ To validate that everything works in Docker with Prefect (Docker work pool, depl
    ```
 6. **Trigger a run**: from the Prefect UI (http://localhost:4200) or via CLI for the `create-user-flow` and `web-scrapper-flow` deployments.
 
-**Summary**: One Docker work pool (created by `init-prefect`), one `default` work queue, two deployments defined in `prefect.yaml`. The worker in the compose runs jobs in containers based on the worker image. To use a worker image other than `fastapi-template-worker:latest`, set `WORKER_IMAGE` (e.g. `fastapi-template:worker` or a registry image).
+**Summary**: One Docker work pool (created by `init-prefect`), one `default` work queue, two deployments defined in `prefect.yaml`. The worker runs jobs in containers using the image from `.env` (`WORKER_IMAGE`) or the default `ghcr.io/mariusvinaschi/fastapi-template/worker:v0.6.0`. Bump the version tag in `.env.sample` and `prefect.yaml` on each release.
 
 ## Make Commands
 

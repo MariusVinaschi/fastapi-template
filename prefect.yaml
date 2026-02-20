@@ -15,7 +15,7 @@ deployments:
       name: ${WORK_POOL_NAME}
       work_queue_name: ${WORK_QUEUE_NAME}
       job_variables:
-        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
+        image: "{{ $WORKER_IMAGE | default('ghcr.io/mariusvinaschi/fastapi-template/worker:latest') }}"
 
   - name: web-scrapper-flow
     description: "Flow to scrape the web"
@@ -24,4 +24,4 @@ deployments:
       name: ${WORK_POOL_NAME}
       work_queue_name: ${WORK_QUEUE_NAME}
       job_variables:
-        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
+        image: "{{ $WORKER_IMAGE | default('ghcr.io/mariusvinaschi/fastapi-template/worker:latest') }}"

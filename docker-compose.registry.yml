@@ -1,5 +1,6 @@
 # Full stack using API image from registry (no local API build).
-# Usage: API_IMAGE=ghcr.io/<org>/fastapi-template:latest docker compose -f docker-compose.registry.yml up -d
+# Usage: set API_IMAGE in .env (e.g. ghcr.io/mariusvinaschi/fastapi-template/api:latest), then:
+#   docker compose -f docker-compose.registry.yml up -d
 # For local build instead, use: docker compose up -d (docker-compose.yml).
 
 version: "3.9"
