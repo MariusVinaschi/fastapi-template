@@ -37,8 +37,8 @@ services:
     networks:
       - app_network
 
-  migrations:
-    image: ${API_IMAGE}
+  migrations: 
+    image: ${MIGRATIONS_IMAGE}
     container_name: migrations
     env_file:
       - .env
