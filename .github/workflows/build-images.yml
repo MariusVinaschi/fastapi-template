@@ -51,9 +51,11 @@ jobs:
           context: .
           file: ./dockerfile
           target: api
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ steps.meta.outputs.image_prefix }}/api:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_prefix }}/api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -63,8 +65,22 @@ jobs:
           context: .
           file: ./dockerfile
           target: worker
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ steps.meta.outputs.image_prefix }}/worker:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_prefix }}/worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build and push Migrations image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./dockerfile
+          target: migrations
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_prefix }}/migrations:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_prefix }}/migrations:latest
