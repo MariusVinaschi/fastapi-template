@@ -1,0 +1,97 @@
+# Full stack using API image from registry (no local API build).
+# Usage: set API_IMAGE in .env (e.g. ghcr.io/mariusvinaschi/fastapi-template/api:latest), then:
+#   docker compose -f docker-compose.registry.yml up -d
+# For local build instead, use: docker compose up -d (docker-compose.yml).
+
+version: "3.9"
+
+networks:
+  prefect_network:
+    external: true
+    name: prefect_network
+  app_network:
+    name: app_network
+    driver: bridge
+
+services:
+  dbapp:
+    image: postgres:17
+    container_name: dbapp
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${APP_DB_NAME}
+      POSTGRES_USER: ${APP_DB_USER}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_DB_USER} -d ${APP_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app_network
+
+  migrations: 
+    image: ${MIGRATIONS_IMAGE}
+    container_name: migrations
+    env_file:
+      - .env
+    depends_on:
+      dbapp:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: "no"
+    networks:
+      - app_network
+
+  api:
+    image: ${API_IMAGE}
+    container_name: fastapi-api
+    env_file:
+      - .env
+    ports:
+      - "8000:80"
+    depends_on:
+      dbapp:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    restart: always
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost/api/v1/health/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  prefect-worker:
+    image: prefecthq/prefect:3-latest
+    container_name: prefect-worker
+    environment:
+      PREFECT_API_URL: ${PREFECT_API_URL}
+      WORK_POOL_NAME: ${WORK_POOL_NAME}
+      PREFECT_API_AUTH_STRING: "${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      dbapp:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - prefect_network
+      - app_network
+    entrypoint:
+      ["/bin/sh", "-c", "pip install -q prefect-docker && prefect worker start --pool ${WORK_POOL_NAME} --type docker"]
+    restart: unless-stopped
+
+volumes:
+  app_data:

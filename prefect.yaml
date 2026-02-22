@@ -5,23 +5,25 @@ build: null
 
 push: null
 
-pull: null
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
 
 deployments:
   - name: create-user-flow
     description: "Flow to create a user"  
     entrypoint: app/workers/task_database.py:create_user_flow
     work_pool:
-      name: ${WORK_POOL_NAME}
-      work_queue_name: ${WORK_QUEUE_NAME}
+      name: "{{ $WORK_POOL_NAME }}"
+      work_queue_name: "{{ $WORK_QUEUE_NAME }}"
       job_variables:
-        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
+        image: "{{ $WORKER_IMAGE }}"
 
   - name: web-scrapper-flow
     description: "Flow to scrape the web"
-    entrypoint: app/workers/simple_web_scrapper.py:scrape_flow
+    entrypoint: app/workers/simple_web_scrapper.py:scrape
     work_pool:
-      name: ${WORK_POOL_NAME}
-      work_queue_name: ${WORK_QUEUE_NAME}
+      name: "{{ $WORK_POOL_NAME }}"
+      work_queue_name: "{{ $WORK_QUEUE_NAME }}"
       job_variables:
-        image: "{{ $WORKER_IMAGE | default('fastapi-template-worker:latest') }}"
+        image: "{{ $WORKER_IMAGE }}"

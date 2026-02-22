@@ -346,6 +346,36 @@ make docker-logs
 make docker-down
 ```
 
+**Docker: dev (build) vs registry image**
+
+- **Dev (default)**: `make docker-up-app` or `make docker-up` builds the API image locally and starts services. No extra env needed.
+- **Use image from registry** (e.g. GitHub Container Registry): set `API_IMAGE` to the full image reference, then run with the registry override:
+  ```bash
+  export API_IMAGE=ghcr.io/<org>/fastapi-template:latest
+  make docker-up-registry
+  ```
+  Or: `docker compose -f docker-compose.registry.yml up -d` (with `API_IMAGE` set). Without `API_IMAGE`, use the default compose (local build) only.
+
+### Prefect: validation workflow (deployments, work pools)
+
+To validate that everything works in Docker with Prefect (Docker work pool, deployments, worker):
+
+1. **Start Prefect**: `make docker-up-prefect` (server + Prefect services). The `prefect_network` network is created.
+2. **Start the app and worker**: `make docker-up-app` (db, migrations, api, prefect-worker). The worker joins the work pool configured via `WORK_POOL_NAME`.
+3. **Initialize Prefect** (work pool + SQLAlchemy block): from the host machine, with `.env` loaded and `PREFECT_API_URL` pointing to the server (e.g. `http://0.0.0.0:4200/api`):
+   ```bash
+   make init-prefect
+   ```
+   Useful variables: `PREFECT_API_URL`, `WORK_POOL_NAME`, `WORK_POOL_IMAGE` (optional), `WORK_POOL_NETWORKS` (optional), `PREFECT_BLOCK_NAME_SQLALCHEMY` (DB block name, default `dbapp-sqlalchemy`).
+4. **Build the worker image**: `make docker-build-worker` (tags `fastapi-template:worker` and `fastapi-template-worker:latest`, used by default in `prefect.yaml`).
+5. **Deploy the flows**: from the project root, with `.env` loaded (`WORK_POOL_NAME`, `WORK_QUEUE_NAME`, optionally `WORKER_IMAGE`):
+   ```bash
+   prefect deploy --all
+   ```
+6. **Trigger a run**: from the Prefect UI (http://localhost:4200) or via CLI for the `create-user-flow` and `web-scrapper-flow` deployments.
+
+**Summary**: One Docker work pool (created by `init-prefect`), one `default` work queue, two deployments defined in `prefect.yaml`. The worker runs jobs in containers using the image from `.env` (`WORKER_IMAGE`) or the default `ghcr.io/mariusvinaschi/fastapi-template/worker:v0.6.0`. Bump the version tag in `.env.sample` and `prefect.yaml` on each release.
+
 ## Make Commands
 
 ### Development

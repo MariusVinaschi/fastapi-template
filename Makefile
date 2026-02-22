@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format clean docker-build docker-up docker-down migrate
+.PHONY: help install dev test lint format clean docker-build docker-up docker-up-registry docker-down migrate
 
 # Default target
 .DEFAULT_GOAL := help
@@ -59,8 +59,8 @@ migrate-history: ## Show migration history
 docker-build-api: ## Build API Docker image
 	docker build --target api -t fastapi-template:api .
 
-docker-build-worker: ## Build Worker Docker image
-	docker build --target worker -t fastapi-template:worker .
+docker-build-worker: ## Build Worker Docker image (tags fastapi-template:worker and fastapi-template-worker:latest for Prefect)
+	docker build --target worker -t fastapi-template:worker -t fastapi-template-worker:latest .
 
 docker-build-migrations: ## Build Migrations Docker image
 	docker build --target migrations -t fastapi-template:migrations .
@@ -69,8 +69,12 @@ docker-build-all: docker-build-api docker-build-worker docker-build-migrations #
 
 docker-up: docker-up-app docker-up-prefect ## Start all services (app + prefect)
 
-docker-up-app: ## Start only FastAPI app services
+docker-up-app: ## Start only FastAPI app services (builds API image locally)
 	docker-compose up -d
+
+docker-up-registry: ## Start app using API image from registry (set API_IMAGE e.g. ghcr.io/org/fastapi-template:latest)
+	@if [ -z "$${API_IMAGE}" ]; then echo "Error: set API_IMAGE (e.g. export API_IMAGE=ghcr.io/org/fastapi-template:latest)"; exit 1; fi
+	docker-compose -f docker-compose.registry.yml up -d
 
 docker-up-prefect: ## Start only Prefect services
 	docker-compose -f docker-compose.prefect.yml up -d
