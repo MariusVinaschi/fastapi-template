@@ -598,7 +598,7 @@ wheels = [
 
 [[package]]
 name = "fastapi-template"
-version = "0.6.0rc1"
+version = "0.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "factory-boy" },

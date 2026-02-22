@@ -43,6 +43,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY ./app /app/app
 COPY ./alembic.ini /app/
 
+RUN mkdir -p /app/logs
+RUN touch /app/logs/app.log
+
 EXPOSE 80
 CMD ["fastapi", "run", "--workers", "4", "--port", "80", "--host", "0.0.0.0", "app/api/main.py"]
 
