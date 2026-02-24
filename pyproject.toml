@@ -36,6 +36,7 @@ exclude = ["alembic*", "var*"]
 [dependency-groups]
 dev = [
     "asyncpg>=0.31.0",
+    "pre-commit>=3.6.0",
     "pyjwt>=2.11.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
@@ -166,3 +167,7 @@ changelog_file = "CHANGELOG.md"
 allowed_tags = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
+
+# Commitizen: validate commit messages (Conventional Commits), aligned with semantic_release
+[tool.commitizen]
+name = "cz_conventional_commits"
