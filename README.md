@@ -504,7 +504,18 @@ Manual release (major)  →  1.0.0 + tag v1.0.0
 
 ### Commit Style (Recommended)
 
-While commits don't affect versioning, we recommend using clear prefixes for readability:
+Commits are validated locally with [pre-commit](https://pre-commit.com/) and [Commitizen](https://commitizen-tools.github.io/commitizen/) so that the CHANGELOG can be generated from Conventional Commits.
+
+**First-time setup:**
+
+```bash
+make install
+make pre-commit-install
+```
+
+This installs the pre-commit hook (Ruff format/check, ty) and the **commit-msg** hook (Conventional Commits). To run checks manually: `make pre-commit-run` or `uv run pre-commit run --all-files`.
+
+**Commit message format** (required for the commit-msg hook):
 
 ```bash
 feat: add user dashboard
@@ -514,6 +525,8 @@ refactor: simplify auth middleware
 test: add integration tests for users
 chore: update dependencies
 ```
+
+Use `type(scope): description` (e.g. `feat(auth): add JWT login`). Supported types align with semantic-release: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
 ## Environment Variables
 
