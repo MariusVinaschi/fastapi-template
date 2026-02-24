@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -617,7 +617,7 @@ wheels = [
 
 [[package]]
 name = "fastapi-template"
-version = "1.0.0"
+version = "1.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "factory-boy" },
