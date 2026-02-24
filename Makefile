@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format clean docker-build docker-up docker-up-registry docker-down migrate
+.PHONY: help install dev test lint format clean docker-build docker-up docker-up-registry docker-down migrate pre-commit-install pre-commit-run
 
 # Default target
 .DEFAULT_GOAL := help
@@ -36,8 +36,12 @@ format: ## Format code
 type-check: ## Type check code
 	uvx ty check app/
 
-# =============================================================================
-# Database
+pre-commit-install: ## Install pre-commit hooks (pre-commit + commit-msg for Conventional Commits)
+	uv run pre-commit install
+	uv run pre-commit install --hook-type commit-msg
+
+pre-commit-run: ## Run pre-commit on all files
+	uv run pre-commit run --all-files
 # =============================================================================
 
 migrate: ## Run database migrations
