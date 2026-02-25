@@ -6,6 +6,7 @@ This is the entry point for the HTTP API.
 import logging
 import sys
 
+import logfire
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -51,6 +52,13 @@ def create_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Observability: Pydantic Logfire (same config for cloud or OTLP/hybrid mode)
+    logfire.configure(
+        service_name=settings.LOGFIRE_SERVICE_NAME,
+        send_to_logfire=settings.LOGFIRE_SEND_TO_LOGFIRE,
+    )
+    logfire.instrument_fastapi(application)
 
     return application
 

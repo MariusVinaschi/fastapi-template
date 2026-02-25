@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     DEFAULT_USER: str = "fastapi@example.com"
     DEFAULT_USER_ROLE: str = "admin"
 
+    # Observability (Pydantic Logfire)
+    # Cloud mode: set LOGFIRE_TOKEN (after `logfire auth`) and LOGFIRE_SEND_TO_LOGFIRE=true.
+    # Hybrid mode (OTLP to SigNoz): set LOGFIRE_SEND_TO_LOGFIRE=false and
+    #   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://signoz:4318/v1/traces (and optionally METRICS).
+    # Default True so the app runs with auth; enable when using Logfire Cloud or OTLP.
+    LOGFIRE_SERVICE_NAME: str = "fastapi-template"
+    LOGFIRE_SEND_TO_LOGFIRE: bool = True
+
     @property
     def DB_BASE(self):
         return self.APP_DB_NAME
