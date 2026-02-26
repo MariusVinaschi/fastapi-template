@@ -12,8 +12,7 @@ from sqlalchemy.ext.asyncio import (
 
 from app.infrastructure.config import settings
 
-logfire.configure()
-
+# Logfire is configured in app.api.main; we only instrument SQLAlchemy here.
 logger = logging.getLogger(__name__)
 
 async_engine = create_async_engine(str(settings.DB_URL), echo=False, future=True)
