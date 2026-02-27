@@ -141,6 +141,11 @@ exclude = ["app/scripts/*"]
 generate-user = "app.scripts.generate_user:cli"
 init-prefect = "app.scripts.init_prefect:cli"
 
+# Pydantic Logfire: instrument Pydantic validation (traces + metrics)
+# Overridable via env LOGFIRE_PYDANTIC_PLUGIN_RECORD (e.g. "failure", "metrics", "off")
+[tool.logfire]
+pydantic_plugin_record = "all"
+
 # =============================================================================
 # Python Semantic Release Configuration
 # =============================================================================

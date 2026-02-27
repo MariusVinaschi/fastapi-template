@@ -33,6 +33,7 @@ def create_application() -> FastAPI:
         service_name=settings.LOGFIRE_SERVICE_NAME,
         send_to_logfire=settings.LOGFIRE_SEND_TO_LOGFIRE,
     )
+    logfire.instrument_pydantic(exclude={"app.infrastructure.config"})
 
     # Logging: local (console + file) + Logfire
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
