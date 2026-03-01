@@ -299,28 +299,29 @@ docker run myapp:worker
 
 - Python 3.13+
 - Docker & Docker Compose
+- [just](https://just.systems/en/latest/install/) (task runner)
 - uv (Python package manager)
 
 ### Development Setup (Local)
 
 ```bash
 # Install dependencies
-make install
+just install
 
 # Start infrastructure (database)
-docker-compose up -d dbapp
+docker compose up -d dbapp
 
 # Run migrations
-make migrate
+just migrate
 
 # Start the API server
-make dev
+just dev
 
 # In another terminal, start worker (optional)
-make worker
+# e.g. uv run prefect worker start, or see Prefect section below
 ```
 
-**Using Prefect locally**: For the worker or scripts (e.g. `make init-prefect`) to contact the Prefect server, export the auth (align with `PREFECT_LOGIN_USER` and `PREFECT_LOGIN_PASSWORD` in your `.env`):
+**Using Prefect locally**: For the worker or scripts (e.g. `just init-prefect`) to contact the Prefect server, export the auth (align with `PREFECT_LOGIN_USER` and `PREFECT_LOGIN_PASSWORD` in your `.env`):
 
 ```bash
 export PREFECT_API_URL="http://0.0.0.0:4200/api"
@@ -328,31 +329,31 @@ export PREFECT_API_AUTH_STRING="admin:pass"
 # or with .env credentials: export PREFECT_API_AUTH_STRING="${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}"
 ```
 
-Start Prefect services first: `make docker-up-prefect`, then run the worker with `make worker`.
+Start Prefect services first: `just docker-up-prefect`, then run the worker (e.g. `uv run prefect worker start`).
 
 ### Docker Deployment
 
 ```bash
 # Build all images
-make docker-build-all
+just docker-build-all
 
 # Start all services (db, migrations, api, worker)
-make docker-up
+just docker-up
 
 # View logs
-make docker-logs
+just docker-logs
 
 # Stop everything
-make docker-down
+just docker-down
 ```
 
 **Docker: dev (build) vs registry image**
 
-- **Dev (default)**: `make docker-up-app` or `make docker-up` builds the API image locally and starts services. No extra env needed.
+- **Dev (default)**: `just docker-up-app` or `just docker-up` builds the API image locally and starts services. No extra env needed.
 - **Use image from registry** (e.g. GitHub Container Registry): set `API_IMAGE` to the full image reference, then run with the registry override:
   ```bash
   export API_IMAGE=ghcr.io/<org>/fastapi-template:latest
-  make docker-up-registry
+  just docker-up-registry
   ```
   Or: `docker compose -f docker-compose.registry.yml up -d` (with `API_IMAGE` set). Without `API_IMAGE`, use the default compose (local build) only.
 
@@ -360,14 +361,14 @@ make docker-down
 
 To validate that everything works in Docker with Prefect (Docker work pool, deployments, worker):
 
-1. **Start Prefect**: `make docker-up-prefect` (server + Prefect services). The `prefect_network` network is created.
-2. **Start the app and worker**: `make docker-up-app` (db, migrations, api, prefect-worker). The worker joins the work pool configured via `WORK_POOL_NAME`.
+1. **Start Prefect**: `just docker-up-prefect` (server + Prefect services). The `prefect_network` network is created.
+2. **Start the app and worker**: `just docker-up-app` (db, migrations, api, prefect-worker). The worker joins the work pool configured via `WORK_POOL_NAME`.
 3. **Initialize Prefect** (work pool + SQLAlchemy block): from the host machine, with `.env` loaded and `PREFECT_API_URL` pointing to the server (e.g. `http://0.0.0.0:4200/api`):
    ```bash
-   make init-prefect
+   just init-prefect
    ```
    Useful variables: `PREFECT_API_URL`, `WORK_POOL_NAME`, `WORK_POOL_IMAGE` (optional), `WORK_POOL_NETWORKS` (optional), `PREFECT_BLOCK_NAME_SQLALCHEMY` (DB block name, default `dbapp-sqlalchemy`).
-4. **Build the worker image**: `make docker-build-worker` (tags `fastapi-template:worker` and `fastapi-template-worker:latest`, used by default in `prefect.yaml`).
+4. **Build the worker image**: `just docker-build-worker` (tags `fastapi-template:worker` and `fastapi-template-worker:latest`, used by default in `prefect.yaml`).
 5. **Deploy the flows**: from the project root, with `.env` loaded (`WORK_POOL_NAME`, `WORK_QUEUE_NAME`, optionally `WORKER_IMAGE`):
    ```bash
    prefect deploy --all
@@ -376,48 +377,59 @@ To validate that everything works in Docker with Prefect (Docker work pool, depl
 
 **Summary**: One Docker work pool (created by `init-prefect`), one `default` work queue, two deployments defined in `prefect.yaml`. The worker runs jobs in containers using the image from `.env` (`WORKER_IMAGE`) or the default `ghcr.io/mariusvinaschi/fastapi-template/worker:v0.6.0`. Bump the version tag in `.env.sample` and `prefect.yaml` on each release.
 
-## Make Commands
+## Just Commands
+
+List all commands: `just --list`
 
 ### Development
 
 | Command | Description |
 |---------|-------------|
-| `make help` | Show available commands help |
-| `make install` | Install dependencies with uv |
-| `make dev` | Run FastAPI in development mode |
+| `just` or `just --list` | Show available commands |
+| `just install` | Install dependencies with uv |
+| `just dev` | Run FastAPI in development mode |
 
 ### Testing & Quality
 
 | Command | Description |
 |---------|-------------|
-| `make test` | Run all tests |
-| `make test-cov` | Run tests with coverage report (HTML + terminal) |
-| `make lint` | Run linter (ruff) on `app/` |
-| `make format` | Format code with ruff |
-| `make type-check` | Type check with ty |
+| `just test` | Run all tests |
+| `just test-cov` | Run tests with coverage report (HTML + terminal) |
+| `just lint` | Run linter (ruff) on `app/` |
+| `just format` | Format code with ruff |
+| `just type-check` | Type check with ty |
 
 ### Database
 
 | Command | Description |
 |---------|-------------|
-| `make migrate` | Apply migrations (alembic upgrade head) |
-| `make migrate-create MESSAGE="description"` | Create a new autogenerated migration |
-| `make migrate-down` | Roll back the last migration |
-| `make migrate-history` | Show migration history |
+| `just migrate` | Apply migrations (alembic upgrade head) |
+| `just migrate-create "description"` | Create a new autogenerated migration |
+| `just migrate-down` | Roll back the last migration |
+| `just migrate-history` | Show migration history |
 
 ### Users & Prefect
 
 | Command | Description |
 |---------|-------------|
-| `make create-user` | Create a new user (generate-user script) |
-| `make init-prefect` | Initialize Prefect (blocks, work pool). Requires `PREFECT_API_AUTH_STRING` if the server is secured. |
+| `just create-user` | Create a new user (generate-user script) |
+| `just init-prefect` | Initialize Prefect (blocks, work pool). Requires `PREFECT_API_AUTH_STRING` if the server is secured. |
+
+### Docker
+
+| Command | Description |
+|---------|-------------|
+| `just docker-build-all` | Build all Docker images (api, worker, migrations) |
+| `just docker-up` | Start all services (app + Prefect) |
+| `just docker-down` | Stop all services |
+| `just docker-logs` | Show app logs (use `docker-logs-prefect` for Prefect) |
 
 ### Cleanup
 
 | Command | Description |
 |---------|-------------|
-| `make clean` | Remove caches (__pycache__, .pytest_cache, .ruff_cache, .coverage, htmlcov, etc.) |
-| `make clean-docker` | Remove Docker images and volumes (app + Prefect) |
+| `just clean` | Remove caches (__pycache__, .pytest_cache, .ruff_cache, .coverage, htmlcov, etc.) |
+| `just clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
 ## CI/CD Overview
 
@@ -492,7 +504,18 @@ Manual release (major)  →  1.0.0 + tag v1.0.0
 
 ### Commit Style (Recommended)
 
-While commits don't affect versioning, we recommend using clear prefixes for readability:
+Commits are validated locally with [prek](https://prek.j178.dev/) and [Commitizen](https://commitizen-tools.github.io/commitizen/) so that the CHANGELOG can be generated from Conventional Commits.
+
+**First-time setup:**
+
+```bash
+just install
+just prek-install
+```
+
+This installs the pre-commit hook (Ruff format/check, ty) and the **commit-msg** hook (Conventional Commits). To run checks manually: `just prek-run` or `uv run prek run --all-files`.
+
+**Commit message format** (required for the commit-msg hook):
 
 ```bash
 feat: add user dashboard
@@ -502,6 +525,8 @@ refactor: simplify auth middleware
 test: add integration tests for users
 chore: update dependencies
 ```
+
+Use `type(scope): description` (e.g. `feat(auth): add JWT login`). Supported types align with semantic-release: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
 ## Environment Variables
 
