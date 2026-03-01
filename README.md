@@ -504,16 +504,16 @@ Manual release (major)  →  1.0.0 + tag v1.0.0
 
 ### Commit Style (Recommended)
 
-Commits are validated locally with [pre-commit](https://pre-commit.com/) and [Commitizen](https://commitizen-tools.github.io/commitizen/) so that the CHANGELOG can be generated from Conventional Commits.
+Commits are validated locally with [prek](https://prek.j178.dev/) and [Commitizen](https://commitizen-tools.github.io/commitizen/) so that the CHANGELOG can be generated from Conventional Commits.
 
 **First-time setup:**
 
 ```bash
-make install
-make pre-commit-install
+just install
+just prek-install
 ```
 
-This installs the pre-commit hook (Ruff format/check, ty) and the **commit-msg** hook (Conventional Commits). To run checks manually: `make pre-commit-run` or `uv run pre-commit run --all-files`.
+This installs the pre-commit hook (Ruff format/check, ty) and the **commit-msg** hook (Conventional Commits). To run checks manually: `just prek-run` or `uv run prek run --all-files`.
 
 **Commit message format** (required for the commit-msg hook):
 

@@ -22,6 +22,14 @@ dev:
 # Testing & Quality
 # -----------------------------------------------------------------------------
 
+prek-install:
+    # Install prek git hooks (pre-commit + commit-msg for Conventional Commits)
+    uv run prek install && uv run prek install --hook-type commit-msg
+
+prek-run:
+    # Run all prek hooks on the whole repo
+    uv run prek run --all-files
+
 test:
     # Run all tests
     uv run pytest
