@@ -1,0 +1,30 @@
+# prek: format (ruff), lint (ruff check --fix), type-check (ty), commit message (Conventional Commits)
+# Install: uv run prek install && uv run prek install --hook-type commit-msg
+# Run manually: uv run prek run --all-files
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.2"
+hooks = [
+  { id = "ruff-check", args = ["--fix"] },
+  { id = "ruff-format" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "ty",
+    name = "ty",
+    entry = "uv run ty check app/",
+    language = "system",
+    pass_filenames = false,
+  },
+]
+
+[[repos]]
+repo = "https://github.com/commitizen-tools/commitizen"
+rev = "v4.13.8"
+hooks = [
+  { id = "commitizen", stages = ["commit-msg"] },
+]
