@@ -40,7 +40,6 @@ async def get_prefect_db_session(block_name: str):
         raise ValueError(f"Prefect block {block_name!r} failed to load")
     async with connector_cm as connector:
         engine = connector.get_engine()
-        logfire.instrument_sqlalchemy(engine)
         session_factory = async_sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         session = session_factory()
         try:

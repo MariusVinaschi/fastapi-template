@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     # Default True so the app runs with auth; enable when using Logfire Cloud or OTLP.
     LOGFIRE_SERVICE_NAME: str = "fastapi-template"
     LOGFIRE_SEND_TO_LOGFIRE: bool = True
+    LOGFIRE_TOKEN: str = ""
 
     @property
     def DB_BASE(self):
