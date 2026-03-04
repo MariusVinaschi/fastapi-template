@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.api.router import api_router, webhook_router
 from app.infrastructure.config import settings
+from app.infrastructure.database import async_engine
 from app.infrastructure.logging_config import setup_logging
 from app.infrastructure.middleware import add_cors_middleware
 from app.infrastructure.observability import configure_logfire, instrument_app
@@ -34,7 +35,7 @@ def create_application() -> FastAPI:
     application.include_router(router=webhook_router, prefix="/webhooks", tags=["webhooks"])
 
     add_cors_middleware(application, settings)
-    instrument_app(application)
+    instrument_app(application, async_engine)
 
     return application
 

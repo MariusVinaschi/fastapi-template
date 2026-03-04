@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-import logfire
 from prefect_sqlalchemy.database import SqlAlchemyConnector
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
@@ -12,11 +11,9 @@ from sqlalchemy.ext.asyncio import (
 
 from app.infrastructure.config import settings
 
-# Logfire is configured in app.api.main; we only instrument SQLAlchemy here.
 logger = logging.getLogger(__name__)
 
 async_engine = create_async_engine(str(settings.DB_URL), echo=False, future=True)
-logfire.instrument_sqlalchemy(async_engine)
 
 async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
 

@@ -145,6 +145,7 @@ init-prefect = "app.scripts.init_prefect:cli"
 # Overridable via env LOGFIRE_PYDANTIC_PLUGIN_RECORD (e.g. "failure", "metrics", "off")
 [tool.logfire]
 pydantic_plugin_record = "all"
+pydantic_plugin_exclude = ["app.infrastructure"]
 
 # =============================================================================
 # Python Semantic Release Configuration
