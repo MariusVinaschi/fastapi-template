@@ -4,7 +4,7 @@ from pytest_mock import MockerFixture
 from app.domains.base.authorization import AuthorizationContext
 from app.api.dependencies import get_auth_context, get_admin_auth_context
 from app.domains.users.factory import UserFactory
-from app.domains.users.models import UserAuthorizationAdapter
+from app.domains.users.authorization import UserAuthorizationAdapter
 
 
 @pytest.mark.anyio
