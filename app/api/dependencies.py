@@ -9,7 +9,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database import get_session
-from app.api.security import auth
+from app.infrastructure.security import auth
 from app.domains.base.authorization import AuthorizationContext
 from app.domains.users.models import User, UserAuthorizationAdapter
 

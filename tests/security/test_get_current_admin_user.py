@@ -3,7 +3,7 @@ from pytest_mock import MockerFixture
 from fastapi import Request
 from fastapi.security import SecurityScopes
 
-from app.api.security import UnauthorizedException, VerifyAuth
+from app.infrastructure.security import UnauthorizedException, VerifyAuth
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 

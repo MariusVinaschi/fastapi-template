@@ -12,7 +12,7 @@ async def test_get_auth_context_standard_user(mocker: MockerFixture, db_session)
     # Arrange
     user = await UserFactory.create_async(session=db_session, role="standard")
     mocker.patch(
-        "app.api.security.auth.get_current_user",
+        "app.infrastructure.security.auth.get_current_user",
         return_value=user,
     )
 
@@ -32,7 +32,7 @@ async def test_get_admin_auth_context(mocker: MockerFixture, db_session):
     # Arrange
     admin_user = await UserFactory.create_async(session=db_session, role="admin")
     mocker.patch(
-        "app.api.security.auth.get_current_admin_user",
+        "app.infrastructure.security.auth.get_current_admin_user",
         return_value=admin_user,
     )
 
