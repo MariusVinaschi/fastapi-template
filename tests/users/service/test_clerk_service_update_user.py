@@ -2,7 +2,7 @@ import pytest
 
 from app.domains.users.exceptions import UserNotFoundException
 from app.domains.users.factory import UserFactory
-from app.domains.users.service import ClerkUserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 
 @pytest.mark.anyio
@@ -16,7 +16,7 @@ async def test_update_user(db_session):
             {"id": "123", "email_address": "test@example.com"},
         ],
     }
-    updated_user = await ClerkUserService.for_system(db_session).update_user(data)
+    updated_user = await ClerkWebhookAdapter.for_system(db_session).update_user(data)
     assert updated_user.email == "test@example.com"
     assert updated_user.clerk_id == clerk_id
 
@@ -32,7 +32,7 @@ async def test_update_user_email_already_exists(db_session):
             {"id": "123", "email_address": user.email},
         ],
     }
-    updated_user = await ClerkUserService.for_system(db_session).update_user(data)
+    updated_user = await ClerkWebhookAdapter.for_system(db_session).update_user(data)
     assert updated_user.id == user.id
 
 
@@ -43,4 +43,4 @@ async def test_update_user_not_found(db_session):
         "id": clerk_id,
     }
     with pytest.raises(UserNotFoundException):
-        await ClerkUserService.for_system(db_session).update_user(data)
+        await ClerkWebhookAdapter.for_system(db_session).update_user(data)

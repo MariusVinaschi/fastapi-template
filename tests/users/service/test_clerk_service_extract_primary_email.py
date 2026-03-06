@@ -1,6 +1,6 @@
 import pytest
 
-from app.domains.users.service import ClerkUserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 
 @pytest.mark.anyio
@@ -12,7 +12,7 @@ async def test_extract_primary_email_single_email():
             {"id": "123", "email_address": email},
         ],
     }
-    primary_email = ClerkUserService._extract_primary_email(data)
+    primary_email = ClerkWebhookAdapter._extract_primary_email(data)
     assert primary_email is not None
     assert primary_email == email
 
@@ -27,7 +27,7 @@ async def test_extract_primary_email_multiple_emails(db_session):
             {"id": "456", "email_address": "test2@example.com"},
         ],
     }
-    primary_email = ClerkUserService._extract_primary_email(data)
+    primary_email = ClerkWebhookAdapter._extract_primary_email(data)
     assert primary_email is not None
     assert primary_email == email
 
@@ -39,4 +39,4 @@ async def test_extract_primary_email_multiple_emails_no_primary(db_session):
         "email_addresses": [],
     }
     with pytest.raises(ValueError):
-        ClerkUserService._extract_primary_email(data)
+        ClerkWebhookAdapter._extract_primary_email(data)
