@@ -1,6 +1,6 @@
 import pytest
 
-from app.domains.users.service import ClerkUserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 
 @pytest.mark.anyio
@@ -9,7 +9,7 @@ async def test_check_clerk_id():
     data = {
         "id": clerk_id,
     }
-    find_clerk_id = ClerkUserService._check_clerk_id(data)
+    find_clerk_id = ClerkWebhookAdapter._check_clerk_id(data)
     assert clerk_id is not None
     assert find_clerk_id == clerk_id
 
@@ -20,4 +20,4 @@ async def test_check_clerk_id_missing():
         "id": None,
     }
     with pytest.raises(ValueError):
-        ClerkUserService._check_clerk_id(data)
+        ClerkWebhookAdapter._check_clerk_id(data)

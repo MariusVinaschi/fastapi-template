@@ -4,7 +4,7 @@ import pytest
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.api.security import UnauthenticatedException, UnauthorizedException, auth
+from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, auth
 from app.domains.users.models import User
 
 
@@ -69,7 +69,7 @@ class TestSecurityIntegration:
 
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
-                with patch("app.api.security.UserService") as mock_user_service:
+                with patch("app.infrastructure.security.UserService") as mock_user_service:
                     # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                     mock_service_instance = MagicMock()
                     mock_service_instance.get_by_email = AsyncMock(return_value=mock_admin_user)
@@ -90,7 +90,7 @@ class TestSecurityIntegration:
         self, mock_standard_user, mock_security_scopes, db_session, mock_request_with_api_key
     ):
         """Test complete API key authentication flow"""
-        with patch("app.api.security.APIKeyService") as mock_api_key_service:
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
             mock_api_key_obj = MagicMock()
@@ -115,7 +115,7 @@ class TestSecurityIntegration:
     ):
         """Test JWT failure with successful API key fallback"""
         # Test with no JWT token but with API key
-        with patch("app.api.security.APIKeyService") as mock_api_key_service:
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
             # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
@@ -202,7 +202,7 @@ class TestSecurityIntegration:
 
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
-                with patch("app.api.security.UserService") as mock_user_service:
+                with patch("app.infrastructure.security.UserService") as mock_user_service:
                     # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                     mock_service_instance = MagicMock()
                     mock_service_instance.get_by_email = AsyncMock(return_value=MagicMock(role="admin"))
@@ -226,7 +226,7 @@ class TestSecurityIntegration:
 
         with patch.object(auth.jwks_client, "get_signing_key_from_jwt", return_value=MagicMock(key="mock_key")):
             with patch("jwt.decode", return_value=mock_payload):
-                with patch("app.api.security.UserService") as mock_user_service:
+                with patch("app.infrastructure.security.UserService") as mock_user_service:
                     # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                     mock_service_instance = MagicMock()
                     mock_service_instance.get_by_email = AsyncMock(return_value=MagicMock(role="admin"))
@@ -248,7 +248,7 @@ class TestSecurityIntegration:
         self, mock_security_scopes, db_session, mock_request_with_api_key
     ):
         """Test API key authentication with invalid key"""
-        with patch("app.api.security.APIKeyService") as mock_api_key_service:
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
             # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"

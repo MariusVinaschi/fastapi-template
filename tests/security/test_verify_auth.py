@@ -4,7 +4,7 @@ import pytest
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.api.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
+from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
 from app.domains.users.models import User
 
 
@@ -150,7 +150,7 @@ class TestVerifyAuth:
         mock_payload = {"email": "admin@test.com"}
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
-            with patch("app.api.security.UserService") as mock_user_service:
+            with patch("app.infrastructure.security.UserService") as mock_user_service:
                 # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                 mock_service_instance = MagicMock()
                 mock_service_instance.get_by_email = AsyncMock(return_value=mock_user_admin)
@@ -180,7 +180,7 @@ class TestVerifyAuth:
         mock_payload = {"email": "nonexistent@test.com"}
 
         with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
-            with patch("app.api.security.UserService") as mock_user_service:
+            with patch("app.infrastructure.security.UserService") as mock_user_service:
                 # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                 mock_service_instance = MagicMock()
                 mock_service_instance.get_by_email = AsyncMock(side_effect=Exception("User not found"))
@@ -194,7 +194,7 @@ class TestVerifyAuth:
     @pytest.mark.anyio
     async def test_authenticate_with_api_key_success(self, verify_auth, mock_user_admin, db_session):
         """Test successful API key authentication"""
-        with patch("app.api.security.APIKeyService") as mock_api_key_service:
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
             mock_api_key_obj = MagicMock()
@@ -211,7 +211,7 @@ class TestVerifyAuth:
     @pytest.mark.anyio
     async def test_authenticate_with_api_key_invalid(self, verify_auth, db_session):
         """Test API key authentication with invalid key"""
-        with patch("app.api.security.APIKeyService") as mock_api_key_service:
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
             # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
