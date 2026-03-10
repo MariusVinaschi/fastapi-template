@@ -1,297 +1,200 @@
-# FastAPI Template - Domain-Driven Design
+# FastAPI Template — Domain-Driven Design
 
-A production-ready FastAPI template following Domain-Driven Design (DDD) principles.
+[![CI](https://github.com/mariusvinaschi/fastapi-template/actions/workflows/ci.yml/badge.svg)](https://github.com/mariusvinaschi/fastapi-template/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mariusvinaschi/fastapi-template?include_prereleases&label=version)](https://github.com/mariusvinaschi/fastapi-template/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
-## Architecture Principles
+A production-ready FastAPI template built around **Domain-Driven Design (DDD)** principles. It provides a clean, composable architecture with built-in authentication, authorization, async workers, observability, and a full CI/CD pipeline, ready to be cloned and extended.
 
-### 1. Domain-First Architecture
+---
 
-The core business logic lives in `app/domains/` and is **framework-agnostic**.
+## Table of Contents
 
-**Rules:**
-- `app/domains/` contains models (ORM), repositories, schemas, and services
-- Domain code has **ZERO dependencies** on FastAPI, Prefect, or any framework
-- FastAPI and Prefect are adapters that consume the domain
-- All business rules and calculations belong in domain services
+- [Stack](#stack)
+- [Features](#features)
+- [Architecture](#architecture)
+  - [Domain-First Design](#domain-first-design)
+  - [Layer Separation](#layer-separation)
+  - [Two-Layer Authorization](#two-layer-authorization)
+  - [Multi-Stage Dockerfile](#multi-stage-dockerfile)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Local Setup](#local-setup)
+  - [Docker Setup](#docker-setup)
+  - [Prefect Workers](#prefect-workers)
+- [API Reference](#api-reference)
+- [Environment Variables](#environment-variables)
+- [Commands](#commands)
+- [Tests](#tests)
+- [Observability](#observability)
+- [CI/CD](#cicd)
+- [Versioning & Releases](#versioning--releases)
+- [Adding a New Domain](#adding-a-new-domain)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
 
-**Domain Structure:**
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| API framework | [FastAPI](https://fastapi.tiangolo.com/) |
+| ORM | [SQLAlchemy](https://www.sqlalchemy.org/) (async) |
+| Database | PostgreSQL 17 |
+| Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
+| Auth | [Clerk](https://clerk.com/) (JWT RS256) + API Key (HMAC-SHA256) |
+| Workers | [Prefect](https://www.prefect.io/) |
+| Observability | [Pydantic Logfire](https://pydantic.dev/logfire) (OpenTelemetry) |
+| Package manager | [uv](https://docs.astral.sh/uv/) |
+| Linter / Formatter | [Ruff](https://docs.astral.sh/ruff/) |
+| Type checker | [ty](https://github.com/astral-sh/ty) |
+| Task runner | [just](https://just.systems/) |
+| CI/CD | GitHub Actions |
+
+---
+
+## Features
+
+- **DDD architecture** — business logic in `app/domains/` with zero framework dependencies
+- **Composable CRUD mixins** — `List`, `Read`, `Create`, `Update`, `Delete`, `Bulk*` at repository and service levels
+- **Two-layer authorization** — permission checks (service) + query-level data scoping (repository)
+- **Dual authentication** — Clerk JWT and API Key (HMAC-SHA256), both ready out of the box
+- **Clerk webhook sync** — automatically syncs users on `user.created`, `user.updated`, `user.deleted`
+- **Async database** — SQLAlchemy async engine with `asyncpg`
+- **Prefect workers** — async task execution with a Docker work pool
+- **Multi-stage Dockerfile** — one file produces three independent images: `api`, `worker`, `migrations`
+- **Full observability** — Logfire with FastAPI and SQLAlchemy instrumentation (cloud or self-hosted OTLP)
+- **Automated versioning** — Release Candidates on every merge, stable releases on demand
+- **Pre-commit hooks** — Ruff (format + check) and Conventional Commits enforced via [prek](https://prek.j178.dev/)
+
+---
+
+## Architecture
+
+### Domain-First Design
+
+Business logic lives exclusively in `app/domains/` and has **zero dependencies** on FastAPI, Prefect, or any framework. FastAPI and Prefect are adapters that consume the domain — never the other way around.
+
 ```
 app/domains/
-├── base/                   # Base abstractions (shared across domains)
+├── base/                   # Shared abstractions
 │   ├── authorization.py    # AuthorizationContext, ScopeStrategy
-│   ├── exceptions.py       # Domain exceptions
+│   ├── exceptions.py
 │   ├── factory.py          # Test factory base class
-│   ├── filters.py          # Filter parameters
-│   ├── models.py           # Base ORM model, mixins
-│   ├── repository.py       # Base repository with CRUD mixins
+│   ├── filters.py
+│   ├── models.py           # Base ORM model + UUID/Timestamp/CreatedBy mixins
+│   ├── repository.py       # Composable CRUD repository mixins
 │   ├── schemas.py          # Base Pydantic schemas
-│   └── service.py          # Base service with business logic mixins
-└── users/                  # User domain
-    ├── authorization.py    # User-specific scope strategies
-    ├── exceptions.py       # User domain exceptions
-    ├── factory.py          # User test factories
+│   └── service.py          # Composable service mixins
+└── users/                  # User domain (example implementation)
+    ├── authorization.py
+    ├── exceptions.py
+    ├── factory.py
+    ├── filters.py
     ├── models.py           # User, APIKey ORM models
     ├── repository.py       # UserRepository, APIKeyRepository
-    ├── schemas.py          # User DTOs
-    └── service.py          # UserService, APIKeyService
+    ├── schemas.py          # UserRead, UserCreate, UserPatch, APIKeyGenerated…
+    └── service.py          # UserService, ClerkUserService, APIKeyService
 ```
 
-### 2. Separation of Concerns
+### Layer Separation
 
 ```
 app/
-├── api/                    # FastAPI routes only (HTTP delivery layer)
-│   ├── dependencies.py     # FastAPI dependency injection
-│   ├── exceptions.py       # HTTP exceptions
-│   ├── main.py             # FastAPI app factory
-│   ├── router.py           # Route aggregation
-│   └── routes/             # Route handlers
-│       ├── health.py
-│       ├── users.py
-│       └── webhooks/
-│           └── clerk.py
-├── workers/                # Prefect flows/tasks only (async processing)
-│   ├── flows/              # Prefect flow definitions
-│   │   └── example.py
-│   ├── tasks/              # Reusable Prefect tasks
-│   │   └── example.py
-│   └── main.py             # Worker entry point
-├── domains/                # Pure business logic (see above)
-├── infrastructure/         # DB, settings, external APIs
-│   ├── config.py           # Application settings
-│   ├── database.py         # SQLAlchemy engine/session
-│   └── security.py         # Authentication (Clerk JWT, API keys)
+├── api/            # HTTP delivery layer (FastAPI routes, dependencies, exceptions)
+├── domains/        # Pure business logic (framework-agnostic)
+├── workers/        # Async processing (Prefect flows and tasks)
+└── infrastructure/ # Cross-cutting concerns (DB, config, observability, middleware)
 ```
 
-### 3. Adding a New Domain
+```mermaid
+graph LR
+    subgraph delivery [Delivery]
+        API["API (FastAPI)"]
+        Worker["Worker (Prefect)"]
+    end
+    subgraph domain [Domain]
+        Service["Service Layer"]
+        Repository["Repository Layer"]
+    end
+    subgraph infra [Infrastructure]
+        DB[(PostgreSQL)]
+        Config["Config / Observability"]
+    end
 
-1. Create the domain folder: `app/domains/myentity/`
-2. Add the files:
-   - `models.py` - ORM models
-   - `schemas.py` - Pydantic DTOs
-   - `repository.py` - Data access layer
-   - `service.py` - Business logic
-   - `exceptions.py` - Domain exceptions
-   - `authorization.py` - Scope strategies (if needed)
-3. Register models in `app/models.py` and `migrations/env.py`
-4. Create API routes in `app/api/routes/`
-5. (Optional) Create Prefect tasks/flows in `app/workers/`
+    API --> Service
+    Worker --> Service
+    Service --> Repository
+    Repository --> DB
+```
 
-### 4. Authorization Architecture
+### Two-Layer Authorization
 
-This template implements a **two-layer defense-in-depth authorization system** that separates **permissions** (what actions are allowed) from **data scoping** (what data is visible).
-
-#### Overview
-
-The authorization system operates at two independent layers:
-
-1. **Service Layer** (`_check_*_permissions`): Validates **whether** a user can perform an action
-2. **Repository Layer** (`_apply_user_scope`): Filters **which** data the user can see
-
-This separation ensures that a bug in one layer doesn't compromise the other, following security best practices.
-
-#### Architecture Flow
+This template implements **defense-in-depth authorization** that separates *what actions are allowed* from *what data is visible*.
 
 ```
 API Route
-  ↓
-Service (for_user/for_system)
-  ↓
-  ├─→ Permission Checks (CAN the user DO this?)
-  │   ├─→ _check_general_permissions(action)
-  │   └─→ _check_instance_permissions(action, instance)
-  │
-  └─→ Repository Operations
-      ↓
-      └─→ Scope Filtering (WHAT data can the user SEE?)
-          └─→ _apply_user_scope(query)
-              ├─→ context is None? → return unfiltered query (system)
-              └─→ context exists? → scope_strategy.apply_scope(query, context)
+  └─► Service  (for_user / for_system)
+        ├─► Permission Check  — CAN the user perform this action?
+        │     ├── _check_general_permissions(action)
+        │     └── _check_instance_permissions(action, instance)
+        └─► Repository
+              └─► Scope Filter  — WHAT data can the user see?
+                    └── _apply_user_scope(query)
+                          ├── context is None → unfiltered  (system)
+                          └── context exists → scope_strategy.apply_scope(query, ctx)
 ```
 
-#### Key Components
+**Key components:**
 
-**1. AuthorizationContext** (`app/domains/base/authorization.py`)
+**`AuthorizationContext`** — abstract interface carrying `user_id`, `user_email`, `user_role`.
 
-Abstract interface that provides user information:
-
-```python
-class AuthorizationContext(ABC):
-    @property
-    @abstractmethod
-    def user_id(self) -> str: ...
-    
-    @property
-    @abstractmethod
-    def user_email(self) -> str: ...
-    
-    @property
-    @abstractmethod
-    def user_role(self) -> str: ...
-```
-
-**2. AuthorizationScopeStrategy** (`app/domains/base/authorization.py`)
-
-Defines **how** to filter queries based on user context. Each domain implements its own strategy:
-
-```python
-class AuthorizationScopeStrategy(ABC, Generic[T]):
-    @abstractmethod
-    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
-        """Filter query results based on user context"""
-        ...
-```
-
-**Example Implementation** (`app/domains/users/authorization.py`):
+**`AuthorizationScopeStrategy`** — defines *how* to filter SQL queries per domain:
 
 ```python
 class APIKeyScopeStrategy(AuthorizationScopeStrategy):
     def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
-        # Only show API keys owned by the user
         return query.where(self.model.user_id == context.user_id)
 ```
 
-**3. Repository Layer** (`app/domains/base/repository.py`)
-
-The repository is the **guardian** that decides **IF** scope should be applied:
+**Factory methods** make the authorization mode explicit in code:
 
 ```python
-def _apply_user_scope(self, query: Select) -> Select:
-    """Apply user scope using the repository's authorization context"""
-    if self.authorization_context is None:
-        return query  # System operation: no filtering
-    
-    return self.scope_strategy.apply_scope(query, self.authorization_context)
-```
-
-**Important**: The repository handles the `None` check **before** calling `apply_scope`. The scope strategy **never** receives `None` - it only decides **how** to filter when a user context exists.
-
-**4. Service Layer** (`app/domains/base/service.py`)
-
-The service validates **permissions** before delegating to the repository:
-
-```python
-def _check_general_permissions(self, action: str) -> bool:
-    """Check if user can perform this action type"""
-    if self._is_system_operation():
-        return True  # System operations bypass checks
-    
-    # Override in subclasses for domain-specific logic
-    return True
-
-def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
-    """Check if user can perform this action on this specific instance"""
-    if self._is_system_operation():
-        return True
-    
-    # Override in subclasses for domain-specific logic
-    return True
-```
-
-#### Factory Methods: Explicit System vs User Operations
-
-Services provide two factory methods that make the authorization mode explicit:
-
-```python
-# User operation: with authorization context
+# All API endpoints — operates with user context
 service = UserService.for_user(session, authorization_context)
 
-# System operation: bypasses all checks (use with caution!)
+# Background jobs, webhooks, admin scripts — bypasses all checks
 service = UserService.for_system(session)
 ```
 
-**When to use `for_system()`:**
-- Background jobs / workers
-- Webhook handlers (e.g., Clerk user sync)
-- Admin scripts
-- Internal system operations
+**Security guarantees:**
 
-**When to use `for_user()`:**
-- All API endpoints handling user requests
-- Any operation triggered by an authenticated user
+1. Both layers must be bypassed simultaneously for unauthorized access
+2. Filtering happens at the SQL level — unauthorized data never leaves the database
+3. `for_system()` makes privileged operations clearly visible in code reviews
+4. Type-safe: `apply_scope` never receives a `None` context (the repository guards this)
 
-#### Security Guarantees
+### Multi-Stage Dockerfile
 
-1. **Defense in Depth**: Both service permissions and repository scoping must be bypassed for unauthorized access
-2. **Query-Level Filtering**: Data filtering happens at the SQL query level - unauthorized data never leaves the database
-3. **Explicit System Mode**: `for_system()` makes privileged operations visible in code reviews
-4. **Type Safety**: Type checker enforces that scope strategies receive non-None contexts
-
-#### Adding Authorization to a New Domain
-
-1. **Create Scope Strategy** (`app/domains/myentity/authorization.py`):
-
-```python
-from app.domains.base.authorization import AuthorizationScopeStrategy, AuthorizationContext
-from sqlalchemy import Select
-
-class MyEntityScopeStrategy(AuthorizationScopeStrategy):
-    def __init__(self):
-        super().__init__(MyEntity)
-    
-    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
-        # Example: filter by owner
-        return query.where(self.model.owner_id == context.user_id)
-```
-
-2. **Register in Repository** (`app/domains/myentity/repository.py`):
-
-```python
-class MyEntityRepository(ListRepositoryMixin, ...):
-    def __init__(self, session: AsyncSession, authorization_context=None):
-        super().__init__(
-            session, 
-            MyEntityScopeStrategy(),  # Pass strategy here
-            MyEntity, 
-            authorization_context
-        )
-```
-
-3. **Override Permission Checks** (`app/domains/myentity/service.py`):
-
-```python
-class MyEntityService(BaseService):
-    def _check_general_permissions(self, action: str) -> bool:
-        if self._is_system_operation():
-            return True
-        
-        # Add your permission logic here
-        if action == "delete" and self.authorization_context.user_role != "admin":
-            raise PermissionDenied("Only admins can delete")
-        
-        return True
-    
-    def _check_instance_permissions(self, action: str, instance: MyEntity) -> bool:
-        if self._is_system_operation():
-            return True
-        
-        # Add your instance-level checks here
-        if action == "update" and instance.owner_id != self.authorization_context.user_id:
-            raise PermissionDenied("Can only update own entities")
-        
-        return True
-```
-
-#### Important Notes
-
-- **Custom Repository Methods**: Methods like `find_by_email()` that bypass `_apply_user_scope` **must** have their permissions checked in the service layer after fetching
-- **System Operations**: Always use `for_system()` explicitly - never pass `None` as `authorization_context` to constructors directly
-- **Scope Strategy Contract**: `apply_scope` always receives a non-None `AuthorizationContext` - the repository handles the None check before calling it
-
-### 5. Single Docker Image, Multiple Roles
-
-One repository, **one multi-stage Dockerfile**, multiple images:
+One repository, one Dockerfile, three independent images:
 
 ```bash
-# Build different images from the same Dockerfile
-docker build --target api -t myapp:api .
-docker build --target worker -t myapp:worker .
+docker build --target api        -t myapp:api .
+docker build --target worker     -t myapp:worker .
 docker build --target migrations -t myapp:migrations .
-
-# Run them separately
-docker run -p 8000:80 myapp:api
-docker run myapp:worker
 ```
+
+| Target | Content | Entry point |
+|---|---|---|
+| `api` | Full `app/` | `fastapi run --workers 4` |
+| `worker` | `domains/`, `infrastructure/`, `workers/` (no `api/`) | Prefect worker |
+| `migrations` | `app/` + `alembic/` | `alembic upgrade head` |
+
+---
 
 ## Quick Start
 
@@ -299,45 +202,45 @@ docker run myapp:worker
 
 - Python 3.13+
 - Docker & Docker Compose
-- [just](https://just.systems/en/latest/install/) (task runner)
-- uv (Python package manager)
+- [`just`](https://just.systems/en/latest/install/) — task runner
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
 
-### Development Setup (Local)
+### Local Setup
 
 ```bash
-# Install dependencies
+# 1. Clone the repository
+git clone https://github.com/mariusvinaschi/fastapi-template.git
+cd fastapi-template
+
+# 2. Copy and configure environment variables
+cp .env.sample .env
+
+# 3. Install dependencies
 just install
 
-# Start infrastructure (database)
+# 4. Install git hooks (Ruff + Conventional Commits)
+just prek-install
+
+# 5. Start the database
 docker compose up -d dbapp
 
-# Run migrations
+# 6. Run migrations
 just migrate
 
-# Start the API server
+# 7. Start the API server
 just dev
-
-# In another terminal, start worker (optional)
-# e.g. uv run prefect worker start, or see Prefect section below
 ```
 
-**Using Prefect locally**: For the worker or scripts (e.g. `just init-prefect`) to contact the Prefect server, export the auth (align with `PREFECT_LOGIN_USER` and `PREFECT_LOGIN_PASSWORD` in your `.env`):
+The API is now available at `http://localhost:8000`.
+Interactive docs: `http://localhost:8000/docs` (Swagger UI) or `http://localhost:8000/redoc` (ReDoc).
+
+### Docker Setup
 
 ```bash
-export PREFECT_API_URL="http://0.0.0.0:4200/api"
-export PREFECT_API_AUTH_STRING="admin:pass"
-# or with .env credentials: export PREFECT_API_AUTH_STRING="${PREFECT_LOGIN_USER}:${PREFECT_LOGIN_PASSWORD}"
-```
-
-Start Prefect services first: `just docker-up-prefect`, then run the worker (e.g. `uv run prefect worker start`).
-
-### Docker Deployment
-
-```bash
-# Build all images
+# Build all images (api, worker, migrations)
 just docker-build-all
 
-# Start all services (db, migrations, api, worker)
+# Start all services
 just docker-up
 
 # View logs
@@ -347,187 +250,378 @@ just docker-logs
 just docker-down
 ```
 
-**Docker: dev (build) vs registry image**
+**Using a pre-built image from the registry:**
 
-- **Dev (default)**: `just docker-up-app` or `just docker-up` builds the API image locally and starts services. No extra env needed.
-- **Use image from registry** (e.g. GitHub Container Registry): set `API_IMAGE` to the full image reference, then run with the registry override:
-  ```bash
-  export API_IMAGE=ghcr.io/<org>/fastapi-template:latest
-  just docker-up-registry
-  ```
-  Or: `docker compose -f docker-compose.registry.yml up -d` (with `API_IMAGE` set). Without `API_IMAGE`, use the default compose (local build) only.
+```bash
+export API_IMAGE=ghcr.io/mariusvinaschi/fastapi-template/api:latest
+just docker-up-registry
+```
 
-### Prefect: validation workflow (deployments, work pools)
+### Prefect Workers
 
-To validate that everything works in Docker with Prefect (Docker work pool, deployments, worker):
+To run the full stack with Prefect locally:
 
-1. **Start Prefect**: `just docker-up-prefect` (server + Prefect services). The `prefect_network` network is created.
-2. **Start the app and worker**: `just docker-up-app` (db, migrations, api, prefect-worker). The worker joins the work pool configured via `WORK_POOL_NAME`.
-3. **Initialize Prefect** (work pool + SQLAlchemy block): from the host machine, with `.env` loaded and `PREFECT_API_URL` pointing to the server (e.g. `http://0.0.0.0:4200/api`):
-   ```bash
-   just init-prefect
-   ```
-   Useful variables: `PREFECT_API_URL`, `WORK_POOL_NAME`, `WORK_POOL_IMAGE` (optional), `WORK_POOL_NETWORKS` (optional), `PREFECT_BLOCK_NAME_SQLALCHEMY` (DB block name, default `dbapp-sqlalchemy`).
-4. **Build the worker image**: `just docker-build-worker` (tags `fastapi-template:worker` and `fastapi-template-worker:latest`, used by default in `prefect.yaml`).
-5. **Deploy the flows**: from the project root, with `.env` loaded (`WORK_POOL_NAME`, `WORK_QUEUE_NAME`, optionally `WORKER_IMAGE`):
-   ```bash
-   prefect deploy --all
-   ```
-6. **Trigger a run**: from the Prefect UI (http://localhost:4200) or via CLI for the `create-user-flow` and `web-scrapper-flow` deployments.
+```bash
+# 1. Start Prefect services (server + UI at http://localhost:4200)
+just docker-up-prefect
 
-**Summary**: One Docker work pool (created by `init-prefect`), one `default` work queue, two deployments defined in `prefect.yaml`. The worker runs jobs in containers using the image from `.env` (`WORKER_IMAGE`) or the default `ghcr.io/mariusvinaschi/fastapi-template/worker:v0.6.0`. Bump the version tag in `.env.sample` and `prefect.yaml` on each release.
+# 2. Start the app and worker
+just docker-up-app
 
-## Just Commands
+# 3. Initialize Prefect (work pool + SQLAlchemy block)
+export PREFECT_API_URL="http://0.0.0.0:4200/api"
+export PREFECT_API_AUTH_STRING="admin:pass"  # align with PREFECT_LOGIN_USER/PASSWORD in .env
+just init-prefect
 
-List all commands: `just --list`
+# 4. Build the worker image
+just docker-build-worker
+
+# 5. Deploy flows
+prefect deploy --all
+
+# 6. Trigger runs from the Prefect UI or CLI
+```
+
+Two flows are defined in `prefect.yaml`: `create-user-flow` and `web-scrapper-flow`.
+
+---
+
+## Environment Variables
+
+Copy `.env.sample` to `.env` and adjust the values. Variables are grouped by category below.
+
+### Database
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_DB_NAME` | `fastapitemplatedb` | PostgreSQL database name |
+| `APP_DB_USER` | `fastapitemplateuser` | PostgreSQL user |
+| `APP_DB_PASSWORD` | `fastapitemplatepassword` | PostgreSQL password |
+| `APP_DB_HOST` | `dbapp` | PostgreSQL host |
+| `APP_DB_PORT` | `5432` | PostgreSQL port |
+
+### Authentication (Clerk)
+
+| Variable | Default | Description |
+|---|---|---|
+| `CLERK_FRONTEND_API_URL` | — | Clerk frontend API URL (JWKS issuer) |
+| `CLERK_ALGORITHMS` | `RS256` | JWT signing algorithm |
+| `CLERK_AZP` | `http://localhost:3000` | Allowed `azp` claim (your frontend origin) |
+| `CLERK_WEBHOOK_SECRET` | — | Webhook signing secret from Clerk dashboard |
+
+### CORS
+
+| Variable | Default | Description |
+|---|---|---|
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated list of allowed origins |
+
+### Default User
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEFAULT_USER` | `admin@admin.com` | Email of the default user created by `just create-user` |
+| `DEFAULT_USER_ROLE` | `admin` | Role assigned to the default user |
+
+### Prefect
+
+| Variable | Default | Description |
+|---|---|---|
+| `PREFECT_API_URL` | `http://prefect-server:4200/api` | Prefect server URL |
+| `PREFECT_LOGIN_USER` | `prefectuser` | Prefect UI username |
+| `PREFECT_LOGIN_PASSWORD` | `prefectpassword` | Prefect UI password |
+| `WORK_POOL_NAME` | `fastapi-template-pool` | Prefect Docker work pool name |
+| `WORK_QUEUE_NAME` | `default` | Prefect work queue name |
+| `PREFECT_BLOCK_NAME_SQLALCHEMY` | `dbapp-sqlalchemy` | Name of the Prefect SQLAlchemy block |
+
+### Observability (Logfire)
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOGFIRE_SEND_TO_LOGFIRE` | `true` | Send traces to Logfire cloud |
+| `LOGFIRE_TOKEN` | — | Write token from Logfire dashboard |
+
+### Docker Images (optional)
+
+| Variable | Description |
+|---|---|
+| `API_IMAGE` | Override the API image (e.g. `ghcr.io/mariusvinaschi/fastapi-template/api:latest`) |
+| `WORKER_IMAGE` | Override the worker image |
+| `MIGRATIONS_IMAGE` | Override the migrations image |
+
+---
+
+## Commands
+
+Run `just --list` to see all available commands.
 
 ### Development
 
 | Command | Description |
-|---------|-------------|
-| `just` or `just --list` | Show available commands |
+|---|---|
 | `just install` | Install dependencies with uv |
-| `just dev` | Run FastAPI in development mode |
+| `just dev` | Run the API in development mode (hot reload) |
+| `just prek-install` | Install git hooks (Ruff + Conventional Commits) |
+| `just prek-run` | Run hooks manually on all files |
 
 ### Testing & Quality
 
 | Command | Description |
-|---------|-------------|
+|---|---|
 | `just test` | Run all tests |
 | `just test-cov` | Run tests with coverage report (HTML + terminal) |
-| `just lint` | Run linter (ruff) on `app/` |
-| `just format` | Format code with ruff |
+| `just lint` | Run Ruff linter on `app/` |
+| `just format` | Format code with Ruff |
 | `just type-check` | Type check with ty |
 
 ### Database
 
 | Command | Description |
-|---------|-------------|
-| `just migrate` | Apply migrations (alembic upgrade head) |
-| `just migrate-create "description"` | Create a new autogenerated migration |
+|---|---|
+| `just migrate` | Apply all pending migrations (`alembic upgrade head`) |
+| `just migrate-create "description"` | Generate a new autogenerated migration |
 | `just migrate-down` | Roll back the last migration |
 | `just migrate-history` | Show migration history |
 
 ### Users & Prefect
 
 | Command | Description |
-|---------|-------------|
-| `just create-user` | Create a new user (generate-user script) |
-| `just init-prefect` | Initialize Prefect (blocks, work pool). Requires `PREFECT_API_AUTH_STRING` if the server is secured. |
+|---|---|
+| `just create-user` | Create a default user (uses `DEFAULT_USER` / `DEFAULT_USER_ROLE`) |
+| `just init-prefect` | Initialize Prefect work pool and SQLAlchemy block |
 
 ### Docker
 
 | Command | Description |
-|---------|-------------|
-| `just docker-build-all` | Build all Docker images (api, worker, migrations) |
+|---|---|
+| `just docker-build-all` | Build all images (api, worker, migrations) |
+| `just docker-build-worker` | Build the worker image only |
 | `just docker-up` | Start all services (app + Prefect) |
+| `just docker-up-app` | Start app services only (db, migrations, api, worker) |
+| `just docker-up-prefect` | Start Prefect services only (server, UI, db) |
+| `just docker-up-registry` | Start using images from the registry (`API_IMAGE` must be set) |
 | `just docker-down` | Stop all services |
-| `just docker-logs` | Show app logs (use `docker-logs-prefect` for Prefect) |
+| `just docker-logs` | Show app logs |
 
 ### Cleanup
 
 | Command | Description |
-|---------|-------------|
-| `just clean` | Remove caches (__pycache__, .pytest_cache, .ruff_cache, .coverage, htmlcov, etc.) |
+|---|---|
+| `just clean` | Remove caches (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.coverage`, `htmlcov`) |
 | `just clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
-## CI/CD Overview
+---
 
-This repository uses three GitHub Actions workflows to validate code, publish versions, and build container images.
+## Tests
 
-### Workflows and Triggers
+Tests are located in `tests/` and use `pytest` with async support (`pytest-asyncio`, strict mode).
 
-| Workflow | File | Trigger | Purpose |
-|----------|------|---------|---------|
-| CI | `.github/workflows/ci.yml` | `pull_request` and `push` on `main` | Runs type check (`ty`), lint/format check (`ruff`), and tests (`pytest`) |
-| Release | `.github/workflows/release.yml` | `push` on `main` and manual `workflow_dispatch` | Creates RC/stable versions, commits release changes, pushes tags, and creates GitHub Release for stable versions |
-| Build & Push Images | `.github/workflows/build-images.yml` | `push` tags matching `vX.Y.Z` | Builds and pushes API/Worker images to GHCR |
+```bash
+# Run all tests
+just test
+
+# Run with coverage report
+just test-cov
+```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py          # Fixtures: app, async HTTP client, DB session (create/drop per test)
+├── core/                # Unit tests for all repository and service mixins
+├── security/            # JWT and API Key authentication tests
+├── users/
+│   ├── api/             # HTTP endpoint integration tests
+│   ├── repository/      # find_by_email, find_by_clerk_id
+│   └── service/         # UserService, ClerkUserService (permissions, queries)
+├── test_health.py
+└── utils/ & validations/
+```
+
+Each test run creates and drops a real PostgreSQL schema — no mocks for the database layer.
+
+---
+
+## Observability
+
+This template uses **[Pydantic Logfire](https://pydantic.dev/logfire)** as its observability platform, a production-grade solution built on [OpenTelemetry](https://opentelemetry.io/) that provides logs, traces, and metrics in a unified view.
+
+### What is instrumented
+
+| Layer | Instrumentation |
+|---|---|
+| **FastAPI** | All HTTP requests and responses (latency, status codes, routes) |
+| **SQLAlchemy** | Every database query with execution time |
+| **Custom spans** | Add your own spans anywhere with `logfire.span()` |
+
+### Configuration
+
+Logfire is configured in `app/infrastructure/observability.py` and activated at application startup.
+
+**Cloud (default)** — send traces directly to the [Logfire platform](https://pydantic.dev/logfire):
+
+```bash
+# In your .env
+LOGFIRE_SEND_TO_LOGFIRE=true
+LOGFIRE_TOKEN=your-write-token   # obtain from the Logfire dashboard
+```
+
+### Adding custom traces
+
+```python
+import logfire
+
+with logfire.span("process-order", order_id=order.id):
+    result = await order_service.process(order)
+    logfire.info("Order processed", status=result.status)
+```
+
+---
+
+## CI/CD
+
+Three GitHub Actions workflows handle validation, versioning, and image publishing.
+
+| Workflow | File | Trigger | What it does |
+|---|---|---|---|
+| **CI** | `ci.yml` | PR and push to `main` | Type check (`ty`), lint/format (`ruff`), tests (`pytest` + PostgreSQL 17) |
+| **Release** | `release.yml` | Push to `main` + manual dispatch | Creates RC or stable version, pushes tag, creates GitHub Release |
+| **Build & Push** | `build-images.yml` | Tags matching `vX.Y.Z` | Builds multi-arch images (`amd64`/`arm64`), pushes `api`, `worker`, `migrations` to GHCR |
 
 ### End-to-End Flow
 
-1. Open a PR to `main`: the `CI` workflow validates code quality and tests.
-2. Merge to `main`: the `Release` workflow creates the next RC (`-rc.N`) automatically.
-3. Run `Release` manually with `patch`, `minor`, or `major`: it creates a stable version and pushes tag `vX.Y.Z`.
-4. Pushing `vX.Y.Z` triggers `Build & Push Images`, which publishes Docker images to GHCR.
-
-### Deploy Key Setup for Release
-
-The `Release` workflow pushes back to `main`, so it uses an SSH deploy key stored in `DEPLOY_KEY`.
-
-1. Generate a dedicated SSH key pair on your machine:
-
-```bash
-ssh-keygen -t ed25519 -C "fastapi-template-release" -f ./fastapi-template-deploy-key -N ""
+```
+PR opened  →  CI validates (type-check, lint, tests)
+               ↓
+Merge to main  →  Release creates 1.2.3-rc.1 automatically
+               ↓
+Manual release (patch/minor/major)  →  stable tag v1.2.3 created
+               ↓
+Tag pushed  →  Docker images built and pushed to GHCR
 ```
 
-2. Add the public key in GitHub:
-   - Repository `Settings` -> `Deploy keys` -> `Add deploy key`
-   - Paste `fastapi-template-deploy-key.pub`
-   - Enable `Allow write access`
+### Deploy Key Setup
 
-3. Add the private key as an Actions secret:
-   - Repository `Settings` -> `Secrets and variables` -> `Actions`
-   - Create secret `DEPLOY_KEY`
-   - Paste full content of `fastapi-template-deploy-key`
+The `Release` workflow commits back to `main` and requires an SSH deploy key stored as the `DEPLOY_KEY` secret.
+
+```bash
+# 1. Generate a key pair
+ssh-keygen -t ed25519 -C "fastapi-template-release" -f ./deploy-key -N ""
+
+# 2. Add the public key in GitHub
+#    Repository Settings → Deploy keys → Add deploy key → Allow write access
+
+# 3. Add the private key as a secret
+#    Repository Settings → Secrets and variables → Actions → New secret: DEPLOY_KEY
+```
+
+---
 
 ## Versioning & Releases
 
-This project uses an automated versioning workflow with Release Candidates (RC).
-
-### How It Works
+Each merge to `main` automatically creates the next Release Candidate. Stable releases are triggered manually.
 
 ```
-Push to main  →  0.1.1-rc.1 (automatic)
-Push to main  →  0.1.1-rc.2 (automatic)
-Push to main  →  0.1.1-rc.3 (automatic)
+push to main  →  1.2.3-rc.1  (automatic)
+push to main  →  1.2.3-rc.2  (automatic)
 
-Manual release (patch)  →  0.1.1 + tag v0.1.1
-Push to main  →  0.1.2-rc.1 (new cycle)
+Manual: patch  →  1.2.3  + tag v1.2.3
+push to main  →  1.2.4-rc.1  (new cycle)
 
-Manual release (minor)  →  0.2.0 + tag v0.2.0
-Push to main  →  0.2.1-rc.1 (new cycle)
-
-Manual release (major)  →  1.0.0 + tag v1.0.0
+Manual: minor  →  1.3.0  + tag v1.3.0
+Manual: major  →  2.0.0  + tag v2.0.0
 ```
 
-### Creating a Stable Release
+**To create a stable release:**
 
 1. Go to **GitHub Actions** → **Release**
 2. Click **Run workflow**
-3. Choose release type:
+3. Choose the bump type:
 
 | Type | Example | When to use |
-|------|---------|-------------|
-| `patch` | 1.2.3 → 1.2.4 | Bug fixes, small improvements |
-| `minor` | 1.2.3 → 1.3.0 | New features, backward compatible |
-| `major` | 1.2.3 → 2.0.0 | Breaking changes |
+|---|---|---|
+| `patch` | `1.2.3 → 1.2.4` | Bug fixes, small improvements |
+| `minor` | `1.2.3 → 1.3.0` | New features, backward compatible |
+| `major` | `1.2.3 → 2.0.0` | Breaking changes |
 
-### Commit Style (Recommended)
+### Commit Convention
 
-Commits are validated locally with [prek](https://prek.j178.dev/) and [Commitizen](https://commitizen-tools.github.io/commitizen/) so that the CHANGELOG can be generated from Conventional Commits.
-
-**First-time setup:**
-
-```bash
-just install
-just prek-install
-```
-
-This installs the pre-commit hook (Ruff format/check, ty) and the **commit-msg** hook (Conventional Commits). To run checks manually: `just prek-run` or `uv run prek run --all-files`.
-
-**Commit message format** (required for the commit-msg hook):
+Commits are enforced locally via [prek](https://prek.j178.dev/) and [Commitizen](https://commitizen-tools.github.io/commitizen/).
 
 ```bash
 feat: add user dashboard
 fix: resolve login timeout issue
-docs: update API documentation
+feat(auth): add JWT refresh
 refactor: simplify auth middleware
+docs: update API documentation
 test: add integration tests for users
 chore: update dependencies
 ```
 
-Use `type(scope): description` (e.g. `feat(auth): add JWT login`). Supported types align with semantic-release: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+Supported types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
-## Environment Variables
+---
 
-See `.env.sample` for all available configuration options.
+## Adding a New Domain
+
+1. **Create the domain folder:**
+
+```bash
+mkdir -p app/domains/myentity
+```
+
+2. **Add the required files:**
+
+| File | Purpose |
+|---|---|
+| `models.py` | SQLAlchemy ORM models |
+| `schemas.py` | Pydantic DTOs (request/response) |
+| `repository.py` | Data access layer (compose CRUD mixins) |
+| `service.py` | Business logic (compose service mixins) |
+| `exceptions.py` | Domain-specific exceptions |
+| `authorization.py` | Scope strategy (if data scoping is needed) |
+
+3. **Register models** in `alembic/env.py` so Alembic detects them.
+
+4. **Create API routes** in `app/api/routes/myentity.py` and register them in `app/api/router.py`.
+
+5. **(Optional)** Add Prefect flows in `app/workers/`.
+
+### Authorization Quickstart
+
+```python
+# app/domains/myentity/authorization.py
+class MyEntityScopeStrategy(AuthorizationScopeStrategy):
+    def apply_scope(self, query: Select, context: AuthorizationContext) -> Select:
+        return query.where(self.model.owner_id == context.user_id)
+
+# app/domains/myentity/service.py
+class MyEntityService(BaseService):
+    def _check_general_permissions(self, action: str) -> bool:
+        if action == "delete" and self.authorization_context.user_role != "admin":
+            raise PermissionDenied("Only admins can delete")
+        return True
+
+    def _check_instance_permissions(self, action: str, instance: MyEntity) -> bool:
+        if action == "update" and instance.owner_id != self.authorization_context.user_id:
+            raise PermissionDenied("Can only update your own entities")
+        return True
+```
+
+> **Important notes:**
+> - Custom repository methods (e.g. `find_by_email`) that bypass `_apply_user_scope` must have their permissions validated in the service layer.
+> - Always use `for_system()` explicitly for background operations — never pass `None` as `authorization_context` directly.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## Author
+
+**Marius Vinaschi**
+
+- GitHub: [@mariusvinaschi](https://github.com/mariusvinaschi)
