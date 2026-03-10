@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 
 from app.api.dependencies import CurrentSession
-from app.domains.users.service import ClerkUserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 router = APIRouter()
 
@@ -29,7 +29,7 @@ async def clerk_webhook(
         event_type = payload.get("type")
         data = payload.get("data", {})
 
-        clerk_service = ClerkUserService.for_system(session)
+        clerk_service = ClerkWebhookAdapter.for_system(session)
 
         if event_type == "user.created":
             await clerk_service.create_user(data)

@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 
-from app.api.security import auth
+from app.infrastructure.security import auth
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 from tests.utils.override_dependencies import DependencyOverrider

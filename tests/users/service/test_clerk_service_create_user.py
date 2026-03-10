@@ -1,7 +1,7 @@
 import pytest
 
 from app.domains.users.factory import UserFactory
-from app.domains.users.service import ClerkUserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 
 @pytest.mark.anyio
@@ -14,7 +14,7 @@ async def test_create_user(db_session):
             {"id": "123", "email_address": "test@example.com"},
         ],
     }
-    created_user = await ClerkUserService.for_system(db_session).create_user(data)
+    created_user = await ClerkWebhookAdapter.for_system(db_session).create_user(data)
     assert created_user.clerk_id == clerk_id
     assert created_user.email == "test@example.com"
 
@@ -30,7 +30,7 @@ async def test_create_user_email_already_exists_not_the_same(db_session):
             {"id": "123", "email_address": "test@example.com"},
         ],
     }
-    updated_user = await ClerkUserService.for_system(db_session).create_user(data)
+    updated_user = await ClerkWebhookAdapter.for_system(db_session).create_user(data)
     assert updated_user.clerk_id == clerk_id
     assert updated_user.email == "test@example.com"
     assert updated_user.id == user.id
@@ -48,7 +48,7 @@ async def test_create_user_email_already_exists_the_same(db_session):
             {"id": "123", "email_address": email},
         ],
     }
-    updated_user = await ClerkUserService.for_system(db_session).create_user(data)
+    updated_user = await ClerkWebhookAdapter.for_system(db_session).create_user(data)
     assert updated_user.clerk_id == clerk_id
     assert updated_user.email == email
     assert updated_user.id == user.id
@@ -67,4 +67,4 @@ async def test_create_user_clerk_id_not_found_but_email_exists(db_session):
         ],
     }
     with pytest.raises(ValueError):
-        await ClerkUserService.for_system(db_session).create_user(data)
+        await ClerkWebhookAdapter.for_system(db_session).create_user(data)

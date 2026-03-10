@@ -8,7 +8,6 @@ from uuid import UUID
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.domains.base.authorization import AuthorizationContext
 from app.domains.base.models import Base, CreatedByMixin, TimestampMixin, UUIDMixin
 
 RoleUser = Literal["standard", "admin"]
@@ -49,26 +48,3 @@ class APIKey(Base, UUIDMixin, TimestampMixin):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, unique=True, index=True)
 
     user: Mapped["User"] = relationship(back_populates="api_key")
-
-
-class UserAuthorizationAdapter(AuthorizationContext):
-    """
-    Adapter that converts a User model to an AuthorizationContext.
-    This allows the domain services to work with authorization without
-    knowing about the specific User implementation.
-    """
-
-    def __init__(self, user: User):
-        self._user = user
-
-    @property
-    def user_id(self) -> str:
-        return str(self._user.id)
-
-    @property
-    def user_email(self) -> str:
-        return self._user.email
-
-    @property
-    def user_role(self) -> RoleUser:
-        return self._user.role

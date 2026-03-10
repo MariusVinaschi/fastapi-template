@@ -2,7 +2,8 @@ import pytest
 
 from app.domains.users.exceptions import UserNotFoundException
 from app.domains.users.factory import UserFactory
-from app.domains.users.service import ClerkUserService
+from app.domains.users.service import UserService
+from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
 
 @pytest.mark.anyio
@@ -12,10 +13,10 @@ async def test_delete_user(db_session):
     data = {
         "id": clerk_id,
     }
-    deleted = await ClerkUserService.for_system(db_session).delete_user(data)
+    deleted = await ClerkWebhookAdapter.for_system(db_session).delete_user(data)
     assert deleted
     with pytest.raises(UserNotFoundException):
-        await ClerkUserService.for_system(db_session).get_by_clerk_id(clerk_id)
+        await UserService.for_system(db_session).get_by_clerk_id(clerk_id)
 
 
 @pytest.mark.anyio
@@ -25,4 +26,4 @@ async def test_delete_user_not_found(db_session):
         "id": clerk_id,
     }
     with pytest.raises(UserNotFoundException):
-        await ClerkUserService.for_system(db_session).delete_user(data)
+        await ClerkWebhookAdapter.for_system(db_session).delete_user(data)

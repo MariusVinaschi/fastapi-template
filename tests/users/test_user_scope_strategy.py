@@ -5,7 +5,8 @@ from sqlalchemy import select
 
 from app.domains.users.authorization import UserScopeStrategy
 from app.domains.users.factory import UserFactory
-from app.domains.users.models import User, UserAuthorizationAdapter
+from app.domains.users.authorization import UserAuthorizationAdapter
+from app.domains.users.models import User
 
 
 @pytest.fixture
