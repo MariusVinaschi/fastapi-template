@@ -6,13 +6,26 @@ Handles user synchronization with Clerk authentication service.
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
+from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.api.dependencies import CurrentSession
 from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
+from app.infrastructure.config import settings
 
 router = APIRouter()
 
 log = logging.getLogger(__name__)
+
+
+async def _verify_webhook_signature(request: Request) -> dict:
+    """Verify the Svix signature Clerk attaches to every webhook."""
+    body = await request.body()
+    webhook = Webhook(settings.CLERK_WEBHOOK_SECRET)
+    try:
+        return webhook.verify(body, dict(request.headers))
+    except WebhookVerificationError as error:
+        log.warning(f"Rejected Clerk webhook with invalid signature: {error}")
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
 
 @router.post("/clerk")
@@ -22,10 +35,12 @@ async def clerk_webhook(
 ):
     """
     Handle Clerk webhook events.
-    Processes user.created, user.updated, and user.deleted events.
+    Verifies the Svix signature, then processes user.created,
+    user.updated, and user.deleted events.
     """
+    payload = await _verify_webhook_signature(request)
+
     try:
-        payload = await request.json()
         event_type = payload.get("type")
         data = payload.get("data", {})
 
