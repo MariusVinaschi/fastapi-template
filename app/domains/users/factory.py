@@ -20,6 +20,7 @@ class UserFactory(BaseFactory):
 
     email = factory.Faker("email")
     role = factory.LazyFunction(lambda: fake.random_element(elements=("admin", "standard")))
+    clerk_id = factory.LazyFunction(lambda: fake.uuid4())
 
     created_by = factory.Faker("email")
     updated_by = factory.Faker("email")

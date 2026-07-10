@@ -147,10 +147,10 @@ class APIKeyService(
 
         return APIKeyGenerated(api_key=api_key)
 
-    async def revoke_api_key(self, user: User) -> bool:
+    async def revoke_api_key(self, user: User) -> None:
+        # Raises APIKeyNotFoundException if the user has no API key; the caller handles it
         api_key = await self.get_by_user_id(user.id)
         await self.delete(api_key.id)
-        return True
 
     def hash_api_key(self, api_key: str) -> str:
         """Hash an API key for storage using HMAC-SHA256 - deterministic and searchable"""

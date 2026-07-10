@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 import jwt
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import (
@@ -13,6 +16,8 @@ from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
 from app.infrastructure.config import settings
 from app.infrastructure.database import get_session
+
+log = logging.getLogger(__name__)
 
 
 class UnauthorizedException(HTTPException):
@@ -35,7 +40,7 @@ class VerifyAuth:
 
     def __init__(self):
         self.clerk_issuer = settings.CLERK_FRONTEND_API_URL
-        self.clerk_algorithms = settings.CLERK_ALGORITHMS
+        self.clerk_algorithms = [alg.strip() for alg in settings.CLERK_ALGORITHMS.split(",") if alg.strip()]
         self.clerk_azp = settings.CLERK_AZP
 
         jwks_url = f"{self.clerk_issuer}/.well-known/jwks.json"
@@ -115,15 +120,21 @@ class VerifyAuth:
         if token is None:
             raise UnauthenticatedException("No token provided")
 
-        # This gets the 'kid' from the passed token
+        # Fetch the signing key in a thread: PyJWKClient.get_signing_key_from_jwt makes a
+        # synchronous HTTPS call to the JWKS endpoint on cache miss, which would block the
+        # entire asyncio event loop if called directly from a coroutine.
         try:
-            signing_key = self.jwks_client.get_signing_key_from_jwt(token.credentials).key
+            jwks_result = await asyncio.to_thread(self.jwks_client.get_signing_key_from_jwt, token.credentials)
+            signing_key = jwks_result.key
         except PyJWKClientError as error:
-            raise UnauthorizedException(str(error))
+            log.warning("JWKS key fetch failed: %s", error)
+            raise UnauthorizedException("Authentication failed")
         except DecodeError as error:
-            raise UnauthorizedException(str(error))
-        except Exception:
-            raise UnauthorizedException("Check the Clerk frontend API URL and the JWT token")
+            log.warning("JWT decode error during key fetch: %s", error)
+            raise UnauthorizedException("Authentication failed")
+        except Exception as error:
+            log.warning("Unexpected error during JWT key fetch: %s", error)
+            raise UnauthorizedException("Authentication failed")
         try:
             payload = jwt.decode(
                 token.credentials,
@@ -134,7 +145,8 @@ class VerifyAuth:
             if payload.get("azp") != self.clerk_azp:
                 raise DecodeError("Invalid authorized party")
         except Exception as error:
-            raise UnauthorizedException(str(error))
+            log.warning("JWT validation failed: %s", error)
+            raise UnauthorizedException("Authentication failed")
 
         if len(security_scopes.scopes) > 0:
             self._check_claims(payload, "scope", security_scopes.scopes)

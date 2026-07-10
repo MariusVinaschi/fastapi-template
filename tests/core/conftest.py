@@ -176,7 +176,7 @@ async def user_1(db_session):
         role="admin",
     )
     db_session.add(user)
-    await db_session.commit()
+    await db_session.flush()
     await db_session.refresh(user)
     return user
 
@@ -190,7 +190,7 @@ async def user_2(db_session):
         role="user",
     )
     db_session.add(user)
-    await db_session.commit()
+    await db_session.flush()
     await db_session.refresh(user)
     return user
 

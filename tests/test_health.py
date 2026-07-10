@@ -7,4 +7,4 @@ from fastapi import status
 async def test_health(client: AsyncClient) -> None:
     response = await client.get("/api/v1/health/")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"health": "UP", "testing": False}
+    assert response.json() == {"status": "ok"}

@@ -261,7 +261,7 @@ class TestVerifyAuth:
             with pytest.raises(UnauthorizedException) as exc_info:
                 await verify_auth._verify_jwt_token(mock_security_scopes, mock_token)
 
-            assert "JWKS error" in str(exc_info.value)
+            assert "Authentication failed" in str(exc_info.value)
 
     @pytest.mark.anyio
     async def test_verify_jwt_token_decode_error(self, verify_auth, mock_token, mock_security_scopes):
@@ -277,7 +277,7 @@ class TestVerifyAuth:
                 with pytest.raises(UnauthorizedException) as exc_info:
                     await verify_auth._verify_jwt_token(mock_security_scopes, mock_token)
 
-                assert "Decode error" in str(exc_info.value)
+                assert "Authentication failed" in str(exc_info.value)
 
     def test_check_claims_success(self, verify_auth):
         """Test successful claims checking"""

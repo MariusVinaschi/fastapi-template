@@ -37,12 +37,12 @@ def create_application() -> FastAPI:
 
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+
+    add_cors_middleware(application, settings)
     application.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
     application.include_router(router=api_router, prefix=settings.API_V1_STR)
     application.include_router(router=webhook_router, prefix="/webhooks", tags=["webhooks"])
-
-    add_cors_middleware(application, settings)
     instrument_app(application, async_engine)
 
     return application
