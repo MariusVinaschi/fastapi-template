@@ -4,11 +4,17 @@ These are the foundation for all domain entities.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import MetaData
+from sqlalchemy import DateTime, MetaData
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+def utc_now() -> datetime:
+    """UTC-aware instant for ORM defaults (matches TIMESTAMPTZ columns)."""
+    return datetime.now(timezone.utc)
+
 
 # Naming convention for database constraints
 convention = {
@@ -32,10 +38,12 @@ class Base(DeclarativeBase):
 
 
 class TimestampMixin:
-    """Mixin for created_at and updated_at timestamps"""
+    """Mixin for created_at and updated_at timestamps (UTC, timezone-aware)."""
 
-    created_at: Mapped[datetime] = mapped_column("created_at", default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column("updated_at", default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        "updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class UUIDMixin:

@@ -1,3 +1,23 @@
+"""
+Pytest loads this module before test files. We point the app at a dedicated test DB
+before any `app.*` import so `Settings()` and `async_engine` use the correct URL.
+
+- Default DB name: APP_DB_TEST_NAME or "fastapi_template_test". Create it once:
+    CREATE DATABASE fastapi_template_test;
+"""
+
+import os
+
+
+def _apply_test_database_env() -> None:
+    # Accept values like "/fastapi_template_test" from CI env parsing and normalize.
+    test_db = os.environ.get("APP_DB_TEST_NAME", "fastapi_template_test").lstrip("/") or "fastapi_template_test"
+    os.environ["APP_DB_TEST_NAME"] = test_db
+    os.environ["APP_DB_NAME"] = test_db
+
+
+_apply_test_database_env()
+
 from collections.abc import Iterator
 from typing import AsyncGenerator
 

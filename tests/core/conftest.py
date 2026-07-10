@@ -143,6 +143,20 @@ def service_factory(db_session, scope_strategy, test_model):
 
     class ConfiguredTestService(TestService):
         repository_class = ConfiguredTestRepository
+        # Core service tests exercise CRUD flows in user context; keep those actions
+        # explicitly allowed here to stay focused on mixin behavior.
+        _default_allowed_user_actions = frozenset(
+            {
+                "read",
+                "list",
+                "create",
+                "update",
+                "delete",
+                "bulk_create",
+                "bulk_update",
+                "bulk_delete",
+            }
+        )
 
     def create_service(authorization_context=None):
         return ConfiguredTestService(

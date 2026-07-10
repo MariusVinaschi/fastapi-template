@@ -4,16 +4,17 @@ Contains all the generic CRUD operations for domain entities.
 """
 
 from collections.abc import Sequence
-from typing import Generic, Optional, Protocol, Tuple, Type, TypeVar
+from typing import Generic, Optional, Protocol, Tuple, Type, TypeVar, cast
 
 from sqlalchemy import Select, delete, func, insert, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.base.authorization import (
     AuthorizationContext,
     AuthorizationScopeStrategy,
 )
+from app.domains.base.exceptions import SystemOperationRequired
 from app.domains.base.filters import BaseFilterParams
 from app.domains.base.models import Base
 
@@ -36,6 +37,10 @@ class RepositoryFactory(Protocol[RepositoryType]):
     ) -> RepositoryType: ...
 
 
+class SupportsId(Protocol):
+    id: object
+
+
 class BaseRepository(Generic[ModelType]):
     """Base repository with common functionality for all entities"""
 
@@ -51,19 +56,6 @@ class BaseRepository(Generic[ModelType]):
         self.model = model
         self.authorization_context = authorization_context
 
-    async def _commit(self):
-        """
-        Commit the current transaction and handle exceptions.
-        """
-        try:
-            await self.session.commit()
-        except IntegrityError as e:
-            await self.session.rollback()
-            raise e
-        except Exception as e:
-            await self.session.rollback()
-            raise e
-
     def _apply_user_scope(self, query: Select) -> Select:
         """Apply user scope using the repository's authorization context"""
         if self.authorization_context is None:
@@ -74,6 +66,11 @@ class BaseRepository(Generic[ModelType]):
     def _is_system_operation(self) -> bool:
         """Check if this is a system operation (no authorization context)"""
         return self.authorization_context is None
+
+    def _require_system(self) -> None:
+        """Raise SystemOperationRequired if called with a user authorization context."""
+        if not self._is_system_operation():
+            raise SystemOperationRequired("This repository method requires system context (no authorization_context)")
 
     async def get_by_id(self, id: str) -> Optional[ModelType]:
         raise NotImplementedError
@@ -243,12 +240,10 @@ class CreateRepositoryMixin(BaseRepository):
     """Mixin for create operations"""
 
     async def create(self, data: dict) -> ModelType:
-        """
-        Create a new instance in the database.
-        """
+        """Stage a new instance; transaction boundary owned by the caller (route/worker)."""
         instance = self.model(**data)
         self.session.add(instance)
-        await self._commit()
+        await self.session.flush()
         await self.session.refresh(instance)
         return instance
 
@@ -257,14 +252,12 @@ class UpdateRepositoryMixin(BaseRepository):
     """Mixin for update operations"""
 
     async def update(self, instance: ModelType, data: dict) -> ModelType:
-        """
-        Update an existing instance in the database.
-        """
+        """Apply attribute changes; transaction boundary owned by the caller."""
         for key, value in data.items():
             setattr(instance, key, value)
 
         self.session.add(instance)
-        await self._commit()
+        await self.session.flush()
         await self.session.refresh(instance)
         return instance
 
@@ -274,7 +267,7 @@ class DeleteRepositoryMixin(BaseRepository):
 
     async def delete(self, instance: ModelType):
         await self.session.delete(instance)
-        await self._commit()
+        await self.session.flush()
         return True
 
 
@@ -285,30 +278,32 @@ class BulkUpdateRepositoryMixin(BaseRepository):
         """
         Update multiple instances in the database with the same data.
 
+        Uses a single UPDATE ... RETURNING * statement: one round-trip to apply the
+        update and fetch the new column values, instead of N refresh calls after an
+        ORM dirty-tracking commit.
+
         Args:
-            instances: Model instances to update (read-only view)
+            instances: Model instances to update (read-only view — used for ID extraction)
             data: Dictionary containing updates to apply to all instances
 
         Returns:
-            The same sequence of updated model instances
+            The sequence of refreshed instances (caller-visible).
         """
         if not instances:
             return []
 
-        # Update attributes for each instance
-        for instance in instances:
-            for key, value in data.items():
-                setattr(instance, key, value)
-            self.session.add(instance)
+        ids = [cast(SupportsId, instance).id for instance in instances]
+        stmt = (
+            sa_update(self.model)
+            .where(self.model.id.in_(ids))
+            .values(**data)
+            .returning(self.model)
+            .execution_options(synchronize_session=False, populate_existing=True)
+        )
+        result = await self.session.execute(stmt)
+        refreshed = result.scalars().all()
 
-        # Commit all changes in one transaction
-        await self._commit()
-
-        # Refresh all instances to get updated values
-        for instance in instances:
-            await self.session.refresh(instance)
-
-        return instances
+        return refreshed
 
 
 class BulkCreateRepositoryMixin(BaseRepository):
@@ -334,7 +329,6 @@ class BulkCreateRepositoryMixin(BaseRepository):
         )
 
         instances = result.scalars().all()
-        await self._commit()
         return instances
 
 
@@ -345,23 +339,29 @@ class BulkDeleteRepositoryMixin(BaseRepository):
         """
         Delete multiple instances from the database by their IDs.
 
+        When an authorization context is present, the delete is restricted to the
+        subset of IDs visible through the scope strategy — this prevents a user from
+        deleting rows belonging to another user/tenant by supplying their IDs.
+
         Args:
             ids: List of entity IDs to delete
 
         Returns:
             int: Number of deleted records
-
-        Example:
-            deleted_count = await repository.bulk_delete(["id1", "id2", "id3"])
         """
         if not ids:
             return 0
 
-        stmt = delete(self.model).where(self.model.id.in_(ids)).execution_options(synchronize_session=False)
+        if self.authorization_context is not None:
+            scoped_ids = self._apply_user_scope(select(self.model.id).where(self.model.id.in_(ids)))
+            stmt = (
+                delete(self.model)
+                .where(self.model.id.in_(scoped_ids.scalar_subquery()))
+                .execution_options(synchronize_session=False)
+            )
+        else:
+            stmt = delete(self.model).where(self.model.id.in_(ids)).execution_options(synchronize_session=False)
 
-        # Execute deletion
         result = await self.session.execute(stmt)
-        await self._commit()
 
-        # Return number of deleted records
         return getattr(result, "rowcount", 0) or 0

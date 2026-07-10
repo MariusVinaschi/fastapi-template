@@ -4,14 +4,14 @@ Contains all the generic CRUD operations and business rules.
 """
 
 from collections.abc import Sequence
-from typing import Generic, Optional, Type, TypeVar
+from typing import Generic, Type, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.base.authorization import AuthorizationContext
-from app.domains.base.exceptions import EntityNotFoundException
+from app.domains.base.exceptions import EntityNotFoundException, PermissionDenied, SystemOperationRequired
 from app.domains.base.filters import BaseFilterParams
 from app.domains.base.repository import BaseRepository, RepositoryFactory
 
@@ -57,12 +57,20 @@ class BaseService(Generic[ModelType, RepositoryType]):
         """Check if this is a system operation (no authorization context)"""
         return self.authorization_context is None
 
+    def _require_system(self) -> None:
+        """Raise SystemOperationRequired if called with a user authorization context."""
+        if not self._is_system_operation():
+            raise SystemOperationRequired("This service method requires system context (no authorization_context)")
+
+    _default_allowed_user_actions: frozenset[str] = frozenset({"read", "list"})
+
     def _check_general_permissions(self, action: str) -> bool:
         """
         Check general permissions for an action.
 
-        Automatically bypasses permission checks for system operations.
-        Override in subclass to add custom permission logic for user operations.
+        Automatically bypasses permission checks for system operations (contextless).
+        For user operations, allow-by-default is restricted to read/list actions —
+        anything else must be whitelisted by the subclass (secure-by-default policy).
 
         Args:
             action: The action being performed (read, create, update, delete, etc.)
@@ -71,15 +79,15 @@ class BaseService(Generic[ModelType, RepositoryType]):
             True if permission is granted
 
         Raises:
-            PermissionDenied: If permission is denied for user operations
+            PermissionDenied: If a user action is not explicitly allowed.
         """
-        # System operations bypass all permission checks
         if self._is_system_operation():
             return True
 
-        # Default: allow all actions for user operations
-        # Subclasses should override to add specific permission logic
-        return True
+        if action in self._default_allowed_user_actions:
+            return True
+
+        raise PermissionDenied(f"Action '{action}' not allowed by default, subclass must whitelist it.")
 
     def _check_instance_permissions(self, action: str, instance: ModelType) -> bool:
         """
@@ -106,7 +114,7 @@ class BaseService(Generic[ModelType, RepositoryType]):
         # Subclasses should override to add specific permission logic
         return True
 
-    async def get_by_id(self, id: UUID) -> Optional[ModelType]:
+    async def get_by_id(self, id: UUID) -> ModelType:
         """Get entity by ID with access control"""
         self._check_general_permissions("read")
 
@@ -196,14 +204,12 @@ class UpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """Validate update - override in subclass if needed"""
         return True
 
-    async def update(self, id: UUID, data: UpdateSchemaType) -> Optional[ModelType]:
+    async def update(self, id: UUID, data: UpdateSchemaType) -> ModelType:
         """Update existing entity with authorization"""
         self._check_general_permissions("update")
 
-        # Get existing instance (already checks permissions via get_by_id)
+        # get_by_id already raises not_found_exception when the instance is missing.
         instance = await self.get_by_id(id)
-        if instance is None:
-            raise self.not_found_exception(f"Entity with id {id} not found")
 
         self._check_instance_permissions("update", instance)
 
@@ -225,9 +231,6 @@ class DeleteServiceMixin(BaseService[ModelType, RepositoryType]):
 
         # Get existing instance (already checks permissions via get_by_id)
         instance = await self.get_by_id(id)
-        if instance is None:
-            raise self.not_found_exception(f"Entity with id {id} not found")
-
         self._check_instance_permissions("delete", instance)
 
         return await self.repository.delete(instance)
@@ -291,8 +294,13 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         """
         self._check_general_permissions("bulk_update")
 
-        # Fetch all instances in a single query
-        filters = filter_class(id__in=[str(id) for id in ids], limit=100)
+        if not ids:
+            return []
+
+        # Fetch all requested instances in a single query. We bypass the public `limit`
+        # ceiling (capped at 100 for API pagination) via `model_construct` because this
+        # is an internal lookup by explicit IDs, not a paginated listing.
+        filters = filter_class.model_construct(id__in=[str(id) for id in ids], limit=len(ids), offset=0)
         instances = await self.repository.get_all(filters)
 
         # Verify all requested entities were found

@@ -32,3 +32,10 @@ class ValidationError(DomainException):
 
     def __init__(self, message: str = "Validation error"):
         super().__init__(message)
+
+
+class SystemOperationRequired(DomainException):
+    """Raised when a method must be called without an authorization_context (system context only)."""
+
+    def __init__(self, message: str = "User can't perform this action"):
+        super().__init__(message)

@@ -29,12 +29,16 @@ class UserRepository(
         self,
         email: str,
     ) -> User | None:
-        instance = await self.session.scalars(select(self.model).where(self.model.email == email))
-        return instance.one_or_none()
+        query = select(self.model).where(self.model.email == email)
+        query = self._apply_user_scope(query)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
     async def find_by_clerk_id(self, clerk_id: str) -> User | None:
-        instance = await self.session.scalars(select(self.model).where(self.model.clerk_id == clerk_id))
-        return instance.one_or_none()
+        query = select(self.model).where(self.model.clerk_id == clerk_id)
+        query = self._apply_user_scope(query)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
 
 class APIKeyRepository(

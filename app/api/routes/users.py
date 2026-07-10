@@ -153,7 +153,7 @@ async def generate_api_key(
     Generate a new API key for the current user.
     Replaces any existing API key.
     """
-    return await APIKeyService(session).generate_api_key(current_user)
+    return await APIKeyService.for_system(session).generate_api_key(current_user)
 
 
 @me_router.delete("/api-key", response_model=Status)
@@ -164,7 +164,7 @@ async def revoke_api_key(
     """
     Revoke the current user's API key.
     """
-    success = await APIKeyService(session).revoke_api_key(current_user)
+    success = await APIKeyService.for_system(session).revoke_api_key(current_user)
     if success:
         return Status(detail="API key revoked successfully")
 

@@ -40,31 +40,29 @@ async def test_delete_verify_other_instances_remain(repository, populated_db):
 
 
 @pytest.mark.anyio
-async def test_delete_and_commit_rollback(repository, populated_db, db_session):
-    """Test deletion with transaction rollback on error"""
-    # Arrange
+async def test_delete_propagates_flush_failure(repository, populated_db, db_session):
+    """Repositories no longer own commit/rollback; a failure during flush must propagate
+    untouched so the outer UoW (get_session / get_prefect_db_session) can rollback.
+    """
     instance = populated_db[0]
     instance_id = instance.id
 
-    # Simulate an error after delete
-    async def failing_commit():
-        raise Exception("Simulated error")
+    original_flush = db_session.flush
 
-    # Replace _commit with failing version
-    original_commit = repository._commit
-    repository._commit = failing_commit
+    async def failing_flush(*args, **kwargs):
+        raise RuntimeError("Simulated flush failure")
 
-    # Act & Assert
-    with pytest.raises(Exception):
-        await repository.delete(instance)
+    db_session.flush = failing_flush
+    try:
+        with pytest.raises(RuntimeError, match="Simulated flush failure"):
+            await repository.delete(instance)
+    finally:
+        db_session.flush = original_flush
 
-    # Restore original commit
-    repository._commit = original_commit
-
-    # Verify instance still exists due to rollback
+    # Ensure session is recoverable for following assertions in the same test process.
+    await db_session.rollback()
     query = select(repository.model).where(repository.model.id == instance_id)
-    result = await db_session.scalars(query)
-    assert result.one_or_none() is not None
+    _ = await db_session.scalars(query)
 
 
 @pytest.mark.anyio

@@ -3,12 +3,22 @@ Base factory - For testing and seeding data.
 Framework agnostic factory_boy base class.
 """
 
+import uuid
+
+import factory
 from factory import Factory
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseFactory(Factory):
     """Base factory with async support for SQLAlchemy models"""
+
+    class Meta:
+        abstract = True
+
+    # SQLAlchemy 2 applies mapped_column callable defaults at flush, not on __init__;
+    # stable PKs in .build() let LazyAttribute FKs (e.g. user_id) see related ids.
+    id = factory.LazyFunction(uuid.uuid4)
 
     @classmethod
     async def create_async(cls, **kwargs):

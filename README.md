@@ -61,7 +61,9 @@ A production-ready FastAPI template built around **Domain-Driven Design (DDD)** 
 
 - **DDD architecture** — business logic in `app/domains/` with zero framework dependencies
 - **Composable CRUD mixins** — `List`, `Read`, `Create`, `Update`, `Delete`, `Bulk*` at repository and service levels
-- **Two-layer authorization** — permission checks (service) + query-level data scoping (repository)
+- **Two-layer authorization** — permission checks (service, deny-by-default) + query-level data scoping (repository)
+- **Request-scoped Unit of Work** — repositories `flush()`, the transaction commits once per request (`get_session`) or per flow (`get_prefect_db_session`)
+- **Rate limiting** — [SlowAPI](https://github.com/laurentS/slowapi) middleware wired in, `@limiter.limit(...)` ready on any route
 - **Dual authentication** — Clerk JWT and API Key (HMAC-SHA256), both ready out of the box
 - **Clerk webhook sync** — automatically syncs users on `user.created`, `user.updated`, `user.deleted`
 - **Async database** — SQLAlchemy async engine with `asyncpg`
@@ -177,6 +179,21 @@ service = UserService.for_system(session)
 2. Filtering happens at the SQL level — unauthorized data never leaves the database
 3. `for_system()` makes privileged operations clearly visible in code reviews
 4. Type-safe: `apply_scope` never receives a `None` context (the repository guards this)
+5. **Deny-by-default permissions** — in user context, only `read` and `list` are allowed out of the box; every other action raises `PermissionDenied` unless the service subclass whitelists it (via `_default_allowed_user_actions` or a `_check_general_permissions` override)
+6. `bulk_delete` is scoped at the SQL level too — a user cannot delete rows outside their scope by supplying arbitrary IDs
+
+### Transaction Boundary (Unit of Work)
+
+Repositories never commit. Mutations only `flush()` so changes are visible within the
+transaction; the commit happens exactly once, at the boundary that owns the request:
+
+| Boundary | Where | Behavior |
+|---|---|---|
+| HTTP request | `get_session` (`app/infrastructure/database.py`) | Commit on success, rollback on any exception |
+| Prefect flow/task | `get_prefect_db_session` | Same contract; explicit intermediate commits allowed as durable checkpoints before external side-effects |
+
+This makes each HTTP request a single atomic Unit of Work: multiple service calls in one
+route either all persist or none do, and services never need to think about transactions.
 
 ### Multi-Stage Dockerfile
 
@@ -284,6 +301,14 @@ prefect deploy --all
 
 Two flows are defined in `prefect.yaml`: `create-user-flow` and `web-scrapper-flow`.
 
+**Development shortcut** — instead of steps 4–5, serve the flows in a local process
+(no Docker rebuild, deployment names stay identical):
+
+```bash
+export PREFECT_API_URL="http://localhost:4200/api"
+just serve-flows
+```
+
 ---
 
 ## Environment Variables
@@ -388,6 +413,7 @@ Run `just --list` to see all available commands.
 |---|---|
 | `just create-user` | Create a default user (uses `DEFAULT_USER` / `DEFAULT_USER_ROLE`) |
 | `just init-prefect` | Initialize Prefect work pool and SQLAlchemy block |
+| `just serve-flows` | Serve all Prefect flows in a local process (no Docker rebuild) |
 
 ### Docker
 
@@ -415,6 +441,14 @@ Run `just --list` to see all available commands.
 
 Tests are located in `tests/` and use `pytest` with async support (`pytest-asyncio`, strict mode).
 
+Tests run against a **dedicated test database**: `tests/conftest.py` redirects `APP_DB_NAME`
+to `APP_DB_TEST_NAME` (default `fastapi_template_test`) before any `app.*` import, so your
+development data is never touched. Create it once:
+
+```sql
+CREATE DATABASE fastapi_template_test;
+```
+
 ```bash
 # Run all tests
 just test
@@ -438,7 +472,7 @@ tests/
 └── utils/ & validations/
 ```
 
-Each test run creates and drops a real PostgreSQL schema — no mocks for the database layer.
+Each test function creates and drops all tables in the test database — real PostgreSQL, no mocks for the database layer.
 
 ---
 
@@ -609,7 +643,8 @@ class MyEntityService(BaseService):
 ```
 
 > **Important notes:**
-> - Custom repository methods (e.g. `find_by_email`) that bypass `_apply_user_scope` must have their permissions validated in the service layer.
+> - Permissions are **deny-by-default**: in user context only `read` and `list` are allowed. Whitelist additional actions per service via `_default_allowed_user_actions` or a `_check_general_permissions` override.
+> - Custom repository methods (e.g. `find_by_email`) should call `_apply_user_scope` on their query. If a method intentionally bypasses scoping, its permissions must be validated in the service layer.
 > - Always use `for_system()` explicitly for background operations — never pass `None` as `authorization_context` directly.
 
 ---
