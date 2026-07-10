@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from pydantic import PostgresDsn
+from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).parent.resolve()
@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     VERSION: str = "1.0"
     DOCS_URL: str = "/docs"
     REDOC_URL: str = "/redocs"
-    SECRET_KEY: str = "secret"
+    # Signs every API key hash (HMAC-SHA256). No default on purpose: startup must
+    # fail loudly instead of silently signing with a known value.
+    SECRET_KEY: str = Field(...)
 
     # URL
     API_V1_STR: str = "/api/v1"
@@ -37,7 +39,7 @@ class Settings(BaseSettings):
     CLERK_FRONTEND_API_URL: str = ""
     CLERK_ALGORITHMS: str = "RS256"
     CLERK_AZP: str = "http://localhost:3000"
-    CLERK_WEBHOOK_SECRET: str = "sk_test_1234567890"
+    CLERK_WEBHOOK_SECRET: str = Field(...)
 
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
