@@ -40,7 +40,6 @@ class VerifyAuth:
 
     def __init__(self):
         self.clerk_issuer = settings.CLERK_FRONTEND_API_URL
-        # jwt.decode expects a list; a plain string would be matched per-character.
         self.clerk_algorithms = [alg.strip() for alg in settings.CLERK_ALGORITHMS.split(",") if alg.strip()]
         self.clerk_azp = settings.CLERK_AZP
 
@@ -125,10 +124,7 @@ class VerifyAuth:
         # synchronous HTTPS call to the JWKS endpoint on cache miss, which would block the
         # entire asyncio event loop if called directly from a coroutine.
         try:
-            loop = asyncio.get_event_loop()
-            jwks_result = await loop.run_in_executor(
-                None, lambda: self.jwks_client.get_signing_key_from_jwt(token.credentials)
-            )
+            jwks_result = await asyncio.to_thread(self.jwks_client.get_signing_key_from_jwt, token.credentials)
             signing_key = jwks_result.key
         except PyJWKClientError as error:
             log.warning("JWKS key fetch failed: %s", error)
