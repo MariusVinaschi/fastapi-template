@@ -35,7 +35,8 @@ class VerifyAuth:
 
     def __init__(self):
         self.clerk_issuer = settings.CLERK_FRONTEND_API_URL
-        self.clerk_algorithms = settings.CLERK_ALGORITHMS
+        # jwt.decode expects a list; a plain string would be matched per-character.
+        self.clerk_algorithms = [alg.strip() for alg in settings.CLERK_ALGORITHMS.split(",") if alg.strip()]
         self.clerk_azp = settings.CLERK_AZP
 
         jwks_url = f"{self.clerk_issuer}/.well-known/jwks.json"
