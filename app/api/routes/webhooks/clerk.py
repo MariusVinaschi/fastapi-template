@@ -6,6 +6,7 @@ Handles user synchronization with Clerk authentication service.
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.api.dependencies import CurrentSession
@@ -15,6 +16,10 @@ from app.infrastructure.config import settings
 router = APIRouter()
 
 log = logging.getLogger(__name__)
+
+
+class WebhookResponse(BaseModel):
+    status: str
 
 
 async def _verify_webhook_signature(request: Request) -> dict:
@@ -28,7 +33,7 @@ async def _verify_webhook_signature(request: Request) -> dict:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
 
-@router.post("/clerk")
+@router.post("/clerk", response_model=WebhookResponse)
 async def clerk_webhook(
     request: Request,
     session: CurrentSession,
@@ -55,7 +60,7 @@ async def clerk_webhook(
         else:
             log.info(f"Unhandled Clerk event type: {event_type}")
 
-        return {"status": "ok"}
+        return WebhookResponse(status="ok")
 
     except ValueError as e:
         log.error(f"Invalid Clerk webhook payload: {e}")
