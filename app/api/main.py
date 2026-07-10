@@ -4,7 +4,11 @@ This is the entry point for the HTTP API.
 """
 
 from fastapi import FastAPI
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from app.api.rate_limit import limiter
 from app.api.router import api_router, webhook_router
 from app.infrastructure.config import settings
 from app.infrastructure.database import async_engine
@@ -30,6 +34,10 @@ def create_application() -> FastAPI:
         docs_url=settings.DOCS_URL,
         redoc_url=settings.REDOC_URL,
     )
+
+    application.state.limiter = limiter
+    application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+    application.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
     application.include_router(router=api_router, prefix=settings.API_V1_STR)
     application.include_router(router=webhook_router, prefix="/webhooks", tags=["webhooks"])
