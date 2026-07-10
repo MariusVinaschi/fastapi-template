@@ -148,7 +148,10 @@ class APIKeyService(
         return APIKeyGenerated(api_key=api_key)
 
     async def revoke_api_key(self, user: User) -> bool:
-        api_key = await self.get_by_user_id(user.id)
+        try:
+            api_key = await self.get_by_user_id(user.id)
+        except APIKeyNotFoundException:
+            return False
         await self.delete(api_key.id)
         return True
 
