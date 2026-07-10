@@ -17,11 +17,8 @@ def _apply_test_database_env() -> None:
 
 
 def _apply_test_secrets_env() -> None:
-    # SECRET_KEY and CLERK_WEBHOOK_SECRET have no defaults in Settings (fail-fast in
-    # production). Tests provide throwaway values so Settings() can be instantiated
-    # without a .env file (e.g. in CI). setdefault keeps any explicitly set value.
+    # SECRET_KEY and CLERK_WEBHOOK_SECRET have no defaults
     os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
-    # Svix-format secret ("whsec_" + base64), required by webhook signature verification.
     os.environ.setdefault("CLERK_WEBHOOK_SECRET", "whsec_dGVzdC1jbGVyay13ZWJob29rLXNlY3JldA==")
 
 

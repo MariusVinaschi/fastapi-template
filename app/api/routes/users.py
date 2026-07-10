@@ -16,11 +16,11 @@ from app.api.dependencies import (
     CurrentSession,
     CurrentUser,
 )
-from app.api.exceptions import UserNotFoundHTTPException
+from app.api.exceptions import APIKeyNotFoundHTTPException, UserNotFoundHTTPException
 from app.api.rate_limit import limiter
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.base.schemas import PaginatedSchema, Status
-from app.domains.users.exceptions import UserNotFoundException
+from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.filters import UserFilter
 from app.domains.users.schemas import (
     APIKeyGenerated,
@@ -169,8 +169,9 @@ async def revoke_api_key(
     """
     Revoke the current user's API key.
     """
-    success = await APIKeyService.for_system(session).revoke_api_key(current_user)
-    if success:
-        return Status(detail="API key revoked successfully")
+    try:
+        await APIKeyService.for_system(session).revoke_api_key(current_user)
+    except APIKeyNotFoundException:
+        raise APIKeyNotFoundHTTPException
 
-    return Status(detail="No API key found to revoke")
+    return Status(detail="API key revoked successfully")

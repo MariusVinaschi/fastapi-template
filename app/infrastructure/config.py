@@ -15,8 +15,6 @@ class Settings(BaseSettings):
     VERSION: str = "1.0"
     DOCS_URL: str = "/docs"
     REDOC_URL: str = "/redocs"
-    # Signs every API key hash (HMAC-SHA256). No default on purpose: startup must
-    # fail loudly instead of silently signing with a known value.
     SECRET_KEY: str = Field(...)
 
     # URL

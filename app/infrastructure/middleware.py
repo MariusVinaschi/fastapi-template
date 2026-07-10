@@ -16,8 +16,6 @@ def add_cors_middleware(app: FastAPI, settings: Settings) -> None:
     """Add CORS middleware to the application using allowed origins from settings."""
     origins = settings.ALLOWED_CORS_ORIGINS
 
-    # Combining allow_credentials=True with a wildcard origin violates the CORS
-    # spec (browsers block it) and would allow cross-site request forgery.
     if "*" in origins:
         raise ValueError(
             "CORS_ORIGINS must not contain '*' when credentials are enabled. Set explicit origins instead."

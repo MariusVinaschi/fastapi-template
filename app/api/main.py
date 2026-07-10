@@ -38,10 +38,6 @@ def create_application() -> FastAPI:
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
-    # CORS must be added before SlowAPI: Starlette applies middleware in reverse
-    # registration order, so the last-added runs first. CORS must run outermost so
-    # that rate-limited 429 responses still include the correct CORS headers and
-    # browsers don't misreport them as CORS errors.
     add_cors_middleware(application, settings)
     application.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
