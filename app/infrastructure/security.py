@@ -1,3 +1,4 @@
+import asyncio
 import jwt
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import (
@@ -116,9 +117,15 @@ class VerifyAuth:
         if token is None:
             raise UnauthenticatedException("No token provided")
 
-        # This gets the 'kid' from the passed token
+        # Fetch the signing key in a thread: PyJWKClient.get_signing_key_from_jwt makes a
+        # synchronous HTTPS call to the JWKS endpoint on cache miss, which would block the
+        # entire asyncio event loop if called directly from a coroutine.
         try:
-            signing_key = self.jwks_client.get_signing_key_from_jwt(token.credentials).key
+            loop = asyncio.get_event_loop()
+            jwks_result = await loop.run_in_executor(
+                None, lambda: self.jwks_client.get_signing_key_from_jwt(token.credentials)
+            )
+            signing_key = jwks_result.key
         except PyJWKClientError as error:
             raise UnauthorizedException(str(error))
         except DecodeError as error:
