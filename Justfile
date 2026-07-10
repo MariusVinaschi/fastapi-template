@@ -175,6 +175,12 @@ init-prefect:
     # Initialize Prefect (blocks, work pool)
     uv run init-prefect
 
+serve-flows:
+    # Dev: serve all Prefect flows in a local process (no Docker rebuild).
+    # Prefect server must be up (just docker-up-prefect) and PREFECT_API_URL
+    # must point to http://localhost:4200/api from the host.
+    uv run serve-flows
+
 # -----------------------------------------------------------------------------
 # Cleanup
 # -----------------------------------------------------------------------------
