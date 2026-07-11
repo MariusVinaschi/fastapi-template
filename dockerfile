@@ -21,7 +21,7 @@ COPY pyproject.toml uv.lock ./
 FROM base AS worker
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+    uv sync --frozen --no-install-project --no-dev
 
 # We do NOT copy the 'app/api' folder here.
 COPY ./app/domains /app/app/domains
@@ -37,7 +37,7 @@ COPY ./app/scripts /app/scripts
 FROM base AS api
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+    uv sync --frozen --no-install-project --no-dev
 
 # The API needs everything
 COPY ./app /app/app
@@ -56,9 +56,9 @@ FROM base AS migrations
 
 LABEL role="migrations"
 
-# Install dependencies
+# Runtime deps + dev group (alembic, asyncpg for migrations)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+    uv sync --frozen --no-install-project --no-dev --group dev
 
 # Migrations need models (domains) and alembic config
 COPY ./app /app/app

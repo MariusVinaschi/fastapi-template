@@ -4,7 +4,6 @@ version = "2.0.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.17.2",
     "factory-boy>=3.3.3",
     "faker>=40.1.0",
     "fastapi[standard]>=0.133.0",
@@ -40,6 +39,7 @@ exclude = ["alembic*", "var*"]
 
 [dependency-groups]
 dev = [
+    "alembic>=1.17.2",
     "asyncpg>=0.31.0",
     "prek<=0.3.4",
     "pyjwt>=2.11.0",

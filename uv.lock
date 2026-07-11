@@ -620,7 +620,6 @@ name = "fastapi-template"
 version = "2.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "alembic" },
     { name = "factory-boy" },
     { name = "faker" },
     { name = "fastapi", extra = ["standard"] },
@@ -640,6 +639,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "alembic" },
     { name = "asyncpg" },
     { name = "prek" },
     { name = "pyjwt" },
@@ -654,7 +654,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.17.2" },
     { name = "factory-boy", specifier = ">=3.3.3" },
     { name = "faker", specifier = ">=40.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.133.0" },
@@ -674,6 +673,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "alembic", specifier = ">=1.17.2" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "prek", specifier = "<=0.3.4" },
     { name = "pyjwt", specifier = ">=2.11.0" },
