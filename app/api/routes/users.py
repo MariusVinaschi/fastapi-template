@@ -7,7 +7,7 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import (
@@ -16,10 +16,11 @@ from app.api.dependencies import (
     CurrentSession,
     CurrentUser,
 )
-from app.api.exceptions import UserNotFoundHTTPException
+from app.api.exceptions import APIKeyNotFoundHTTPException, UserNotFoundHTTPException
+from app.api.rate_limit import limiter
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.base.schemas import PaginatedSchema, Status
-from app.domains.users.exceptions import UserNotFoundException
+from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.filters import UserFilter
 from app.domains.users.schemas import (
     APIKeyGenerated,
@@ -145,7 +146,9 @@ async def read_users_me(current_user: CurrentUser):
 
 
 @me_router.post("/api-key", response_model=APIKeyGenerated)
+@limiter.limit("5/minute")
 async def generate_api_key(
+    request: Request,
     current_user: CurrentUser,
     session: CurrentSession,
 ):
@@ -157,15 +160,18 @@ async def generate_api_key(
 
 
 @me_router.delete("/api-key", response_model=Status)
+@limiter.limit("5/minute")
 async def revoke_api_key(
+    request: Request,
     current_user: CurrentUser,
     session: CurrentSession,
 ):
     """
     Revoke the current user's API key.
     """
-    success = await APIKeyService.for_system(session).revoke_api_key(current_user)
-    if success:
-        return Status(detail="API key revoked successfully")
+    try:
+        await APIKeyService.for_system(session).revoke_api_key(current_user)
+    except APIKeyNotFoundException:
+        raise APIKeyNotFoundHTTPException
 
-    return Status(detail="No API key found to revoke")
+    return Status(detail="API key revoked successfully")

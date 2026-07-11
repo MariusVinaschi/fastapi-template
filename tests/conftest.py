@@ -16,7 +16,14 @@ def _apply_test_database_env() -> None:
     os.environ["APP_DB_NAME"] = test_db
 
 
+def _apply_test_secrets_env() -> None:
+    # SECRET_KEY and CLERK_WEBHOOK_SECRET have no defaults
+    os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
+    os.environ.setdefault("CLERK_WEBHOOK_SECRET", "whsec_dGVzdC1jbGVyay13ZWJob29rLXNlY3JldA==")
+
+
 _apply_test_database_env()
+_apply_test_secrets_env()
 
 from collections.abc import Iterator
 from typing import AsyncGenerator
