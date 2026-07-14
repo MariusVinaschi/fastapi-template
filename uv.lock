@@ -617,9 +617,10 @@ wheels = [
 
 [[package]]
 name = "fastapi-template"
-version = "1.0.0rc1"
+version = "2.0.0rc1"
 source = { editable = "." }
 dependencies = [
+    { name = "alembic" },
     { name = "factory-boy" },
     { name = "faker" },
     { name = "fastapi", extra = ["standard"] },
@@ -653,6 +654,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.17.2" },
     { name = "factory-boy", specifier = ">=3.3.3" },
     { name = "faker", specifier = ">=40.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.133.0" },
