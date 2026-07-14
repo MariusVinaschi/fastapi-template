@@ -229,8 +229,8 @@ docker build --target migrations -t myapp:migrations .
 git clone https://github.com/mariusvinaschi/fastapi-template.git
 cd fastapi-template
 
-# 2. Copy and configure environment variables
-cp .env.sample .env
+# 2. Bootstrap environment files (.env for Docker, .env.local for Mac overrides)
+just env-init
 
 # 3. Install dependencies
 just install
@@ -313,17 +313,35 @@ just serve-flows
 
 ## Environment Variables
 
-Copy `.env.sample` to `.env` and adjust the values. Variables are grouped by category below.
+Run `just env-init` once to create `.env` and `.env.local` from the sample templates.
+
+| File | Read by | Purpose |
+|---|---|---|
+| `.env` | Docker Compose | Shared secrets + Docker service hostnames (`APP_DB_HOST=dbapp`) |
+| `.env.local` | Your Mac only | Local overrides (`APP_DB_HOST=localhost`) — gitignored |
+
+On your Mac, `app/infrastructure/config.py` loads `.env` then `.env.local` (later values win).
+Docker Compose injects `.env` only — containers never see `.env.local`.
+
+| Command | DB host used |
+|---|---|
+| `just dev`, `just migrate`, `just test` | `localhost` (via `.env.local`) |
+| `docker compose up` | `dbapp` (via `.env` only) |
+| DBeaver / TablePlus on your Mac | `localhost:5432` |
+
+**Rule of thumb:** Docker problem → check `.env`. Local problem → check `.env.local`.
+
+Variables are grouped by category below.
 
 ### Database
 
-| Variable | Default | Description |
-|---|---|---|
-| `APP_DB_NAME` | `fastapitemplatedb` | PostgreSQL database name |
-| `APP_DB_USER` | `fastapitemplateuser` | PostgreSQL user |
-| `APP_DB_PASSWORD` | `fastapitemplatepassword` | PostgreSQL password |
-| `APP_DB_HOST` | `dbapp` | PostgreSQL host |
-| `APP_DB_PORT` | `5432` | PostgreSQL port |
+| Variable | Default (`.env`) | Local override (`.env.local`) | Description |
+|---|---|---|---|
+| `APP_DB_NAME` | `fastapitemplatedb` | — | PostgreSQL database name |
+| `APP_DB_USER` | `fastapitemplateuser` | — | PostgreSQL user |
+| `APP_DB_PASSWORD` | `fastapitemplatepassword` | — | PostgreSQL password |
+| `APP_DB_HOST` | `dbapp` | `localhost` | PostgreSQL host |
+| `APP_DB_PORT` | `5432` | — | PostgreSQL port |
 
 ### Authentication (Clerk)
 

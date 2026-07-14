@@ -10,6 +10,14 @@ default:
 # Development
 # -----------------------------------------------------------------------------
 
+env-init:
+    # Bootstrap .env (Docker) and .env.local (Mac overrides) from sample templates
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -f .env ] || cp .env.sample .env
+    [ -f .env.local ] || cp .env.local.sample .env.local
+    echo "Ready: .env (Docker) + .env.local (Mac overrides). Existing files were left untouched."
+
 install:
     # Install dependencies with uv
     uv sync

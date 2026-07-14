@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Tasks run through `just` (see `Justfile`) and `uv`:
 
 ```bash
+just env-init                    # cp .env.sample + .env.local.sample (once)
 just install                     # uv sync
 just dev                         # run API with hot reload (fastapi dev app/api/main.py)
 just test                        # uv run pytest
@@ -35,7 +36,7 @@ docker compose up -d dbapp
 docker exec dbapp psql -U fastapitemplateuser -d fastapitemplatedb -c "CREATE DATABASE fastapi_template_test;"  # once
 ```
 
-Connection comes from env vars / `.env` (`APP_DB_HOST`, `APP_DB_PORT`, `APP_DB_USER`, `APP_DB_PASSWORD`) via `app/infrastructure/config.py` (pydantic-settings). CI uses `APP_DB_HOST=localhost` with a Postgres 17 service container.
+Connection comes from env vars via `app/infrastructure/config.py` (pydantic-settings loads `.env` then `.env.local`). Docker Compose reads `.env` only (`APP_DB_HOST=dbapp`); local dev overrides host in `.env.local` (`APP_DB_HOST=localhost`). CI uses `APP_DB_HOST=localhost` with a Postgres 17 service container.
 
 ### Commit convention
 
