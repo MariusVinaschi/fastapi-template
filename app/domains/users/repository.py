@@ -1,9 +1,10 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.domains.base.filters import BaseFilterParams
 from app.domains.base.repository import (
     CreateRepositoryMixin,
     DeleteRepositoryMixin,
@@ -12,6 +13,7 @@ from app.domains.base.repository import (
     UpdateRepositoryMixin,
 )
 from app.domains.users.authorization import APIKeyScopeStrategy, UserScopeStrategy
+from app.domains.users.filters import UserFilter
 from app.domains.users.models import APIKey, User
 
 
@@ -24,6 +26,24 @@ class UserRepository(
 ):
     def __init__(self, session: AsyncSession, authorization_context=None):
         super().__init__(session, UserScopeStrategy(), User, authorization_context)
+
+    def _apply_filters(self, query: Select, filters: BaseFilterParams) -> Select:
+        """Apply id__in (base) plus email/role/clerk_id filters specific to users."""
+        query = super()._apply_filters(query, filters)
+
+        if not isinstance(filters, UserFilter):
+            return query
+
+        if filters.email is not None:
+            query = query.where(self.model.email == filters.email)
+
+        if filters.role is not None:
+            query = query.where(self.model.role == filters.role)
+
+        if filters.clerk_id is not None:
+            query = query.where(self.model.clerk_id == filters.clerk_id)
+
+        return query
 
     async def find_by_email(
         self,
