@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -5,6 +6,7 @@ from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
 from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
+from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.models import User
 
 
@@ -183,13 +185,37 @@ class TestVerifyAuth:
             with patch("app.infrastructure.security.UserService") as mock_user_service:
                 # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
                 mock_service_instance = MagicMock()
-                mock_service_instance.get_by_email = AsyncMock(side_effect=Exception("User not found"))
+                mock_service_instance.get_by_email = AsyncMock(side_effect=UserNotFoundException("User not found"))
                 mock_user_service.for_system.return_value = mock_service_instance
 
                 with pytest.raises(UnauthenticatedException) as exc_info:
                     await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
 
                 assert "User doesn't exist" in str(exc_info.value)
+
+    @pytest.mark.anyio
+    async def test_authenticate_with_jwt_unexpected_error_is_logged(
+        self, verify_auth, mock_token, mock_security_scopes, db_session, caplog
+    ):
+        """Test that an unexpected error during JWT authentication is logged and still yields UnauthenticatedException"""
+        mock_payload = {"email": "someone@test.com"}
+
+        with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
+            with patch("app.infrastructure.security.UserService") as mock_user_service:
+                mock_service_instance = MagicMock()
+                mock_service_instance.get_by_email = AsyncMock(side_effect=RuntimeError("DB connection lost"))
+                mock_user_service.for_system.return_value = mock_service_instance
+
+                with caplog.at_level(logging.ERROR, logger="app.infrastructure.security"):
+                    with pytest.raises(UnauthenticatedException) as exc_info:
+                        await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
+
+                assert "User doesn't exist" in str(exc_info.value)
+                assert any(record.levelno == logging.ERROR for record in caplog.records)
+                assert any(
+                    record.exc_info is not None and "DB connection lost" in str(record.exc_info[1])
+                    for record in caplog.records
+                )
 
     @pytest.mark.anyio
     async def test_authenticate_with_api_key_success(self, verify_auth, mock_user_admin, db_session):
@@ -215,13 +241,33 @@ class TestVerifyAuth:
             # Use a sync object with an async method to avoid un-awaited AsyncMock coroutines
             mock_service_instance = MagicMock()
             mock_service_instance.hash_api_key.return_value = "hashed_key"
-            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=Exception("Key not found"))
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=APIKeyNotFoundException("Key not found"))
             mock_api_key_service.for_system.return_value = mock_service_instance
 
             with pytest.raises(UnauthenticatedException) as exc_info:
                 await verify_auth._authenticate_with_api_key(db_session, "invalid-key")
 
             assert "Invalid API key" in str(exc_info.value)
+
+    @pytest.mark.anyio
+    async def test_authenticate_with_api_key_unexpected_error_is_logged(self, verify_auth, db_session, caplog):
+        """Test that an unexpected error during API key authentication is logged and still yields UnauthenticatedException"""
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
+            mock_service_instance = MagicMock()
+            mock_service_instance.hash_api_key.return_value = "hashed_key"
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=RuntimeError("DB connection lost"))
+            mock_api_key_service.for_system.return_value = mock_service_instance
+
+            with caplog.at_level(logging.ERROR, logger="app.infrastructure.security"):
+                with pytest.raises(UnauthenticatedException) as exc_info:
+                    await verify_auth._authenticate_with_api_key(db_session, "some-key")
+
+            assert "Invalid API key" in str(exc_info.value)
+            assert any(record.levelno == logging.ERROR for record in caplog.records)
+            assert any(
+                record.exc_info is not None and "DB connection lost" in str(record.exc_info[1])
+                for record in caplog.records
+            )
 
     @pytest.mark.anyio
     async def test_verify_jwt_token_success(self, verify_auth, mock_token, mock_security_scopes):
