@@ -194,6 +194,25 @@ class TestVerifyAuth:
                 assert "User doesn't exist" in str(exc_info.value)
 
     @pytest.mark.anyio
+    async def test_authenticate_with_jwt_user_not_found_does_not_log_error(
+        self, verify_auth, mock_token, mock_security_scopes, db_session, caplog
+    ):
+        """Routine invalid-credential attempts must stay quiet at ERROR level — only unexpected failures should log."""
+        mock_payload = {"email": "nonexistent@test.com"}
+
+        with patch.object(verify_auth, "_verify_jwt_token", return_value=mock_payload):
+            with patch("app.infrastructure.security.UserService") as mock_user_service:
+                mock_service_instance = MagicMock()
+                mock_service_instance.get_by_email = AsyncMock(side_effect=UserNotFoundException("User not found"))
+                mock_user_service.for_system.return_value = mock_service_instance
+
+                with caplog.at_level(logging.ERROR, logger="app.infrastructure.security"):
+                    with pytest.raises(UnauthenticatedException):
+                        await verify_auth._authenticate_with_jwt(mock_security_scopes, db_session, mock_token)
+
+                assert not any(record.levelno == logging.ERROR for record in caplog.records)
+
+    @pytest.mark.anyio
     async def test_authenticate_with_jwt_unexpected_error_is_logged(
         self, verify_auth, mock_token, mock_security_scopes, db_session, caplog
     ):
@@ -248,6 +267,21 @@ class TestVerifyAuth:
                 await verify_auth._authenticate_with_api_key(db_session, "invalid-key")
 
             assert "Invalid API key" in str(exc_info.value)
+
+    @pytest.mark.anyio
+    async def test_authenticate_with_api_key_invalid_does_not_log_error(self, verify_auth, db_session, caplog):
+        """Routine invalid-credential attempts must stay quiet at ERROR level — only unexpected failures should log."""
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
+            mock_service_instance = MagicMock()
+            mock_service_instance.hash_api_key.return_value = "hashed_key"
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=APIKeyNotFoundException("Key not found"))
+            mock_api_key_service.for_system.return_value = mock_service_instance
+
+            with caplog.at_level(logging.ERROR, logger="app.infrastructure.security"):
+                with pytest.raises(UnauthenticatedException):
+                    await verify_auth._authenticate_with_api_key(db_session, "invalid-key")
+
+            assert not any(record.levelno == logging.ERROR for record in caplog.records)
 
     @pytest.mark.anyio
     async def test_authenticate_with_api_key_unexpected_error_is_logged(self, verify_auth, db_session, caplog):
