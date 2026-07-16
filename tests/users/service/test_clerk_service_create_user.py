@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.domains.users.exceptions import UserNotFoundException
 from app.domains.users.factory import UserFactory
@@ -124,3 +125,38 @@ async def test_create_user_concurrent_duplicate_webhook_is_idempotent(db_session
     assert result.id == existing_user_id
     assert result.clerk_id == clerk_id
     assert result.email == email
+
+
+@pytest.mark.anyio
+async def test_create_user_reraises_integrity_error_when_conflict_is_not_the_same_clerk_id(db_session):
+    """
+    If `create()` raises IntegrityError but the post-rollback re-fetch by
+    clerk_id still finds nothing, the conflict isn't the expected
+    same-clerk_id/email race (e.g. a different, unrelated unique-constraint
+    violation) — the adapter must re-raise the original IntegrityError
+    instead of swallowing it or letting UserNotFoundException leak out in
+    its place.
+    """
+    clerk_id = "clerk_id_789"
+    email = "unresolvable@example.com"
+    data = {
+        "id": clerk_id,
+        "primary_email_address_id": "1",
+        "email_addresses": [{"id": "1", "email_address": email}],
+    }
+
+    adapter = ClerkWebhookAdapter.for_system(db_session)
+    original_error = IntegrityError("INSERT INTO users ...", {}, Exception("unique violation"))
+
+    async def fake_create(_data):
+        raise original_error
+
+    with (
+        patch.object(adapter._service, "get_by_clerk_id", side_effect=UserNotFoundException()),
+        patch.object(adapter._service, "get_by_email", side_effect=UserNotFoundException()),
+        patch.object(adapter._service, "create", side_effect=fake_create),
+    ):
+        with pytest.raises(IntegrityError) as exc_info:
+            await adapter.create_user(data)
+
+    assert exc_info.value is original_error
