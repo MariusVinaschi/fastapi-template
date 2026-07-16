@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 import pytest
 
+from app.domains.users.exceptions import UserNotFoundException
 from app.domains.users.factory import UserFactory
 from app.infrastructure.adapters.clerk import ClerkWebhookAdapter
 
@@ -68,3 +71,56 @@ async def test_create_user_clerk_id_not_found_but_email_exists(db_session):
     }
     with pytest.raises(ValueError):
         await ClerkWebhookAdapter.for_system(db_session).create_user(data)
+
+
+@pytest.mark.anyio
+async def test_create_user_concurrent_duplicate_webhook_is_idempotent(db_session):
+    """
+    Simulates a race between two concurrent/redelivered `user.created` webhooks
+    for the same clerk_id/email pair: by the time `create_user`'s own
+    `self._service.create(...)` runs, a conflicting row already exists in the
+    DB (inserted "between" the not-found check and the create), so the unique
+    constraint on `users.email` raises IntegrityError. The adapter should
+    recover by rolling back and returning the already-existing user instead
+    of propagating the error.
+    """
+    clerk_id = "clerk_id_123"
+    email = "test@example.com"
+    existing_user = await UserFactory.create_async(session=db_session, clerk_id=clerk_id, email=email)
+    await db_session.commit()
+    existing_user_id = existing_user.id
+
+    data = {
+        "id": clerk_id,
+        "primary_email_address_id": "123",
+        "email_addresses": [
+            {"id": "123", "email_address": email},
+        ],
+    }
+
+    adapter = ClerkWebhookAdapter.for_system(db_session)
+    real_get_by_clerk_id = adapter._service.get_by_clerk_id
+
+    # First call: the pre-check in create_user - forced to "not found" so the
+    # adapter proceeds to self._service.create(...), which then hits the real
+    # unique constraint on `email` (existing_user already occupies it).
+    # Second call: the adapter's re-fetch-by-clerk_id after catching
+    # IntegrityError - left as the real implementation so it performs an
+    # actual (post-rollback) DB query and returns a properly bound instance.
+    calls = {"count": 0}
+
+    async def fake_get_by_clerk_id(target_clerk_id: str):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise UserNotFoundException
+        return await real_get_by_clerk_id(target_clerk_id)
+
+    with (
+        patch.object(adapter._service, "get_by_clerk_id", side_effect=fake_get_by_clerk_id),
+        patch.object(adapter._service, "get_by_email", side_effect=UserNotFoundException()),
+    ):
+        result = await adapter.create_user(data)
+
+    assert result.id == existing_user_id
+    assert result.clerk_id == clerk_id
+    assert result.email == email

@@ -5,6 +5,7 @@ This is an infrastructure adapter — it knows about Clerk's payload format
 so the domain layer doesn't have to.
 """
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.users.exceptions import UserNotFoundException
@@ -71,12 +72,26 @@ class ClerkWebhookAdapter:
             await self._service.get_by_email(primary_email)
             raise ValueError(f"User with email {primary_email} already exists")
         except UserNotFoundException:
+            pass
+
+        try:
             return await self._service.create(
                 UserCreate(
                     email=primary_email,
                     clerk_id=clerk_id,
                 )
             )
+        except IntegrityError as integrity_error:
+            # Another concurrent/redelivered webhook created this user first.
+            # Postgres aborts the transaction after a constraint violation, so
+            # we must roll back before issuing any further query on this session.
+            await self.session.rollback()
+            try:
+                return await self._service.get_by_clerk_id(clerk_id)
+            except UserNotFoundException:
+                # Not the expected race (same clerk_id/email) - re-raise the
+                # original error rather than swallowing a different conflict.
+                raise integrity_error
 
     async def update_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
