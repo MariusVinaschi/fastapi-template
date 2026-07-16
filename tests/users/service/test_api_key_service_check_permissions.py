@@ -71,3 +71,27 @@ async def test_check_instance_permissions_delete_other_users_key_denied(db_sessi
     context = UserAuthorizationAdapter(other_user)
     with pytest.raises(PermissionDenied, match="Action not allowed"):
         APIKeyService.for_user(db_session, context)._check_instance_permissions("delete", api_key)
+
+
+@pytest.mark.anyio
+async def test_check_instance_permissions_admin_cannot_read_other_users_key(db_session):
+    """Unlike UserService, APIKeyService grants no admin bypass: API keys are
+    strictly self-service, so even an admin must be denied on someone else's key."""
+    owner = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
+    admin = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
+    api_key = await APIKeyFactory.create_async(session=db_session, user=owner)
+    context = UserAuthorizationAdapter(admin)
+    with pytest.raises(PermissionDenied, match="Action not allowed"):
+        APIKeyService.for_user(db_session, context)._check_instance_permissions("read", api_key)
+
+
+@pytest.mark.anyio
+async def test_check_instance_permissions_admin_cannot_delete_other_users_key(db_session):
+    """Unlike UserService, APIKeyService grants no admin bypass: API keys are
+    strictly self-service, so even an admin must be denied on someone else's key."""
+    owner = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
+    admin = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
+    api_key = await APIKeyFactory.create_async(session=db_session, user=owner)
+    context = UserAuthorizationAdapter(admin)
+    with pytest.raises(PermissionDenied, match="Action not allowed"):
+        APIKeyService.for_user(db_session, context)._check_instance_permissions("delete", api_key)
