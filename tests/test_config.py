@@ -1,58 +1,34 @@
 """
-Tests for Settings startup validation.
+Tests for API startup validation of CLERK_FRONTEND_API_URL.
 
-These construct Settings directly with explicit kwargs (and _env_file=None) so the
-real .env / .env.local files on disk cannot mask a missing CLERK_FRONTEND_API_URL.
+The check lives in create_application() (app/api/main.py), not on the shared
+Settings model, because Settings is also imported by the worker and migrations
+images, which don't need Clerk configured.
 """
 
 import pytest
-from pydantic import ValidationError
 
-from app.infrastructure.config import Settings
-
-
-def test_blank_clerk_frontend_api_url_raises_when_not_testing():
-    with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            SECRET_KEY="x",
-            CLERK_WEBHOOK_SECRET="y",
-            CLERK_FRONTEND_API_URL="",
-            TESTING=False,
-        )
+from app.api.main import create_application
+from app.infrastructure.config import settings
 
 
-def test_whitespace_only_clerk_frontend_api_url_raises_when_not_testing():
-    with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            SECRET_KEY="x",
-            CLERK_WEBHOOK_SECRET="y",
-            CLERK_FRONTEND_API_URL="   ",
-            TESTING=False,
-        )
+def test_create_application_raises_when_clerk_frontend_api_url_is_blank(monkeypatch):
+    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "")
+
+    with pytest.raises(ValueError, match="CLERK_FRONTEND_API_URL"):
+        create_application()
 
 
-def test_blank_clerk_frontend_api_url_allowed_when_testing():
-    settings = Settings(
-        _env_file=None,
-        SECRET_KEY="x",
-        CLERK_WEBHOOK_SECRET="y",
-        CLERK_FRONTEND_API_URL="",
-        TESTING=True,
-    )
+def test_create_application_raises_when_clerk_frontend_api_url_is_whitespace(monkeypatch):
+    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "   ")
 
-    assert settings.CLERK_FRONTEND_API_URL == ""
+    with pytest.raises(ValueError, match="CLERK_FRONTEND_API_URL"):
+        create_application()
 
 
-def test_valid_clerk_frontend_api_url_passes_regardless_of_testing():
-    for testing_flag in (True, False):
-        settings = Settings(
-            _env_file=None,
-            SECRET_KEY="x",
-            CLERK_WEBHOOK_SECRET="y",
-            CLERK_FRONTEND_API_URL="https://valid.clerk.accounts.dev",
-            TESTING=testing_flag,
-        )
+def test_create_application_succeeds_with_valid_clerk_frontend_api_url(monkeypatch):
+    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "https://valid.clerk.accounts.dev")
 
-        assert settings.CLERK_FRONTEND_API_URL == "https://valid.clerk.accounts.dev"
+    app = create_application()
+
+    assert app is not None

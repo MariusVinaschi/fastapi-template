@@ -20,8 +20,9 @@ def _apply_test_secrets_env() -> None:
     # SECRET_KEY and CLERK_WEBHOOK_SECRET have no defaults
     os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
     os.environ.setdefault("CLERK_WEBHOOK_SECRET", "whsec_dGVzdC1jbGVyay13ZWJob29rLXNlY3JldA==")
-    # CLERK_FRONTEND_API_URL defaults to "" and is rejected at startup by Settings
-    # unless TESTING=True; give it a syntactically valid placeholder for tests.
+    # CLERK_FRONTEND_API_URL defaults to "" and create_application() rejects a blank
+    # value at startup; give it a syntactically valid placeholder so the `app` fixture
+    # (which calls create_application()) works without every test needing to set it.
     os.environ.setdefault("CLERK_FRONTEND_API_URL", "https://test.clerk.accounts.dev")
 
 

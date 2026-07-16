@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from pydantic import Field, PostgresDsn, model_validator
+from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).parent.resolve()
@@ -63,23 +63,6 @@ class Settings(BaseSettings):
     LOGFIRE_SERVICE_NAME: str = "fastapi-template"
     LOGFIRE_SEND_TO_LOGFIRE: bool = False
     LOGFIRE_TOKEN: str = ""
-
-    @model_validator(mode="after")
-    def _validate_clerk_frontend_api_url(self) -> "Settings":
-        """
-        Fail fast at startup if CLERK_FRONTEND_API_URL is unset.
-
-        PyJWKClient only fetches the JWKS URL lazily on first use, so an empty
-        CLERK_FRONTEND_API_URL would otherwise start up "healthy" and only fail
-        confusingly on the first JWT-authenticated request.
-        """
-        if not self.TESTING and not self.CLERK_FRONTEND_API_URL.strip():
-            raise ValueError(
-                "CLERK_FRONTEND_API_URL must be set to a valid Clerk Frontend API URL "
-                "(e.g. https://your-app.clerk.accounts.dev). Set TESTING=true to bypass "
-                "this check in test environments."
-            )
-        return self
 
     @property
     def DB_BASE(self):
