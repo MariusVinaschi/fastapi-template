@@ -48,11 +48,11 @@ test-cov:
 
 lint:
     # Run linters (ruff)
-    uvx ruff check app/
+    uvx ruff check app/ tests/
 
 format:
     # Format code
-    uvx ruff format app/
+    uvx ruff format app/ tests/
 
 type-check:
     # Type check code

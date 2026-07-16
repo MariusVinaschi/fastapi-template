@@ -82,7 +82,7 @@ async def test_bulk_update_preserves_created_at(repository, populated_db):
     updated_instances = await repository.bulk_update(instances, data)
 
     # Assert
-    for updated, original_created_at in zip(updated_instances, original_created_ats):
+    for updated, original_created_at in zip(updated_instances, original_created_ats, strict=True):
         assert updated.created_at == original_created_at
         assert updated.name == data["name"]
 

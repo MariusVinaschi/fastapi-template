@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import InvalidRequestError
 
 
 @pytest.mark.anyio
@@ -72,7 +73,7 @@ async def test_delete_invalid_instance(repository):
     invalid_instance = repository.model(name="Never Persisted")
 
     # Act & Assert
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidRequestError):
         await repository.delete(invalid_instance)
 
 

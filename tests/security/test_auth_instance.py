@@ -1,9 +1,10 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi import Request
 from fastapi.security import SecurityScopes
 
-from app.infrastructure.security import auth, VerifyAuth
+from app.infrastructure.security import VerifyAuth, auth
 
 
 class TestAuthInstance:

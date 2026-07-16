@@ -27,8 +27,7 @@ def _apply_test_secrets_env() -> None:
 _apply_test_database_env()
 _apply_test_secrets_env()
 
-from collections.abc import Iterator
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 
 import pytest
 from faker import Faker

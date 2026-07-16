@@ -4,8 +4,8 @@ import pytest
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, auth
 from app.domains.users.models import User
+from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, auth
 
 
 class TestSecurityIntegration:

@@ -13,7 +13,7 @@ async def test_bulk_create_success(repository, sample_data):
 
     # Assert
     assert len(instances) == len(sample_data)
-    for instance, data in zip(instances, sample_data):
+    for instance, data in zip(instances, sample_data, strict=True):
         assert instance is not None
         assert isinstance(instance.id, UUID)
         assert instance.name == data["name"]
@@ -48,7 +48,7 @@ async def test_bulk_create_verify_in_db(repository, db_session, sample_data):
 
     # Assert
     assert len(db_instances) == len(sample_data)
-    for instance, data in zip(db_instances, sample_data):
+    for instance, data in zip(db_instances, sample_data, strict=True):
         assert instance.name == data["name"]
         assert instance.created_by == data["created_by"]
         assert instance.updated_by == data["updated_by"]

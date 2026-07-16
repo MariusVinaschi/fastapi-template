@@ -5,9 +5,9 @@ import pytest
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, SecurityScopes
 
-from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
 from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.models import User
+from app.infrastructure.security import UnauthenticatedException, UnauthorizedException, VerifyAuth
 
 
 class TestVerifyAuth:

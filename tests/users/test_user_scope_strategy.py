@@ -3,9 +3,8 @@ import uuid
 import pytest
 from sqlalchemy import select
 
-from app.domains.users.authorization import UserScopeStrategy
+from app.domains.users.authorization import UserAuthorizationAdapter, UserScopeStrategy
 from app.domains.users.factory import UserFactory
-from app.domains.users.authorization import UserAuthorizationAdapter
 from app.domains.users.models import User
 
 

@@ -1,8 +1,8 @@
 import pytest
 
+from app.domains.users.authorization import UserAuthorizationAdapter
 from app.domains.users.exceptions import UserNotFoundException
 from app.domains.users.factory import UserFactory
-from app.domains.users.authorization import UserAuthorizationAdapter
 from app.domains.users.service import UserService
 
 

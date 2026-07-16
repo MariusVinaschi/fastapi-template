@@ -1,11 +1,11 @@
 import pytest
-from pytest_mock import MockerFixture
 from fastapi import Request
 from fastapi.security import SecurityScopes
+from pytest_mock import MockerFixture
 
-from app.infrastructure.security import VerifyAuth
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
+from app.infrastructure.security import VerifyAuth
 
 
 @pytest.mark.anyio
