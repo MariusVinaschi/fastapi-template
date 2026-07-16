@@ -75,23 +75,26 @@ class ClerkWebhookAdapter:
             pass
 
         try:
-            return await self._service.create(
-                UserCreate(
-                    email=primary_email,
-                    clerk_id=clerk_id,
+            async with self.session.begin_nested():
+                return await self._service.create(
+                    UserCreate(
+                        email=primary_email,
+                        clerk_id=clerk_id,
+                    )
                 )
-            )
         except IntegrityError as integrity_error:
             # Another concurrent/redelivered webhook created this user first.
-            # Postgres aborts the transaction after a constraint violation, so
-            # we must roll back before issuing any further query on this session.
-            await self.session.rollback()
+            # The SAVEPOINT above rolls back only the failed insert, keeping the
+            # outer request-scoped transaction intact for the recovery below.
             try:
-                return await self._service.get_by_clerk_id(clerk_id)
+                user = await self._service.get_by_clerk_id(clerk_id)
             except UserNotFoundException:
                 # Not the expected race (same clerk_id/email) - re-raise the
                 # original error rather than swallowing a different conflict.
-                raise integrity_error
+                raise integrity_error from None
+            if user.email != primary_email:
+                return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
+            return user
 
     async def update_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
