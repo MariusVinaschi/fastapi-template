@@ -157,7 +157,10 @@ async def generate_api_key(
     Generate a new API key for the current user.
     Replaces any existing API key.
     """
-    return await APIKeyService.for_user(session, authorization_context).generate_api_key(current_user)
+    try:
+        return await APIKeyService.for_user(session, authorization_context).generate_api_key(current_user)
+    except PermissionDenied:
+        raise HTTPException(status_code=403, detail="You are not allowed to generate an API key for this user")
 
 
 @me_router.delete("/api-key", response_model=Status)
@@ -175,5 +178,7 @@ async def revoke_api_key(
         await APIKeyService.for_user(session, authorization_context).revoke_api_key(current_user)
     except APIKeyNotFoundException:
         raise APIKeyNotFoundHTTPException
+    except PermissionDenied:
+        raise HTTPException(status_code=403, detail="You are not allowed to revoke this API key")
 
     return Status(detail="API key revoked successfully")

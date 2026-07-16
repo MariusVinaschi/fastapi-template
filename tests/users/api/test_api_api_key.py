@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 
 from app.api.rate_limit import limiter
+from app.domains.base.exceptions import PermissionDenied
+from app.domains.users.service import APIKeyService
 from app.infrastructure.security import auth
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
@@ -60,3 +62,25 @@ async def test_generate_api_key_replaces_existing_key(app: FastAPI, client: Asyn
     assert first_response.status_code == 200
     assert second_response.status_code == 200
     assert first_response.json()["api_key"] != second_response.json()["api_key"]
+
+
+@pytest.mark.anyio
+async def test_generate_api_key_permission_denied_returns_403(app: FastAPI, client: AsyncClient, db_session, mocker):
+    """A PermissionDenied raised by the service must surface as 403, not an unhandled 500."""
+    user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
+    mocker.patch.object(APIKeyService, "generate_api_key", side_effect=PermissionDenied("Action not allowed"))
+    with DependencyOverrider(app, overrides={auth.get_current_user: lambda: user}):
+        response = await client.post("/api/v1/me/api-key")
+
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_revoke_api_key_permission_denied_returns_403(app: FastAPI, client: AsyncClient, db_session, mocker):
+    """A PermissionDenied raised by the service must surface as 403, not an unhandled 500."""
+    user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
+    mocker.patch.object(APIKeyService, "revoke_api_key", side_effect=PermissionDenied("Action not allowed"))
+    with DependencyOverrider(app, overrides={auth.get_current_user: lambda: user}):
+        response = await client.delete("/api/v1/me/api-key")
+
+    assert response.status_code == 403
