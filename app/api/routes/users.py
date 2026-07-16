@@ -150,13 +150,14 @@ async def read_users_me(current_user: CurrentUser):
 async def generate_api_key(
     request: Request,
     current_user: CurrentUser,
+    authorization_context: CurrentAuthContext,
     session: CurrentSession,
 ):
     """
     Generate a new API key for the current user.
     Replaces any existing API key.
     """
-    return await APIKeyService.for_system(session).generate_api_key(current_user)
+    return await APIKeyService.for_user(session, authorization_context).generate_api_key(current_user)
 
 
 @me_router.delete("/api-key", response_model=Status)
@@ -164,13 +165,14 @@ async def generate_api_key(
 async def revoke_api_key(
     request: Request,
     current_user: CurrentUser,
+    authorization_context: CurrentAuthContext,
     session: CurrentSession,
 ):
     """
     Revoke the current user's API key.
     """
     try:
-        await APIKeyService.for_system(session).revoke_api_key(current_user)
+        await APIKeyService.for_user(session, authorization_context).revoke_api_key(current_user)
     except APIKeyNotFoundException:
         raise APIKeyNotFoundHTTPException
 
