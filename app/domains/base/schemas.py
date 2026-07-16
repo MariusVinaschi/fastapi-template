@@ -4,7 +4,6 @@ These are pure data transfer objects with no framework dependencies.
 """
 
 from datetime import datetime
-from typing import Generic, List, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -36,14 +35,11 @@ class CreatedByAndUpdatedBySchema(BaseModel):
     updated_by: str
 
 
-T = TypeVar("T")
-
-
-class PaginatedSchema(BaseModel, Generic[T]):
+class PaginatedSchema[T](BaseModel):
     """Generic paginated response schema"""
 
     count: int
-    data: List[T]
+    data: list[T]
 
 
 class Status(BaseModel):

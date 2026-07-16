@@ -3,8 +3,7 @@ User schemas - Framework agnostic Pydantic models.
 These are pure DTOs with no delivery layer dependencies.
 """
 
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
@@ -12,7 +11,7 @@ from pydantic import BaseModel, EmailStr
 from app.domains.base.schemas import TimestampSchema, UUIDSchema
 
 
-class RoleEnum(str, Enum):
+class RoleEnum(StrEnum):
     """User role enumeration"""
 
     ADMIN = "admin"
@@ -46,7 +45,7 @@ class UserCreate(UserBase):
 class UserPatch(BaseModel):
     """Schema for updating a user (partial update)"""
 
-    role: Optional[RoleEnum] = None
+    role: RoleEnum | None = None
 
 
 class UserConfigurationPatch(BaseModel):

@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import List
 
 from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -96,7 +95,7 @@ class Settings(BaseSettings):
         )
 
     @property
-    def ALLOWED_CORS_ORIGINS(self) -> List[str]:
+    def ALLOWED_CORS_ORIGINS(self) -> list[str]:
         """
         Transform comma separated CORS origins to list.
 

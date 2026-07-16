@@ -72,8 +72,8 @@ class VerifyAuth:
         if token is not None:
             try:
                 return await self._authenticate_with_jwt(security_scopes, session, token)
-            except (UnauthenticatedException, UnauthorizedException):
-                raise UnauthenticatedException("Invalid token")
+            except (UnauthenticatedException, UnauthorizedException) as e:
+                raise UnauthenticatedException("Invalid token") from e
 
         raise UnauthenticatedException("No valid authentication method provided")
 
@@ -103,11 +103,11 @@ class VerifyAuth:
 
         try:
             user = await UserService.for_system(session).get_by_email(payload["email"])
-        except UserNotFoundException:
-            raise UnauthenticatedException("User doesn't exist")
+        except UserNotFoundException as e:
+            raise UnauthenticatedException("User doesn't exist") from e
         except Exception as error:
             log.exception("Unexpected error while authenticating user with JWT: %s", error)
-            raise UnauthenticatedException("User doesn't exist")
+            raise UnauthenticatedException("User doesn't exist") from error
 
         return user
 
@@ -122,11 +122,11 @@ class VerifyAuth:
             hashed_key = api_key_service.hash_api_key(api_key_value)
             stored_api_key = await api_key_service.get_by_api_key_hash(hashed_key)
             return stored_api_key.user
-        except APIKeyNotFoundException:
-            raise UnauthenticatedException("Invalid API key")
+        except APIKeyNotFoundException as e:
+            raise UnauthenticatedException("Invalid API key") from e
         except Exception as error:
             log.exception("Unexpected error while authenticating user with API key: %s", error)
-            raise UnauthenticatedException("Invalid API key")
+            raise UnauthenticatedException("Invalid API key") from error
 
     async def _verify_jwt_token(
         self,
@@ -150,13 +150,13 @@ class VerifyAuth:
             signing_key = jwks_result.key
         except PyJWKClientError as error:
             log.warning("JWKS key fetch failed: %s", error)
-            raise UnauthorizedException("Authentication failed")
+            raise UnauthorizedException("Authentication failed") from error
         except DecodeError as error:
             log.warning("JWT decode error during key fetch: %s", error)
-            raise UnauthorizedException("Authentication failed")
+            raise UnauthorizedException("Authentication failed") from error
         except Exception as error:
             log.warning("Unexpected error during JWT key fetch: %s", error)
-            raise UnauthorizedException("Authentication failed")
+            raise UnauthorizedException("Authentication failed") from error
         try:
             payload = jwt.decode(
                 token.credentials,
@@ -168,7 +168,7 @@ class VerifyAuth:
                 raise DecodeError("Invalid authorized party")
         except Exception as error:
             log.warning("JWT validation failed: %s", error)
-            raise UnauthorizedException("Authentication failed")
+            raise UnauthorizedException("Authentication failed") from error
 
         if len(security_scopes.scopes) > 0:
             self._check_claims(payload, "scope", security_scopes.scopes)

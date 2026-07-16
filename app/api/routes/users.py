@@ -64,13 +64,13 @@ async def create_user(
         return await UserService.for_user(session, authorization_context).create(data)
     except IntegrityError as e:
         log.error(f"Error during the creation: {e}")
-        raise HTTPException(status_code=400, detail="An user with this email already exist")
+        raise HTTPException(status_code=400, detail="An user with this email already exist") from e
     except PermissionDenied as e:
         log.error(f"Error during the creation: {e}")
-        raise HTTPException(status_code=403, detail="You are not allowed to create a user")
+        raise HTTPException(status_code=403, detail="You are not allowed to create a user") from e
     except Exception as e:
         log.error(f"Error during the creation: {e}")
-        raise HTTPException(status_code=400, detail="Error during the creation")
+        raise HTTPException(status_code=400, detail="Error during the creation") from e
 
 
 @router.get(
@@ -88,10 +88,10 @@ async def get_user(
     """
     try:
         return await UserService.for_user(session, authorization_context).get_by_id(user_id)
-    except UserNotFoundException:
-        raise UserNotFoundHTTPException
-    except PermissionDenied:
-        raise UserNotFoundHTTPException
+    except UserNotFoundException as e:
+        raise UserNotFoundHTTPException from e
+    except PermissionDenied as e:
+        raise UserNotFoundHTTPException from e
 
 
 @router.patch("/{user_id}", response_model=UserRead)
@@ -107,8 +107,8 @@ async def update_user(
     """
     try:
         return await UserService.for_user(session, authorization_context).update(user_id, user_update)
-    except UserNotFoundException:
-        raise UserNotFoundHTTPException
+    except UserNotFoundException as e:
+        raise UserNotFoundHTTPException from e
 
 
 @router.delete("/{user_id}", response_model=Status)
@@ -123,10 +123,10 @@ async def delete_user(
     """
     try:
         await UserService.for_user(session, authorization_context).delete(user_id)
-    except UserNotFoundException:
-        raise UserNotFoundHTTPException
-    except PermissionDenied:
-        raise HTTPException(status_code=403, detail="You are not allowed to delete yourself")
+    except UserNotFoundException as e:
+        raise UserNotFoundHTTPException from e
+    except PermissionDenied as e:
+        raise HTTPException(status_code=403, detail="You are not allowed to delete yourself") from e
 
     return Status(detail=f"Deleted user {user_id}")
 
@@ -176,9 +176,9 @@ async def revoke_api_key(
     """
     try:
         await APIKeyService.for_user(session, authorization_context).revoke_api_key(current_user)
-    except APIKeyNotFoundException:
-        raise APIKeyNotFoundHTTPException
-    except PermissionDenied:
-        raise HTTPException(status_code=403, detail="You are not allowed to revoke this API key")
+    except APIKeyNotFoundException as e:
+        raise APIKeyNotFoundHTTPException from e
+    except PermissionDenied as e:
+        raise HTTPException(status_code=403, detail="You are not allowed to revoke this API key") from e
 
     return Status(detail="API key revoked successfully")

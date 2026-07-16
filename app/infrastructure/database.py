@@ -1,6 +1,6 @@
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import HTTPException
 from prefect_sqlalchemy.database import SqlAlchemyConnector
@@ -19,7 +19,7 @@ async_engine = create_async_engine(str(settings.DB_URL), echo=False, future=True
 async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_session() -> AsyncGenerator[AsyncSession]:
     """Request-scoped transaction boundary for FastAPI handlers.
 
     Commits once on success, rolls back on any unhandled exception.

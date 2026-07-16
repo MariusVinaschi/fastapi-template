@@ -34,7 +34,7 @@ async def _verify_webhook_signature(request: Request) -> dict:
         return webhook.verify(body, dict(request.headers))
     except WebhookVerificationError as error:
         log.warning(f"Rejected Clerk webhook with invalid signature: {error}")
-        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+        raise HTTPException(status_code=400, detail="Invalid webhook signature") from error
 
 
 @router.post("/clerk", response_model=WebhookResponse)
@@ -68,7 +68,7 @@ async def clerk_webhook(
 
     except ValueError as e:
         log.error(f"Invalid Clerk webhook payload: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         log.error(f"Error processing Clerk webhook: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
