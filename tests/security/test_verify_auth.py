@@ -304,6 +304,26 @@ class TestVerifyAuth:
             )
 
     @pytest.mark.anyio
+    async def test_authenticate_with_api_key_unexpected_error_does_not_leak_raw_key(
+        self, verify_auth, db_session, caplog
+    ):
+        """The raw API key value must never appear in logs, even when logging an unexpected error."""
+        raw_key = "super-secret-raw-api-key-value"
+
+        with patch("app.infrastructure.security.APIKeyService") as mock_api_key_service:
+            mock_service_instance = MagicMock()
+            mock_service_instance.hash_api_key.return_value = "hashed_key"
+            mock_service_instance.get_by_api_key_hash = AsyncMock(side_effect=RuntimeError("DB connection lost"))
+            mock_api_key_service.for_system.return_value = mock_service_instance
+
+            with caplog.at_level(logging.ERROR, logger="app.infrastructure.security"):
+                with pytest.raises(UnauthenticatedException):
+                    await verify_auth._authenticate_with_api_key(db_session, raw_key)
+
+            for record in caplog.records:
+                assert raw_key not in record.getMessage()
+
+    @pytest.mark.anyio
     async def test_verify_jwt_token_success(self, verify_auth, mock_token, mock_security_scopes):
         """Test successful JWT token verification"""
         mock_payload = {"sub": "user123", "scope": "read write", "azp": verify_auth.clerk_azp}
