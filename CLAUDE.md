@@ -42,6 +42,10 @@ Connection comes from env vars via `app/infrastructure/config.py` (pydantic-sett
 
 Conventional Commits are enforced (prek hooks + commitizen): `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`. Versioning is automated with python-semantic-release (RC on every merge to `main`, stable releases via manual workflow dispatch) — never bump `pyproject.toml:project.version` by hand.
 
+### Code comments
+
+Keep comments short. Only add one when the code isn't self-explanatory (a non-obvious constraint, invariant, or workaround) — don't restate what the code does.
+
 ## Architecture
 
 DDD with strict layer separation. Business logic lives exclusively in `app/domains/` and has **zero framework dependencies** — FastAPI (`app/api/`) and Prefect (`app/workers/`) are adapters that consume the domain, never the other way around.
