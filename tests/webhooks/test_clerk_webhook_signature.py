@@ -1,8 +1,4 @@
-"""
-CLERK_WEBHOOK_SECRET is optional (defaults to ""), so the API can start without
-Clerk configured at all. Receiving a webhook while it's unset must fail clearly
-at request time rather than crashing with the svix library's raw RuntimeError.
-"""
+"""A blank CLERK_WEBHOOK_SECRET must fail clearly, not crash."""
 
 import pytest
 from fastapi import FastAPI

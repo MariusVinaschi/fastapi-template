@@ -1,10 +1,4 @@
-"""
-Clerk is optional at API startup: neither CLERK_FRONTEND_API_URL (JWT auth)
-nor CLERK_WEBHOOK_SECRET (webhook receiving) are required for
-create_application() to succeed, so API-key-only / local use works. Both
-fail clearly at request time instead: JWT auth in VerifyAuth.jwks_client,
-webhook receiving in _verify_webhook_signature.
-"""
+"""Clerk is optional at API startup; create_application() must always succeed."""
 
 from app.api.main import create_application
 from app.infrastructure.config import settings

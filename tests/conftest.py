@@ -17,10 +17,8 @@ def _apply_test_database_env() -> None:
 
 
 def _apply_test_secrets_env() -> None:
-    # SECRET_KEY has no default; CLERK_FRONTEND_API_URL and CLERK_WEBHOOK_SECRET default
-    # to "" so the API can start without Clerk configured (API-key-only deployments).
-    # Both are set here anyway so JWT- and webhook-related security tests can exercise
-    # real signature/JWKS-client behavior without hitting an actual Clerk instance.
+    # SECRET_KEY has no default; Clerk settings default to "" but are set here so
+    # JWT/webhook tests can exercise real signature/JWKS behavior.
     os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
     os.environ.setdefault("CLERK_WEBHOOK_SECRET", "whsec_dGVzdC1jbGVyay13ZWJob29rLXNlY3JldA==")
     os.environ.setdefault("CLERK_FRONTEND_API_URL", "https://test.clerk.accounts.dev")

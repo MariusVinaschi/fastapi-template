@@ -25,10 +25,7 @@ class WebhookResponse(BaseModel):
 async def _verify_webhook_signature(request: Request) -> dict:
     """Verify the Svix signature Clerk attaches to every webhook."""
     if not settings.CLERK_WEBHOOK_SECRET.strip():
-        # Fail clearly here rather than letting Webhook(...) raise a plain RuntimeError:
-        # CLERK_WEBHOOK_SECRET is optional so the API can start without Clerk configured
-        # (API-key-only deployments), but receiving a webhook without it set is a
-        # deployment error, not a signature-verification failure.
+        # Avoids Webhook(...) raising a raw RuntimeError below.
         raise HTTPException(status_code=503, detail="Clerk webhooks are not configured (CLERK_WEBHOOK_SECRET is empty)")
 
     body = await request.body()
