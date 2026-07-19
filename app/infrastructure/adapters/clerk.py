@@ -56,15 +56,19 @@ class ClerkWebhookAdapter:
             raise ValueError("Missing clerk id")
         return data["id"]
 
+    async def _reconcile_email(self, user: User, primary_email: str) -> User:
+        """Update the stored email if it drifted from the webhook payload, otherwise return as-is."""
+        if user.email != primary_email:
+            return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
+        return user
+
     async def create_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
         primary_email = self._extract_primary_email(data)
 
         try:
             user = await self._service.get_by_clerk_id(clerk_id)
-            if user.email != primary_email:
-                return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
-            return user
+            return await self._reconcile_email(user, primary_email)
         except UserNotFoundException:
             pass
 
@@ -83,18 +87,21 @@ class ClerkWebhookAdapter:
                     )
                 )
         except IntegrityError as integrity_error:
-            # Another concurrent/redelivered webhook created this user first.
-            # The SAVEPOINT above rolls back only the failed insert, keeping the
-            # outer request-scoped transaction intact for the recovery below.
+            # Another concurrent/redelivered webhook created this user first. clerk_id
+            # is DB-unique (see migration 28a975b09a5b), so this always means the same
+            # clerk_id raced us, regardless of whether the clerk_id or email constraint
+            # is what actually fired. The SAVEPOINT above rolls back only the failed
+            # insert, keeping the outer request-scoped transaction intact for the
+            # recovery below.
             try:
                 user = await self._service.get_by_clerk_id(clerk_id)
             except UserNotFoundException:
-                # Not the expected race (same clerk_id/email) - re-raise the
-                # original error rather than swallowing a different conflict.
-                raise integrity_error from None
-            if user.email != primary_email:
-                return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
-            return user
+                # Not the expected clerk_id race - a different, unrelated conflict
+                # (e.g. the email belongs to a different clerk_id). Surface it as a
+                # client error rather than a raw 500, so Clerk's webhook retry logic
+                # doesn't redeliver a payload that will never succeed.
+                raise ValueError(f"User with email {primary_email} already exists") from integrity_error
+            return await self._reconcile_email(user, primary_email)
 
     async def update_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
