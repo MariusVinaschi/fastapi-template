@@ -76,15 +76,7 @@ async def test_create_user_clerk_id_not_found_but_email_exists(db_session):
 
 @pytest.mark.anyio
 async def test_create_user_concurrent_duplicate_webhook_is_idempotent(db_session):
-    """
-    Simulates a race between two concurrent/redelivered `user.created` webhooks
-    for the same clerk_id/email pair: by the time `create_user`'s own
-    `self._service.create(...)` runs, a conflicting row already exists in the
-    DB (inserted "between" the not-found check and the create), so the unique
-    constraint on `users.email` raises IntegrityError. The adapter should
-    recover by rolling back and returning the already-existing user instead
-    of propagating the error.
-    """
+    """Race between two `user.created` webhooks for the same clerk_id/email."""
     clerk_id = "clerk_id_123"
     email = "test@example.com"
     existing_user = await UserFactory.create_async(session=db_session, clerk_id=clerk_id, email=email)
@@ -102,12 +94,7 @@ async def test_create_user_concurrent_duplicate_webhook_is_idempotent(db_session
     adapter = ClerkWebhookAdapter.for_system(db_session)
     real_get_by_clerk_id = adapter._service.get_by_clerk_id
 
-    # First call: the pre-check in create_user - forced to "not found" so the
-    # adapter proceeds to self._service.create(...), which then hits the real
-    # unique constraint on `email` (existing_user already occupies it).
-    # Second call: the adapter's re-fetch-by-clerk_id after catching
-    # IntegrityError - left as the real implementation so it performs an
-    # actual (post-rollback) DB query and returns a properly bound instance.
+    # 1st call forced to "not found" to reach create(); 2nd call is real, for recovery.
     calls = {"count": 0}
 
     async def fake_get_by_clerk_id(target_clerk_id: str):
@@ -129,20 +116,7 @@ async def test_create_user_concurrent_duplicate_webhook_is_idempotent(db_session
 
 @pytest.mark.anyio
 async def test_create_user_concurrent_webhook_with_different_email_is_idempotent(db_session):
-    """
-    Regression test for the gap where `clerk_id` had no DB-level unique
-    constraint: a race between two concurrent/redelivered `user.created`
-    webhooks for the same `clerk_id` but *different* primary emails (e.g. the
-    email changed between event generation and delivery) used to raise no
-    `IntegrityError` at all, since only `email` was unique - both inserts
-    would silently succeed, producing two rows sharing one `clerk_id`.
-
-    Now that `clerk_id` is also DB-unique (see migration
-    28a975b09a5b_add_unique_constraint_on_users_clerk_id), the second insert
-    hits the `clerk_id` unique constraint instead, and the adapter recovers
-    by re-fetching the winning row and reconciling its email to the payload
-    that lost the race.
-    """
+    """Regression: same clerk_id, different email must still be caught as a race."""
     clerk_id = "clerk_id_123"
     existing_user = await UserFactory.create_async(session=db_session, clerk_id=clerk_id, email="old@example.com")
     await db_session.commit()
@@ -181,14 +155,7 @@ async def test_create_user_concurrent_webhook_with_different_email_is_idempotent
 
 @pytest.mark.anyio
 async def test_create_user_raises_value_error_when_conflict_is_not_the_same_clerk_id(db_session):
-    """
-    If `create()` raises IntegrityError but the post-rollback re-fetch by
-    clerk_id still finds nothing, the conflict isn't the expected
-    same-clerk_id race (e.g. the email belongs to a different, unrelated
-    clerk_id) — the adapter must surface a `ValueError` (mapped to 400 by the
-    webhook route) instead of the raw `IntegrityError` (which would map to
-    500 and cause Clerk to retry a payload that will never succeed).
-    """
+    """An unrelated conflict must surface as ValueError (400), not a raw IntegrityError."""
     clerk_id = "clerk_id_789"
     email = "unresolvable@example.com"
     data = {

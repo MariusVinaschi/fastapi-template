@@ -87,19 +87,11 @@ class ClerkWebhookAdapter:
                     )
                 )
         except IntegrityError as integrity_error:
-            # Another concurrent/redelivered webhook created this user first. clerk_id
-            # is DB-unique (see migration 28a975b09a5b), so this always means the same
-            # clerk_id raced us, regardless of whether the clerk_id or email constraint
-            # is what actually fired. The SAVEPOINT above rolls back only the failed
-            # insert, keeping the outer request-scoped transaction intact for the
-            # recovery below.
+            # A concurrent webhook created this user first (clerk_id is DB-unique).
             try:
                 user = await self._service.get_by_clerk_id(clerk_id)
             except UserNotFoundException:
-                # Not the expected clerk_id race - a different, unrelated conflict
-                # (e.g. the email belongs to a different clerk_id). Surface it as a
-                # client error rather than a raw 500, so Clerk's webhook retry logic
-                # doesn't redeliver a payload that will never succeed.
+                # Unrelated conflict - raise a 400 so Clerk stops retrying.
                 raise ValueError(f"User with email {primary_email} already exists") from integrity_error
             return await self._reconcile_email(user, primary_email)
 
