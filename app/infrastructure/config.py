@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     CLERK_FRONTEND_API_URL: str = ""
     CLERK_ALGORITHMS: str = "RS256"
     CLERK_AZP: str = "http://localhost:3000"
-    CLERK_WEBHOOK_SECRET: str = Field(...)
+    CLERK_WEBHOOK_SECRET: str = ""
 
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379

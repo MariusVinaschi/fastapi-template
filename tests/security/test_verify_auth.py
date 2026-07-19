@@ -56,11 +56,24 @@ class TestVerifyAuth:
         return scopes
 
     def test_verify_auth_initialization(self, verify_auth):
-        """Test VerifyAuth initialization"""
+        """Test VerifyAuth initialization; JWKS client is created lazily on first use"""
         assert verify_auth.clerk_issuer is not None
         assert verify_auth.clerk_algorithms is not None
         assert verify_auth.clerk_azp is not None
+        assert verify_auth._jwks_client is None
         assert verify_auth.jwks_client is not None
+        assert verify_auth._jwks_client is not None
+
+    @pytest.mark.anyio
+    async def test_verify_jwt_token_clerk_not_configured(self, mock_token, mock_security_scopes):
+        """JWT auth fails clearly when Clerk issuer is unset; API can still start"""
+        verify_auth = VerifyAuth()
+        verify_auth.clerk_issuer = ""
+
+        with pytest.raises(UnauthenticatedException) as exc_info:
+            await verify_auth._verify_jwt_token(mock_security_scopes, mock_token)
+
+        assert "not configured" in str(exc_info.value)
 
     @pytest.mark.anyio
     async def test_get_current_user_with_jwt_success(

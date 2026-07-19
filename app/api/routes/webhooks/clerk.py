@@ -24,6 +24,10 @@ class WebhookResponse(BaseModel):
 
 async def _verify_webhook_signature(request: Request) -> dict:
     """Verify the Svix signature Clerk attaches to every webhook."""
+    if not settings.CLERK_WEBHOOK_SECRET.strip():
+        # Avoids Webhook(...) raising a raw RuntimeError below.
+        raise HTTPException(status_code=503, detail="Clerk webhooks are not configured (CLERK_WEBHOOK_SECRET is empty)")
+
     body = await request.body()
     webhook = Webhook(settings.CLERK_WEBHOOK_SECRET)
     try:
