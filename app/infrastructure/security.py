@@ -95,8 +95,8 @@ class VerifyAuth:
             user = await UserService.for_system(session).get_by_email(payload["email"])
         except UserNotFoundException:
             raise UnauthenticatedException("User doesn't exist")
-        except Exception:
-            log.exception("Unexpected error while authenticating user with JWT")
+        except Exception as error:
+            log.exception("Unexpected error while authenticating user with JWT: %s", error)
             raise UnauthenticatedException("User doesn't exist")
 
         return user
@@ -114,8 +114,8 @@ class VerifyAuth:
             return stored_api_key.user
         except APIKeyNotFoundException:
             raise UnauthenticatedException("Invalid API key")
-        except Exception:
-            log.exception("Unexpected error while authenticating user with API key")
+        except Exception as error:
+            log.exception("Unexpected error while authenticating user with API key: %s", error)
             raise UnauthenticatedException("Invalid API key")
 
     async def _verify_jwt_token(
