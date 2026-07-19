@@ -159,8 +159,8 @@ async def generate_api_key(
     """
     try:
         return await APIKeyService.for_user(session, authorization_context).generate_api_key(current_user)
-    except PermissionDenied:
-        raise HTTPException(status_code=403, detail="You are not allowed to generate an API key for this user")
+    except PermissionDenied as e:
+        raise HTTPException(status_code=403, detail="You are not allowed to generate an API key for this user") from e
 
 
 @me_router.delete("/api-key", response_model=Status)
