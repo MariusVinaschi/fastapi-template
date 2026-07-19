@@ -106,6 +106,31 @@ class APIKeyService(
     def _prepare_create_data(self, data: APIKeyCreate) -> dict:
         return data.model_dump()
 
+    def _check_general_permissions(self, action: str) -> bool:
+        """Check general permissions for API key operations"""
+        # System operations bypass all permission checks
+        if self._is_system_operation():
+            return True
+
+        # Authenticated users can manage their own API key
+        if action in ["create", "delete", "read"]:
+            return True
+
+        raise PermissionDenied("Action not allowed")
+
+    def _check_instance_permissions(self, action: str, instance: APIKey) -> bool:
+        """Check instance-level permissions for API key operations"""
+        # System operations bypass all permission checks
+        if self._is_system_operation():
+            return True
+
+        assert self.authorization_context is not None
+        # Users can only access their own API key
+        if action in ["read", "delete"] and self.authorization_context.user_id == str(instance.user_id):
+            return True
+
+        raise PermissionDenied("Action not allowed")
+
     async def get_by_user_id(self, user_id: UUID) -> APIKey:
         self._check_general_permissions("read")
 
