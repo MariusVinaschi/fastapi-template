@@ -5,6 +5,7 @@ This is an infrastructure adapter — it knows about Clerk's payload format
 so the domain layer doesn't have to.
 """
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.users.exceptions import UserNotFoundException
@@ -55,15 +56,19 @@ class ClerkWebhookAdapter:
             raise ValueError("Missing clerk id")
         return data["id"]
 
+    async def _reconcile_email(self, user: User, primary_email: str) -> User:
+        """Update the stored email if it drifted from the webhook payload, otherwise return as-is."""
+        if user.email != primary_email:
+            return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
+        return user
+
     async def create_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
         primary_email = self._extract_primary_email(data)
 
         try:
             user = await self._service.get_by_clerk_id(clerk_id)
-            if user.email != primary_email:
-                return await self._service.update(user.id, ClerkUserUpdate(email=primary_email))
-            return user
+            return await self._reconcile_email(user, primary_email)
         except UserNotFoundException:
             pass
 
@@ -71,12 +76,24 @@ class ClerkWebhookAdapter:
             await self._service.get_by_email(primary_email)
             raise ValueError(f"User with email {primary_email} already exists")
         except UserNotFoundException:
-            return await self._service.create(
-                UserCreate(
-                    email=primary_email,
-                    clerk_id=clerk_id,
+            pass
+
+        try:
+            async with self.session.begin_nested():
+                return await self._service.create(
+                    UserCreate(
+                        email=primary_email,
+                        clerk_id=clerk_id,
+                    )
                 )
-            )
+        except IntegrityError as integrity_error:
+            # A concurrent webhook created this user first (clerk_id is DB-unique).
+            try:
+                user = await self._service.get_by_clerk_id(clerk_id)
+            except UserNotFoundException:
+                # Unrelated conflict - raise a 400 so Clerk stops retrying.
+                raise ValueError(f"User with email {primary_email} already exists") from integrity_error
+            return await self._reconcile_email(user, primary_email)
 
     async def update_user(self, data: dict) -> User:
         clerk_id = self._check_clerk_id(data)
