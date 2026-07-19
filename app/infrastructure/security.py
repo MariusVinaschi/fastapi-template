@@ -12,6 +12,7 @@ from fastapi.security import (
 from jwt.exceptions import DecodeError, PyJWKClientError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
 from app.infrastructure.config import settings
@@ -92,7 +93,10 @@ class VerifyAuth:
 
         try:
             user = await UserService.for_system(session).get_by_email(payload["email"])
-        except Exception:
+        except UserNotFoundException:
+            raise UnauthenticatedException("User doesn't exist")
+        except Exception as error:
+            log.exception("Unexpected error while authenticating user with JWT: %s", error)
             raise UnauthenticatedException("User doesn't exist")
 
         return user
@@ -108,7 +112,10 @@ class VerifyAuth:
             hashed_key = api_key_service.hash_api_key(api_key_value)
             stored_api_key = await api_key_service.get_by_api_key_hash(hashed_key)
             return stored_api_key.user
-        except Exception:
+        except APIKeyNotFoundException:
+            raise UnauthenticatedException("Invalid API key")
+        except Exception as error:
+            log.exception("Unexpected error while authenticating user with API key: %s", error)
             raise UnauthenticatedException("Invalid API key")
 
     async def _verify_jwt_token(
