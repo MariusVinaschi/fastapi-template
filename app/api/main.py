@@ -25,18 +25,6 @@ def create_application() -> FastAPI:
 
     :return: Configured FastAPI application
     """
-    if not settings.CLERK_FRONTEND_API_URL.strip():
-        # Fail fast here rather than in Settings: PyJWKClient only fetches the JWKS URL
-        # lazily on first use, so an empty CLERK_FRONTEND_API_URL would otherwise start
-        # up "healthy" and only fail confusingly on the first JWT-authenticated request.
-        # Scoped to the API entrypoint (not Settings itself) since the worker and
-        # migrations images also import Settings but never call create_application()
-        # and don't need Clerk configured.
-        raise ValueError(
-            "CLERK_FRONTEND_API_URL must be set to a valid Clerk Frontend API URL "
-            "(e.g. https://your-app.clerk.accounts.dev)."
-        )
-
     configure_logfire(settings)
     setup_logging(settings)
 

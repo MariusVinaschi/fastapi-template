@@ -42,9 +42,19 @@ class VerifyAuth:
         self.clerk_issuer = settings.CLERK_FRONTEND_API_URL
         self.clerk_algorithms = [alg.strip() for alg in settings.CLERK_ALGORITHMS.split(",") if alg.strip()]
         self.clerk_azp = settings.CLERK_AZP
+        # Lazy: API can start without Clerk; JWKS is only needed for JWT auth.
+        self._jwks_client: jwt.PyJWKClient | None = None
 
-        jwks_url = f"{self.clerk_issuer}/.well-known/jwks.json"
-        self.jwks_client = jwt.PyJWKClient(jwks_url)
+    @property
+    def jwks_client(self) -> jwt.PyJWKClient:
+        if self._jwks_client is None:
+            issuer = self.clerk_issuer.strip()
+            if not issuer:
+                raise UnauthenticatedException(
+                    "Clerk JWT authentication is not configured (CLERK_FRONTEND_API_URL is empty)"
+                )
+            self._jwks_client = jwt.PyJWKClient(f"{issuer}/.well-known/jwks.json")
+        return self._jwks_client
 
     async def get_current_user(
         self,
@@ -119,6 +129,11 @@ class VerifyAuth:
         """Verify JWT token using PyJWT"""
         if token is None:
             raise UnauthenticatedException("No token provided")
+
+        if not self.clerk_issuer.strip():
+            raise UnauthenticatedException(
+                "Clerk JWT authentication is not configured (CLERK_FRONTEND_API_URL is empty)"
+            )
 
         # Fetch the signing key in a thread: PyJWKClient.get_signing_key_from_jwt makes a
         # synchronous HTTPS call to the JWKS endpoint on cache miss, which would block the
