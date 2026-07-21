@@ -4,7 +4,6 @@ Defines the interfaces for authorization contexts and scope strategies.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 
 from sqlalchemy import Select
 
@@ -39,11 +38,7 @@ class AuthorizationContext(ABC):
         pass
 
 
-# Generic type for scope strategies
-T = TypeVar("T", bound=Base)
-
-
-class AuthorizationScopeStrategy(ABC, Generic[T]):
+class AuthorizationScopeStrategy[T: Base](ABC):
     """
     Base strategy for applying scope restrictions to queries.
 

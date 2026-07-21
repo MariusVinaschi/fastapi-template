@@ -1,4 +1,5 @@
 import pytest
+
 from app.domains.base.filters import BaseFilterParams
 
 

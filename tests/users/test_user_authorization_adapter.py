@@ -1,7 +1,7 @@
 import pytest
 
-from app.domains.users.factory import UserFactory
 from app.domains.users.authorization import UserAuthorizationAdapter
+from app.domains.users.factory import UserFactory
 
 
 @pytest.mark.anyio

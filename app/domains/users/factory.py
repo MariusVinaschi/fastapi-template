@@ -7,7 +7,7 @@ import factory
 from faker import Faker
 
 from app.domains.base.factory import BaseFactory
-from app.domains.users.models import User, APIKey
+from app.domains.users.models import APIKey, User
 
 fake = Faker()
 

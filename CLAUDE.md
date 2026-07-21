@@ -12,8 +12,8 @@ just install                     # uv sync
 just dev                         # run API with hot reload (fastapi dev app/api/main.py)
 just test                        # uv run pytest
 just test-cov                    # pytest with coverage (HTML + terminal)
-just lint                        # ruff check app/
-just format                      # ruff format app/
+just lint                        # ruff check app/ tests/
+just format                      # ruff format app/ tests/
 just type-check                  # ty check app/  (app/scripts/ is excluded)
 just migrate                     # alembic upgrade head
 just migrate-create "message"    # alembic autogenerate migration

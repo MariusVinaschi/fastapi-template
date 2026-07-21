@@ -4,7 +4,7 @@ Contains all the generic CRUD operations for domain entities.
 """
 
 from collections.abc import Sequence
-from typing import Generic, Optional, Protocol, Tuple, Type, TypeVar, cast
+from typing import Generic, Protocol, TypeVar, cast
 
 from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy import update as sa_update
@@ -41,14 +41,14 @@ class SupportsId(Protocol):
     id: object
 
 
-class BaseRepository(Generic[ModelType]):
+class BaseRepository(Generic[ModelType]):  # noqa: UP046 -- module-level `ModelType`/`RepositoryType
     """Base repository with common functionality for all entities"""
 
     def __init__(
         self,
         session: AsyncSession,
         scope_strategy: AuthorizationScopeStrategy,
-        model: Type[ModelType],
+        model: type[ModelType],
         authorization_context: AuthorizationContext | None = None,
     ):
         self.session = session
@@ -72,13 +72,13 @@ class BaseRepository(Generic[ModelType]):
         if not self._is_system_operation():
             raise SystemOperationRequired("This repository method requires system context (no authorization_context)")
 
-    async def get_by_id(self, id: str) -> Optional[ModelType]:
+    async def get_by_id(self, id: str) -> ModelType | None:
         raise NotImplementedError
 
     async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
         raise NotImplementedError
 
-    async def get_paginated(self, filters: BaseFilterParams) -> Tuple[int, Sequence[ModelType]]:
+    async def get_paginated(self, filters: BaseFilterParams) -> tuple[int, Sequence[ModelType]]:
         raise NotImplementedError
 
     async def get_ids(self, filters: BaseFilterParams) -> Sequence[str]:
@@ -127,7 +127,7 @@ class ListRepositoryMixin(BaseRepository):
         result = await self.session.scalars(query)
         return result.fetchall()
 
-    async def get_paginated(self, filters: BaseFilterParams) -> Tuple[int, Sequence[ModelType]]:
+    async def get_paginated(self, filters: BaseFilterParams) -> tuple[int, Sequence[ModelType]]:
         """Get paginated entities with optional authorization"""
         query = self._build_list_query()
         query = self._apply_user_scope(query)
@@ -228,7 +228,7 @@ class ReadRepositoryMixin(BaseRepository):
         """
         return select(self.model)
 
-    async def get_by_id(self, id: str) -> Optional[ModelType]:
+    async def get_by_id(self, id: str) -> ModelType | None:
         """Get entity by ID with optional authorization"""
         query = self._build_single_query().where(self.model.id == id)
         query = self._apply_user_scope(query)

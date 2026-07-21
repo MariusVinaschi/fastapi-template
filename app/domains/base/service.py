@@ -4,7 +4,7 @@ Contains all the generic CRUD operations and business rules.
 """
 
 from collections.abc import Sequence
-from typing import Generic, Type, TypeVar
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 BulkUpdateSchemaType = TypeVar("BulkUpdateSchemaType", bound=BaseModel)
 
 
-class BaseService(Generic[ModelType, RepositoryType]):
+class BaseService(Generic[ModelType, RepositoryType]):  # noqa: UP046 -- module-level `ModelType`/`RepositoryType`
     """
     Base service with common functionality for all entities.
 
@@ -32,7 +32,7 @@ class BaseService(Generic[ModelType, RepositoryType]):
     """
 
     repository_class: RepositoryFactory[RepositoryType]
-    not_found_exception: Type[EntityNotFoundException] = EntityNotFoundException
+    not_found_exception: type[EntityNotFoundException] = EntityNotFoundException
 
     def __init__(
         self,
@@ -276,7 +276,7 @@ class BulkUpdateServiceMixin(BaseService[ModelType, RepositoryType]):
         self,
         ids: list[UUID],
         data: BulkUpdateSchemaType,
-        filter_class: Type[BaseFilterParams] = BaseFilterParams,
+        filter_class: type[BaseFilterParams] = BaseFilterParams,
     ) -> Sequence[ModelType]:
         """
         Update multiple entities with the same data in a single operation.

@@ -4,7 +4,7 @@ These are the foundation for all domain entities.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, MetaData
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,7 +13,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 def utc_now() -> datetime:
     """UTC-aware instant for ORM defaults (matches TIMESTAMPTZ columns)."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # Naming convention for database constraints
