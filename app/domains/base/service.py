@@ -23,9 +23,6 @@ BulkUpdateSchemaType = TypeVar("BulkUpdateSchemaType", bound=BaseModel)
 
 
 class BaseService(Generic[ModelType, RepositoryType]):  # noqa: UP046 -- module-level `ModelType`/`RepositoryType`
-    # TypeVars are reused by every `*ServiceMixin(BaseService[ModelType, RepositoryType])` subclass below; switching
-    # this one class to PEP 695 `class Foo[T]` scoping would desync it from those, requiring a wider generics
-    # refactor out of scope for this PR.
     """
     Base service with common functionality for all entities.
 

@@ -41,9 +41,7 @@ class SupportsId(Protocol):
     id: object
 
 
-class BaseRepository(Generic[ModelType]):  # noqa: UP046 -- module-level `ModelType`/`RepositoryType` TypeVars are
-    # shared with `RepositoryFactory` above and every `*Mixin(BaseRepository)` subclass below; switching this one
-    # class to PEP 695 `class Foo[T]` scoping would desync it from those, requiring a wider generics refactor.
+class BaseRepository(Generic[ModelType]):  # noqa: UP046 -- module-level `ModelType`/`RepositoryType
     """Base repository with common functionality for all entities"""
 
     def __init__(
