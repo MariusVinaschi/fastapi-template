@@ -32,11 +32,15 @@ class Settings(BaseSettings):
     APP_DB_NAME: str = "dbname"
     DB_ECHO: bool = False
 
-    # CLERK
-    CLERK_FRONTEND_API_URL: str = ""
-    CLERK_ALGORITHMS: str = "RS256"
-    CLERK_AZP: str = "http://localhost:3000"
-    CLERK_WEBHOOK_SECRET: str = ""
+    # AUTH (JWT via AuthX)
+    # Signing key for access/refresh JWTs. Falls back to SECRET_KEY when empty (see AUTH_JWT_SIGNING_KEY).
+    AUTH_JWT_SECRET_KEY: str = ""
+    # Where tokens are read from: "headers", "cookies", or "headers,cookies".
+    AUTH_TOKEN_LOCATION: str = "headers"
+    AUTH_ACCESS_TOKEN_EXPIRES_MINUTES: int = 15
+    AUTH_REFRESH_TOKEN_EXPIRES_DAYS: int = 7
+    AUTH_COOKIE_SECURE: bool = True
+    AUTH_COOKIE_SAMESITE: str = "lax"
 
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
@@ -102,6 +106,21 @@ class Settings(BaseSettings):
         :return: Allowed cors origins as list.
         """
         return self.CORS_ORIGINS.split(",")
+
+    @property
+    def AUTH_JWT_SIGNING_KEY(self) -> str:
+        """JWT signing key, falling back to SECRET_KEY when AUTH_JWT_SECRET_KEY is unset."""
+        return self.AUTH_JWT_SECRET_KEY or self.SECRET_KEY
+
+    @property
+    def AUTH_TOKEN_LOCATIONS(self) -> list[str]:
+        """Parse comma separated token locations (e.g. "headers,cookies") into a list."""
+        return [loc.strip() for loc in self.AUTH_TOKEN_LOCATION.split(",") if loc.strip()]
+
+    @property
+    def AUTH_COOKIE_CSRF_PROTECT(self) -> bool:
+        """CSRF protection is required whenever tokens can be read from cookies."""
+        return "cookies" in self.AUTH_TOKEN_LOCATIONS
 
 
 settings = Settings()
