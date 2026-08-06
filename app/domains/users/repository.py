@@ -28,7 +28,7 @@ class UserRepository(
         super().__init__(session, UserScopeStrategy(), User, authorization_context)
 
     def _apply_filters(self, query: Select, filters: BaseFilterParams) -> Select:
-        """Apply id__in (base) plus email/role/clerk_id filters specific to users."""
+        """Apply id__in (base) plus email/role filters specific to users."""
         query = super()._apply_filters(query, filters)
 
         if not isinstance(filters, UserFilter):
@@ -40,9 +40,6 @@ class UserRepository(
         if filters.role is not None:
             query = query.where(self.model.role == filters.role)
 
-        if filters.clerk_id is not None:
-            query = query.where(self.model.clerk_id == filters.clerk_id)
-
         return query
 
     async def find_by_email(
@@ -50,12 +47,6 @@ class UserRepository(
         email: str,
     ) -> User | None:
         query = select(self.model).where(self.model.email == email)
-        query = self._apply_user_scope(query)
-        result = await self.session.scalars(query)
-        return result.one_or_none()
-
-    async def find_by_clerk_id(self, clerk_id: str) -> User | None:
-        query = select(self.model).where(self.model.clerk_id == clerk_id)
         query = self._apply_user_scope(query)
         result = await self.session.scalars(query)
         return result.one_or_none()

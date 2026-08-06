@@ -8,8 +8,14 @@ from faker import Faker
 
 from app.domains.base.factory import BaseFactory
 from app.domains.users.models import APIKey, User
+from app.domains.users.password import hash_password
 
 fake = Faker()
+
+# Known plaintext + its hash, computed once so factory-built users share a cheap
+# (single argon2 call) yet real hash that login tests can authenticate against.
+DEFAULT_TEST_PASSWORD = "password123"
+_DEFAULT_PASSWORD_HASH = hash_password(DEFAULT_TEST_PASSWORD)
 
 
 class UserFactory(BaseFactory):
@@ -20,7 +26,7 @@ class UserFactory(BaseFactory):
 
     email = factory.Faker("email")
     role = factory.LazyFunction(lambda: fake.random_element(elements=("admin", "standard")))
-    clerk_id = factory.LazyFunction(lambda: fake.uuid4())
+    password_hash = _DEFAULT_PASSWORD_HASH
 
     created_by = factory.Faker("email")
     updated_by = factory.Faker("email")

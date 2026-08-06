@@ -78,18 +78,6 @@ class UserService(
 
         return user
 
-    async def get_by_clerk_id(self, clerk_id: str) -> User:
-        """Get user by Clerk ID with access control"""
-        self._check_general_permissions("read")
-
-        user = await self.repository.find_by_clerk_id(clerk_id)
-        if not user:
-            raise UserNotFoundException
-
-        self._check_instance_permissions("read", user)
-
-        return user
-
 
 class APIKeyService(
     CreateServiceMixin[APIKey, APIKeyRepository],

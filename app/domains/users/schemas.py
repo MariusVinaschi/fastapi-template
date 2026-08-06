@@ -6,9 +6,12 @@ These are pure DTOs with no delivery layer dependencies.
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.domains.base.schemas import TimestampSchema, UUIDSchema
+
+# Minimum password length enforced at registration.
+PASSWORD_MIN_LENGTH = 8
 
 
 class RoleEnum(StrEnum):
@@ -37,9 +40,21 @@ class UserRead(UserBase, UUIDSchema, TimestampSchema):
 
 
 class UserCreate(UserBase):
-    """Schema for creating a user"""
+    """Internal schema for persisting a user (password already hashed)."""
 
-    clerk_id: str
+    password_hash: str
+
+
+class UserRegister(UserEmail):
+    """Schema for self-registration (plaintext password, validated then hashed)."""
+
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH)
+
+
+class UserLogin(UserEmail):
+    """Schema for email + password login."""
+
+    password: str
 
 
 class UserPatch(BaseModel):
@@ -54,10 +69,12 @@ class UserConfigurationPatch(BaseModel):
     configuration: dict
 
 
-class ClerkUserUpdate(BaseModel):
-    """Schema for Clerk webhook user updates"""
+class TokenPair(BaseModel):
+    """Access + refresh tokens returned to header-based clients."""
 
-    email: EmailStr
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 # API Key schemas
