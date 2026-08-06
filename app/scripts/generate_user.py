@@ -1,5 +1,6 @@
 import asyncio
 
+from app.domains.users.password import hash_password
 from app.domains.users.schemas import RoleEnum, UserCreate
 from app.domains.users.service import APIKeyService, UserService
 from app.infrastructure.config import settings
@@ -7,6 +8,7 @@ from app.infrastructure.database import async_session
 
 USER_EMAIL = settings.DEFAULT_USER
 USER_ROLE = settings.DEFAULT_USER_ROLE
+USER_PASSWORD = settings.DEFAULT_USER_PASSWORD
 
 
 async def main():
@@ -22,7 +24,7 @@ async def main():
             UserCreate(
                 email=USER_EMAIL,
                 role=RoleEnum(USER_ROLE),
-                clerk_id="local_user",
+                password_hash=hash_password(USER_PASSWORD),
             )
         )
         response = await APIKeyService.for_system(session).generate_api_key(user)
@@ -30,6 +32,7 @@ async def main():
             User created:
             Email: {USER_EMAIL}
             Role: {USER_ROLE}
+            Password: {USER_PASSWORD}
             API Key: {response.api_key}
             """)
 

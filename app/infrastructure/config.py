@@ -57,6 +57,7 @@ class Settings(BaseSettings):
 
     DEFAULT_USER: str = "fastapi@example.com"
     DEFAULT_USER_ROLE: str = "admin"
+    DEFAULT_USER_PASSWORD: str = "changeme123"
 
     # Observability (Pydantic Logfire)
     # Cloud mode: set LOGFIRE_TOKEN (after `logfire auth`) and LOGFIRE_SEND_TO_LOGFIRE=true.
