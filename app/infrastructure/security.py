@@ -1,7 +1,9 @@
 import logging
+from typing import cast
 from uuid import UUID
 
 from authx.exceptions import AuthXException, MissingTokenError
+from authx.types import TokenLocations
 from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +12,7 @@ from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundEx
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
 from app.infrastructure.auth import security
+from app.infrastructure.config import settings
 from app.infrastructure.database import get_session
 
 log = logging.getLogger(__name__)
@@ -79,8 +82,12 @@ class VerifyAuth:
 
     async def _verify_access_token(self, request: Request):
         """Extract and verify the access token from the request (headers/cookies + CSRF)."""
+        # Explicit locations (headers/cookies) so the transport is readable here, even
+        # though AuthX would default to the same JWT_TOKEN_LOCATION config.
         try:
-            request_token = await security.get_access_token_from_request(request)
+            request_token = await security.get_access_token_from_request(
+                request, locations=cast(TokenLocations, settings.AUTH_TOKEN_LOCATIONS)
+            )
         except MissingTokenError as e:
             raise UnauthenticatedException("No valid authentication method provided") from e
 
