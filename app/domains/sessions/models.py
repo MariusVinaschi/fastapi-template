@@ -26,9 +26,7 @@ class RefreshSession(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "refresh_sessions"
 
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     token_hash: Mapped[str] = mapped_column("token_hash", nullable=False, unique=True, index=True)
     family_id: Mapped[UUID] = mapped_column("family_id", nullable=False, index=True)
     expires_at: Mapped[datetime] = mapped_column("expires_at", DateTime(timezone=True), nullable=False)
