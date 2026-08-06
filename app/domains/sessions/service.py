@@ -76,7 +76,7 @@ class RefreshSessionService(CreateServiceMixin[RefreshSession, RefreshSessionRep
             await self.repository.revoke_family(stored.family_id)
             raise RefreshTokenReuseError()
 
-        await self.repository.update(stored, {"used_at": datetime.now(UTC)})
+        await self.repository.mark_used(stored)
         return await self.issue(
             user_id=stored.user_id,
             refresh_token=new_refresh_token,

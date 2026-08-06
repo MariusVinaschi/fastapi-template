@@ -36,6 +36,10 @@ class RefreshSessionRepository(
         result = await self.session.scalars(query)
         return result.one_or_none()
 
+    async def mark_used(self, instance: RefreshSession) -> RefreshSession:
+        """Stamp a refresh session as consumed (rotation), via the base update."""
+        return await self.update(instance, {"used_at": datetime.now(UTC)})
+
     async def revoke_family(self, family_id: UUID) -> int:
         """Revoke every still-active token in a family in one statement.
 
