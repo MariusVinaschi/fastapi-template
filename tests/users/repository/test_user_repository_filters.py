@@ -7,7 +7,7 @@ from app.domains.users.schemas import RoleEnum
 
 
 async def create_test_users(db_session):
-    """Create a set of users with distinct email/role/clerk_id for filter tests."""
+    """Create a set of users with distinct email/role for filter tests."""
     user_1 = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
     user_2 = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
     user_3 = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
@@ -43,21 +43,6 @@ async def test_get_all_filters_by_role(db_session):
     assert len(results) == 1
     assert results[0].id == users[0].id
     assert all(result.role == RoleEnum.ADMIN for result in results)
-
-
-@pytest.mark.anyio
-async def test_get_all_filters_by_clerk_id(db_session):
-    # Arrange
-    users = await create_test_users(db_session)
-    repository = UserRepository(db_session)
-    filters = UserFilter(clerk_id=users[1].clerk_id)
-
-    # Act
-    results = await repository.get_all(filters=filters)
-
-    # Assert
-    assert len(results) == 1
-    assert results[0].id == users[1].id
 
 
 @pytest.mark.anyio

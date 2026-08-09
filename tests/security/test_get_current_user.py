@@ -1,74 +1,75 @@
+from uuid import uuid4
+
 import pytest
-from fastapi import Request
-from fastapi.security import SecurityScopes
-from pytest_mock import MockerFixture
+from starlette.requests import Request
 
 from app.domains.users.factory import UserFactory
-from app.domains.users.schemas import RoleEnum
-from app.infrastructure.security import VerifyAuth
+from app.domains.users.service import APIKeyService
+from app.infrastructure.auth import security
+from app.infrastructure.security import UnauthenticatedException, auth
+
+
+def _request(headers: dict[str, str] | None = None, method: str = "GET") -> Request:
+    raw_headers = [(k.lower().encode(), v.encode()) for k, v in (headers or {}).items()]
+    scope = {"type": "http", "method": method, "path": "/", "headers": raw_headers, "query_string": b""}
+    return Request(scope)
+
+
+def _bearer(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.mark.anyio
-async def test_get_current_user_admin(mocker: MockerFixture, db_session):
-    """Test get_current_user with admin user"""
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mocker.MagicMock(spec=Request)
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
-    mock_token = mocker.MagicMock()
+async def test_get_current_user_with_access_token(db_session):
+    user = await UserFactory.create_async(session=db_session)
+    token = security.create_access_token(uid=str(user.id))
 
-    # Mock the authentication methods to return the user
-    mocker.patch.object(VerifyAuth, "_authenticate_with_jwt", return_value=user)
+    result = await auth.get_current_user(_request(_bearer(token)), db_session, api_key_value=None)
 
-    verify_auth = VerifyAuth()
-    result = await verify_auth.get_current_user(
-        security_scopes=mock_security_scopes,
-        session=db_session,
-        api_key_value=None,
-        token=mock_token,
-    )
-
-    assert result == user
+    assert result.id == user.id
 
 
 @pytest.mark.anyio
-async def test_get_current_user_standard(mocker: MockerFixture, db_session):
-    """Test get_current_user with standard user"""
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
-    mocker.MagicMock(spec=Request)
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
-    mock_token = mocker.MagicMock()
+async def test_get_current_user_with_api_key(db_session):
+    user = await UserFactory.create_async(session=db_session)
+    generated = await APIKeyService.for_system(db_session).generate_api_key(user)
 
-    # Mock the authentication methods to return the user
-    mocker.patch.object(VerifyAuth, "_authenticate_with_jwt", return_value=user)
+    result = await auth.get_current_user(_request(), db_session, api_key_value=generated.api_key)
 
-    verify_auth = VerifyAuth()
-    result = await verify_auth.get_current_user(
-        security_scopes=mock_security_scopes,
-        session=db_session,
-        api_key_value=None,
-        token=mock_token,
-    )
-
-    assert result == user
+    assert result.id == user.id
 
 
 @pytest.mark.anyio
-async def test_get_current_user_with_api_key(mocker: MockerFixture, db_session):
-    """Test get_current_user with API key authentication"""
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
-    mock_request = mocker.MagicMock(spec=Request)
-    mock_request.headers = {"X-API-Key": "test-api-key"}
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
+async def test_get_current_user_no_credentials_raises(db_session):
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_current_user(_request(), db_session, api_key_value=None)
 
-    # Mock API key success (no JWT token)
-    mocker.patch.object(VerifyAuth, "_authenticate_with_api_key", return_value=user)
 
-    verify_auth = VerifyAuth()
-    result = await verify_auth.get_current_user(
-        security_scopes=mock_security_scopes,
-        session=db_session,
-        api_key_value="test-api-key",
-        token=None,  # No JWT token
-    )
+@pytest.mark.anyio
+async def test_get_current_user_rejects_refresh_token(db_session):
+    # A refresh token must not authenticate normal API requests.
+    user = await UserFactory.create_async(session=db_session)
+    refresh_token = security.create_refresh_token(uid=str(user.id))
 
-    assert result == user
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_current_user(_request(_bearer(refresh_token)), db_session, api_key_value=None)
+
+
+@pytest.mark.anyio
+async def test_get_current_user_rejects_malformed_token(db_session):
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_current_user(_request(_bearer("not-a-jwt")), db_session, api_key_value=None)
+
+
+@pytest.mark.anyio
+async def test_get_current_user_rejects_unknown_user(db_session):
+    token = security.create_access_token(uid=str(uuid4()))
+
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_current_user(_request(_bearer(token)), db_session, api_key_value=None)
+
+
+@pytest.mark.anyio
+async def test_get_current_user_rejects_invalid_api_key(db_session):
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_current_user(_request(), db_session, api_key_value="invalid-key")

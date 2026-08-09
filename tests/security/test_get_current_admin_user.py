@@ -1,67 +1,36 @@
 import pytest
-from fastapi import Request
-from fastapi.security import SecurityScopes
-from pytest_mock import MockerFixture
+from starlette.requests import Request
 
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
-from app.infrastructure.security import UnauthorizedException, VerifyAuth
+from app.infrastructure.auth import security
+from app.infrastructure.security import UnauthorizedException, auth
+
+
+def _request(headers: dict[str, str] | None = None, method: str = "GET") -> Request:
+    raw_headers = [(k.lower().encode(), v.encode()) for k, v in (headers or {}).items()]
+    scope = {"type": "http", "method": method, "path": "/", "headers": raw_headers, "query_string": b""}
+    return Request(scope)
+
+
+def _bearer(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.mark.anyio
-async def test_get_admin_user(mocker: MockerFixture, db_session):
-    """Test get_current_admin_user with admin user"""
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mocker.MagicMock(spec=Request)
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
+async def test_get_current_admin_user_allows_admin(db_session):
+    admin = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
+    token = security.create_access_token(uid=str(admin.id))
 
-    # Mock get_current_user to return admin user
-    mocker.patch.object(VerifyAuth, "get_current_user", return_value=user)
+    result = await auth.get_current_admin_user(_request(_bearer(token)), db_session, api_key_value=None)
 
-    verify_auth = VerifyAuth()
-    result = await verify_auth.get_current_admin_user(
-        security_scopes=mock_security_scopes, session=db_session, api_key_value=None, token=None
-    )
-
-    assert result == user
+    assert result.id == admin.id
 
 
 @pytest.mark.anyio
-async def test_get_admin_user_user_not_admin(mocker: MockerFixture, db_session):
-    """Test get_current_admin_user with non-admin user"""
+async def test_get_current_admin_user_rejects_standard(db_session):
     user = await UserFactory.create_async(session=db_session, role=RoleEnum.STANDARD)
-    mocker.MagicMock(spec=Request)
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
+    token = security.create_access_token(uid=str(user.id))
 
-    # Mock get_current_user to return standard user
-    mocker.patch.object(VerifyAuth, "get_current_user", return_value=user)
-
-    verify_auth = VerifyAuth()
-    with pytest.raises(UnauthorizedException) as exc_info:
-        await verify_auth.get_current_admin_user(
-            security_scopes=mock_security_scopes, session=db_session, api_key_value=None, token=None
-        )
-
-    assert "User is not an admin." in str(exc_info.value)
-
-
-@pytest.mark.anyio
-async def test_get_admin_user_with_jwt_token(mocker: MockerFixture, db_session):
-    """Test get_current_admin_user with JWT token"""
-    user = await UserFactory.create_async(session=db_session, role=RoleEnum.ADMIN)
-    mocker.MagicMock(spec=Request)
-    mock_security_scopes = mocker.MagicMock(spec=SecurityScopes)
-    mock_token = mocker.MagicMock()
-
-    # Mock get_current_user to return admin user
-    mocker.patch.object(VerifyAuth, "get_current_user", return_value=user)
-
-    verify_auth = VerifyAuth()
-    result = await verify_auth.get_current_admin_user(
-        security_scopes=mock_security_scopes,
-        session=db_session,
-        api_key_value=None,
-        token=mock_token,
-    )
-
-    assert result == user
+    with pytest.raises(UnauthorizedException):
+        await auth.get_current_admin_user(_request(_bearer(token)), db_session, api_key_value=None)

@@ -34,8 +34,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.api.main import create_application
+from app.api.rate_limit import limiter
 from app.domains.base.models import Base
 from app.infrastructure.database import async_engine
+
+# Disable SlowAPI rate limiting in tests: limits are per-IP and would leak across tests.
+limiter.enabled = False
 
 fake = Faker()
 
