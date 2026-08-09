@@ -60,6 +60,8 @@ app/
 
 Each domain folder (see `app/domains/users/` as the reference implementation) contains: `models.py` (SQLAlchemy ORM), `schemas.py` (Pydantic DTOs), `repository.py`, `service.py`, `exceptions.py`, `authorization.py`, `filters.py`, `factory.py` (test factories). Repositories and services compose generic CRUD mixins from `app/domains/base/repository.py` and `app/domains/base/service.py` (`List`, `Read`, `Create`, `Update`, `Delete`, `Bulk*`).
 
+Per-file conventions for domain artifacts live in `.claude/rules/domains/` (one rule per file type). They are path-scoped, so Claude Code loads the matching rule automatically when editing e.g. a `service.py` or `repository.py`.
+
 ### Two-layer authorization (the core invariant)
 
 Services are instantiated only through explicit factory methods:
