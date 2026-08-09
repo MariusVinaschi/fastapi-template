@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.domains.sessions.service import RefreshSessionService, hash_refresh_token
+from app.domains.users.authorization import UserAuthorizationAdapter
 from app.domains.users.factory import UserFactory
 
 
@@ -11,7 +12,7 @@ from app.domains.users.factory import UserFactory
 async def test_issue_persists_hashed_token_and_new_family(db_session):
     # Arrange
     user = await UserFactory.create_async(session=db_session)
-    service = RefreshSessionService.for_system(db_session)
+    service = RefreshSessionService.for_user(db_session, UserAuthorizationAdapter(user))
     expires_at = datetime.now(UTC) + timedelta(days=7)
 
     # Act
@@ -29,7 +30,7 @@ async def test_issue_persists_hashed_token_and_new_family(db_session):
 async def test_issue_reuses_supplied_family_id(db_session):
     # Arrange
     user = await UserFactory.create_async(session=db_session)
-    service = RefreshSessionService.for_system(db_session)
+    service = RefreshSessionService.for_user(db_session, UserAuthorizationAdapter(user))
     expires_at = datetime.now(UTC) + timedelta(days=7)
     family_id = uuid4()
 

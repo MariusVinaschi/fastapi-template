@@ -12,11 +12,20 @@ from app.domains.base.service import (
     ListServiceMixin,
     UpdateServiceMixin,
 )
-from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
+from app.domains.users.exceptions import (
+    APIKeyNotFoundException,
+    InvalidCredentialsError,
+    UserNotFoundException,
+)
 from app.domains.users.models import APIKey, User
+from app.domains.users.password import hash_password, verify_password
 from app.domains.users.repository import APIKeyRepository, UserRepository
 from app.domains.users.schemas import APIKeyCreate, APIKeyGenerated, RoleEnum
 from app.infrastructure.config import settings
+
+# Precomputed hash to verify against when the email is unknown, so login response time
+# doesn't reveal whether an account exists (mitigates user enumeration / timing).
+_DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-timing-mitigation")
 
 
 class UserService(
@@ -73,6 +82,23 @@ class UserService(
         user = await self.repository.find_by_email(email=email)
         if not user:
             raise UserNotFoundException
+
+        self._check_instance_permissions("read", user)
+
+        return user
+
+    async def authenticate(self, email: str, password: str) -> User:
+        """Verify email + password, returning the user or raising InvalidCredentialsError."""
+        self._check_general_permissions("read")
+        try:
+            user = await self.get_by_email(email)
+        except UserNotFoundException:
+            # Constant-time guard so a missing email isn't distinguishable by timing.
+            verify_password(password, _DUMMY_PASSWORD_HASH)
+            raise InvalidCredentialsError() from None
+
+        if not verify_password(password, user.password_hash):
+            raise InvalidCredentialsError()
 
         self._check_instance_permissions("read", user)
 

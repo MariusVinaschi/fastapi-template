@@ -31,3 +31,6 @@ _config = AuthXConfig(
 )
 
 security = AuthX(config=_config)
+
+# Typed token locations (Sequence of Literal), reused by request-token extraction call sites.
+TOKEN_LOCATIONS: TokenLocations = cast(TokenLocations, settings.AUTH_TOKEN_LOCATIONS)
