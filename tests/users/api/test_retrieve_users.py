@@ -86,24 +86,3 @@ async def test_retrieve_users_with_filters_role(
     assert body["count"] == len(standard_users)
     returned_ids = {u["id"] for u in body["data"]}
     assert returned_ids == {str(u.id) for u in standard_users}
-
-
-@pytest.mark.anyio
-async def test_retrieve_users_with_filters_clerk_id(
-    app: FastAPI,
-    client: AsyncClient,
-    db_session,
-):
-    # Arrange
-    users = await create_test_users(db_session)
-    target_user = users[2]
-
-    # Act
-    with DependencyOverrider(app, overrides={auth.get_current_user: lambda: users[0]}):
-        response = await client.get(f"/api/v1/users?clerk_id={target_user.clerk_id}")
-
-    # Assert
-    assert response.status_code == 200
-    body = response.json()
-    assert body["count"] == 1
-    assert body["data"][0]["id"] == str(target_user.id)

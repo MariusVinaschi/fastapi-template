@@ -37,9 +37,15 @@ class UserRead(UserBase, UUIDSchema, TimestampSchema):
 
 
 class UserCreate(UserBase):
-    """Schema for creating a user"""
+    """Internal schema for persisting a user (password already hashed)."""
 
-    clerk_id: str
+    password_hash: str
+
+
+class UserLogin(UserEmail):
+    """Schema for email + password login."""
+
+    password: str
 
 
 class UserPatch(BaseModel):
@@ -54,10 +60,12 @@ class UserConfigurationPatch(BaseModel):
     configuration: dict
 
 
-class ClerkUserUpdate(BaseModel):
-    """Schema for Clerk webhook user updates"""
+class TokenPair(BaseModel):
+    """Access + refresh tokens returned to header-based clients."""
 
-    email: EmailStr
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 # API Key schemas

@@ -4,13 +4,20 @@ These exceptions are raised by user services and should be
 caught and transformed by the delivery layer.
 """
 
-from app.domains.base.exceptions import EntityNotFoundException
+from app.domains.base.exceptions import DomainException, EntityNotFoundException
 
 
 class UserNotFoundException(EntityNotFoundException):
     """Domain exception raised when a user is not found"""
 
     def __init__(self, message: str = "User not found") -> None:
+        super().__init__(message)
+
+
+class InvalidCredentialsError(DomainException):
+    """Raised when email/password authentication fails."""
+
+    def __init__(self, message: str = "Invalid credentials") -> None:
         super().__init__(message)
 
 

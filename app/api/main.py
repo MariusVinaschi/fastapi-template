@@ -9,7 +9,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.rate_limit import limiter
-from app.api.router import api_router, webhook_router
+from app.api.router import api_router
+from app.infrastructure.auth import security
 from app.infrastructure.config import settings
 from app.infrastructure.database import async_engine
 from app.infrastructure.logging_config import setup_logging
@@ -41,8 +42,10 @@ def create_application() -> FastAPI:
     add_cors_middleware(application, settings)
     application.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
+    # Safety net: convert any uncaught AuthX exception into a proper JSON error response.
+    security.handle_errors(application)
+
     application.include_router(router=api_router, prefix=settings.API_V1_STR)
-    application.include_router(router=webhook_router, prefix="/webhooks", tags=["webhooks"])
     instrument_app(application, async_engine)
 
     return application

@@ -12,7 +12,7 @@ from app.domains.base.authorization import AuthorizationContext
 from app.domains.users.authorization import UserAuthorizationAdapter
 from app.domains.users.models import User
 from app.infrastructure.database import get_session
-from app.infrastructure.security import auth
+from app.infrastructure.security import RefreshTokenAuth, auth
 
 # Session dependency
 CurrentSession = Annotated[AsyncSession, Depends(get_session)]
@@ -20,6 +20,9 @@ CurrentSession = Annotated[AsyncSession, Depends(get_session)]
 # User dependencies
 CurrentUser = Annotated[User, Depends(auth.get_current_user)]
 CurrentAdminUser = Annotated[User, Depends(auth.get_current_admin_user)]
+
+# Refresh-token-authenticated request (for /refresh and /logout): carries the user + raw token.
+CurrentRefreshAuth = Annotated[RefreshTokenAuth, Depends(auth.get_refresh_auth)]
 
 
 def get_auth_context(

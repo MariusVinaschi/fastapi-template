@@ -1,15 +1,17 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
+
 # IMPORT ALL MODELS TO THE DATABASE
 # Import from the new domain structure
 from app.domains.base.models import Base
-from app.domains.users.models import User, APIKey  # noqa
+from app.domains.sessions.models import RefreshSession  # noqa
+from app.domains.users.models import APIKey, User  # noqa
 from app.infrastructure.config import settings
 
 # this is the Alembic Config object, which provides

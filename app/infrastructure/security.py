@@ -1,21 +1,16 @@
-import asyncio
 import logging
+from dataclasses import dataclass
+from uuid import UUID
 
-import jwt
-from fastapi import Depends, HTTPException, Security, status
-from fastapi.security import (
-    APIKeyHeader,
-    HTTPAuthorizationCredentials,
-    HTTPBearer,
-    SecurityScopes,
-)
-from jwt.exceptions import DecodeError, PyJWKClientError
+from authx.exceptions import AuthXException, MissingTokenError
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.users.exceptions import APIKeyNotFoundException, UserNotFoundException
 from app.domains.users.models import User
 from app.domains.users.service import APIKeyService, UserService
-from app.infrastructure.config import settings
+from app.infrastructure.auth import TOKEN_LOCATIONS, security
 from app.infrastructure.database import get_session
 
 log = logging.getLogger(__name__)
@@ -33,89 +28,120 @@ class UnauthenticatedException(HTTPException):
 
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-http_bearer = HTTPBearer(auto_error=False)
+
+
+@dataclass(frozen=True)
+class RefreshTokenAuth:
+    """Result of authenticating a request by its refresh token: the user + the raw token.
+
+    The raw token is carried through so the caller can locate/rotate the stored session
+    (which is keyed by the token's hash).
+    """
+
+    user: User
+    token: str
+
+
+def _should_verify_csrf(request: Request) -> bool:
+    """CSRF is enforced only on cookie-borne tokens for state-changing HTTP methods."""
+    return security.config.JWT_COOKIE_CSRF_PROTECT and (request.method.upper() in security.config.JWT_CSRF_METHODS)
 
 
 class VerifyAuth:
-    """Handles both JWT and API Key authentication"""
+    """Handles authentication via AuthX JWT access token or API key.
 
-    def __init__(self):
-        self.clerk_issuer = settings.CLERK_FRONTEND_API_URL
-        self.clerk_algorithms = [alg.strip() for alg in settings.CLERK_ALGORITHMS.split(",") if alg.strip()]
-        self.clerk_azp = settings.CLERK_AZP
-        # Lazy: API can start without Clerk; JWKS is only needed for JWT auth.
-        self._jwks_client: jwt.PyJWKClient | None = None
-
-    @property
-    def jwks_client(self) -> jwt.PyJWKClient:
-        if self._jwks_client is None:
-            issuer = self.clerk_issuer.strip()
-            if not issuer:
-                raise UnauthenticatedException(
-                    "Clerk JWT authentication is not configured (CLERK_FRONTEND_API_URL is empty)"
-                )
-            self._jwks_client = jwt.PyJWKClient(f"{issuer}/.well-known/jwks.json")
-        return self._jwks_client
+    Precedence: an ``X-API-Key`` header wins; otherwise the request is authenticated
+    from a JWT access token (read from headers and/or cookies per AuthX config).
+    """
 
     async def get_current_user(
         self,
-        security_scopes: SecurityScopes,
+        request: Request,
         session: AsyncSession = Depends(get_session),
         api_key_value: str | None = Security(api_key_header),
-        token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
         """Get current user using JWT or API Key authentication"""
         if api_key_value is not None:
             return await self._authenticate_with_api_key(session, api_key_value)
 
-        # Try JWT authentication first
-        if token is not None:
-            try:
-                return await self._authenticate_with_jwt(security_scopes, session, token)
-            except (UnauthenticatedException, UnauthorizedException) as e:
-                raise UnauthenticatedException("Invalid token") from e
-
-        raise UnauthenticatedException("No valid authentication method provided")
+        return await self._authenticate_with_jwt(request, session)
 
     async def get_current_admin_user(
         self,
-        security_scopes: SecurityScopes,
+        request: Request,
         session: AsyncSession = Depends(get_session),
         api_key_value: str | None = Security(api_key_header),
-        token: HTTPAuthorizationCredentials | None = Security(http_bearer),
     ) -> User:
         """Get current admin user using JWT or API Key authentication"""
-        user = await self.get_current_user(security_scopes, session, api_key_value, token)
-        if not user.role == "admin":
+        user = await self.get_current_user(request, session, api_key_value)
+        if user.role != "admin":
             raise UnauthorizedException("User is not an admin.")
         return user
 
-    async def _authenticate_with_jwt(
+    async def get_refresh_auth(
         self,
-        security_scopes: SecurityScopes,
-        session: AsyncSession,
-        token: HTTPAuthorizationCredentials,
-    ) -> User:
-        """Authenticate using JWT token"""
-        payload = await self._verify_jwt_token(security_scopes, token)
-        if "email" not in payload:
-            raise UnauthenticatedException("Invalid token")
+        request: Request,
+        session: AsyncSession = Depends(get_session),
+    ) -> RefreshTokenAuth:
+        """Authenticate a request by its refresh token (for /refresh and /logout).
+
+        Refresh tokens are only accepted here, never by get_current_user — they are not
+        access credentials for the wider API.
+        """
+        try:
+            request_token = await security.get_refresh_token_from_request(request, locations=TOKEN_LOCATIONS)
+        except MissingTokenError as e:
+            raise UnauthenticatedException("Missing refresh token") from e
 
         try:
-            user = await UserService.for_system(session).get_by_email(payload["email"])
+            payload = security.verify_token(request_token, verify_type=True, verify_csrf=_should_verify_csrf(request))
+        except AuthXException as e:
+            raise UnauthenticatedException("Invalid refresh token") from e
+
+        try:
+            user_id = UUID(payload.sub)
+        except (TypeError, ValueError) as e:
+            raise UnauthenticatedException("Invalid refresh token") from e
+
+        try:
+            user = await UserService.for_system(session).get_by_id(user_id)
+        except UserNotFoundException as e:
+            raise UnauthenticatedException("Invalid refresh token") from e
+
+        return RefreshTokenAuth(user=user, token=request_token.token)
+
+    async def _authenticate_with_jwt(self, request: Request, session: AsyncSession) -> User:
+        """Authenticate using a JWT access token verified by AuthX."""
+        payload = await self._verify_access_token(request)
+
+        try:
+            user_id = UUID(payload.sub)
+        except (TypeError, ValueError) as e:
+            raise UnauthenticatedException("Invalid token") from e
+
+        try:
+            return await UserService.for_system(session).get_by_id(user_id)
         except UserNotFoundException as e:
             raise UnauthenticatedException("User doesn't exist") from e
         except Exception as error:
             log.exception("Unexpected error while authenticating user with JWT: %s", error)
             raise UnauthenticatedException("User doesn't exist") from error
 
-        return user
+    async def _verify_access_token(self, request: Request):
+        """Extract and verify the access token from the request (headers/cookies + CSRF)."""
+        # Explicit locations (headers/cookies) so the transport is readable here, even
+        # though AuthX would default to the same JWT_TOKEN_LOCATION config.
+        try:
+            request_token = await security.get_access_token_from_request(request, locations=TOKEN_LOCATIONS)
+        except MissingTokenError as e:
+            raise UnauthenticatedException("No valid authentication method provided") from e
 
-    async def _authenticate_with_api_key(
-        self,
-        session: AsyncSession,
-        api_key_value: str,
-    ) -> User:
+        try:
+            return security.verify_token(request_token, verify_type=True, verify_csrf=_should_verify_csrf(request))
+        except AuthXException as e:
+            raise UnauthenticatedException("Invalid token") from e
+
+    async def _authenticate_with_api_key(self, session: AsyncSession, api_key_value: str) -> User:
         """Authenticate using API Key - using HMAC-SHA256 for deterministic hashing"""
         try:
             api_key_service = APIKeyService.for_system(session)
@@ -127,66 +153,6 @@ class VerifyAuth:
         except Exception as error:
             log.exception("Unexpected error while authenticating user with API key: %s", error)
             raise UnauthenticatedException("Invalid API key") from error
-
-    async def _verify_jwt_token(
-        self,
-        security_scopes: SecurityScopes,
-        token: HTTPAuthorizationCredentials,
-    ):
-        """Verify JWT token using PyJWT"""
-        if token is None:
-            raise UnauthenticatedException("No token provided")
-
-        if not self.clerk_issuer.strip():
-            raise UnauthenticatedException(
-                "Clerk JWT authentication is not configured (CLERK_FRONTEND_API_URL is empty)"
-            )
-
-        # Fetch the signing key in a thread: PyJWKClient.get_signing_key_from_jwt makes a
-        # synchronous HTTPS call to the JWKS endpoint on cache miss, which would block the
-        # entire asyncio event loop if called directly from a coroutine.
-        try:
-            jwks_result = await asyncio.to_thread(self.jwks_client.get_signing_key_from_jwt, token.credentials)
-            signing_key = jwks_result.key
-        except PyJWKClientError as error:
-            log.warning("JWKS key fetch failed: %s", error)
-            raise UnauthorizedException("Authentication failed") from error
-        except DecodeError as error:
-            log.warning("JWT decode error during key fetch: %s", error)
-            raise UnauthorizedException("Authentication failed") from error
-        except Exception as error:
-            log.warning("Unexpected error during JWT key fetch: %s", error)
-            raise UnauthorizedException("Authentication failed") from error
-        try:
-            payload = jwt.decode(
-                token.credentials,
-                signing_key,
-                algorithms=self.clerk_algorithms,
-                issuer=self.clerk_issuer,
-            )
-            if payload.get("azp") != self.clerk_azp:
-                raise DecodeError("Invalid authorized party")
-        except Exception as error:
-            log.warning("JWT validation failed: %s", error)
-            raise UnauthorizedException("Authentication failed") from error
-
-        if len(security_scopes.scopes) > 0:
-            self._check_claims(payload, "scope", security_scopes.scopes)
-
-        return payload
-
-    def _check_claims(self, payload, claim_name, expected_value):
-        if claim_name not in payload:
-            raise UnauthorizedException(detail=f'No claim "{claim_name}" found in token')
-
-        payload_claim = payload[claim_name]
-
-        if claim_name == "scope":
-            payload_claim = payload[claim_name].split(" ")
-
-        for value in expected_value:
-            if value not in payload_claim:
-                raise UnauthorizedException(detail=f'Missing "{claim_name}" scope')
 
 
 # Create instance

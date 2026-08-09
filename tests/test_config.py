@@ -1,46 +1,30 @@
-"""Clerk is optional at API startup; create_application() must always succeed."""
+"""Application config: the app always builds, and auth transport is settings-driven."""
 
 from app.api.main import create_application
 from app.infrastructure.config import settings
 
 
-def test_create_application_succeeds_when_clerk_frontend_api_url_is_blank(monkeypatch):
-    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "")
-
-    app = create_application()
-
-    assert app is not None
+def test_create_application_succeeds():
+    assert create_application() is not None
 
 
-def test_create_application_succeeds_when_clerk_frontend_api_url_is_whitespace(monkeypatch):
-    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "   ")
-
-    app = create_application()
-
-    assert app is not None
+def test_auth_token_locations_parsing(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_TOKEN_LOCATION", "headers,cookies")
+    assert settings.AUTH_TOKEN_LOCATIONS == ["headers", "cookies"]
 
 
-def test_create_application_succeeds_with_valid_clerk_frontend_api_url(monkeypatch):
-    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "https://valid.clerk.accounts.dev")
+def test_auth_cookie_csrf_protect_enabled_only_with_cookies(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_TOKEN_LOCATION", "headers")
+    assert settings.AUTH_COOKIE_CSRF_PROTECT is False
 
-    app = create_application()
-
-    assert app is not None
-
-
-def test_create_application_succeeds_when_clerk_webhook_secret_is_blank(monkeypatch):
-    monkeypatch.setattr(settings, "CLERK_WEBHOOK_SECRET", "")
-
-    app = create_application()
-
-    assert app is not None
+    monkeypatch.setattr(settings, "AUTH_TOKEN_LOCATION", "headers,cookies")
+    assert settings.AUTH_COOKIE_CSRF_PROTECT is True
 
 
-def test_create_application_succeeds_with_no_clerk_configuration_at_all(monkeypatch):
-    """The API-key-only deployment scenario: neither Clerk setting is configured."""
-    monkeypatch.setattr(settings, "CLERK_FRONTEND_API_URL", "")
-    monkeypatch.setattr(settings, "CLERK_WEBHOOK_SECRET", "")
+def test_auth_jwt_signing_key_falls_back_to_secret_key(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_JWT_SECRET_KEY", "")
+    monkeypatch.setattr(settings, "SECRET_KEY", "the-secret")
+    assert settings.AUTH_JWT_SIGNING_KEY == "the-secret"
 
-    app = create_application()
-
-    assert app is not None
+    monkeypatch.setattr(settings, "AUTH_JWT_SECRET_KEY", "dedicated-jwt-key")
+    assert settings.AUTH_JWT_SIGNING_KEY == "dedicated-jwt-key"
