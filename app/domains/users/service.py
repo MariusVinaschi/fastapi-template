@@ -97,6 +97,10 @@ class UserService(
             verify_password(password, _DUMMY_PASSWORD_HASH)
             raise InvalidCredentialsError() from None
 
+        if not user.password_hash:
+            verify_password(password, _DUMMY_PASSWORD_HASH)
+            raise InvalidCredentialsError()
+
         if not verify_password(password, user.password_hash):
             raise InvalidCredentialsError()
 

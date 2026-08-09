@@ -42,6 +42,11 @@ class RefreshTokenAuth:
     token: str
 
 
+def _should_verify_csrf(request: Request) -> bool:
+    """CSRF is enforced only on cookie-borne tokens for state-changing HTTP methods."""
+    return security.config.JWT_COOKIE_CSRF_PROTECT and (request.method.upper() in security.config.JWT_CSRF_METHODS)
+
+
 class VerifyAuth:
     """Handles authentication via AuthX JWT access token or API key.
 
@@ -88,16 +93,18 @@ class VerifyAuth:
         except MissingTokenError as e:
             raise UnauthenticatedException("Missing refresh token") from e
 
-        verify_csrf = security.config.JWT_COOKIE_CSRF_PROTECT and (
-            request.method.upper() in security.config.JWT_CSRF_METHODS
-        )
         try:
-            payload = security.verify_token(request_token, verify_type=True, verify_csrf=verify_csrf)
+            payload = security.verify_token(request_token, verify_type=True, verify_csrf=_should_verify_csrf(request))
         except AuthXException as e:
             raise UnauthenticatedException("Invalid refresh token") from e
 
         try:
-            user = await UserService.for_system(session).get_by_id(UUID(payload.sub))
+            user_id = UUID(payload.sub)
+        except (TypeError, ValueError) as e:
+            raise UnauthenticatedException("Invalid refresh token") from e
+
+        try:
+            user = await UserService.for_system(session).get_by_id(user_id)
         except UserNotFoundException as e:
             raise UnauthenticatedException("Invalid refresh token") from e
 
@@ -129,13 +136,8 @@ class VerifyAuth:
         except MissingTokenError as e:
             raise UnauthenticatedException("No valid authentication method provided") from e
 
-        # Mirror AuthX's own rule: CSRF is only enforced on cookie-borne tokens for mutating methods.
-        verify_csrf = security.config.JWT_COOKIE_CSRF_PROTECT and (
-            request.method.upper() in security.config.JWT_CSRF_METHODS
-        )
-
         try:
-            return security.verify_token(request_token, verify_type=True, verify_csrf=verify_csrf)
+            return security.verify_token(request_token, verify_type=True, verify_csrf=_should_verify_csrf(request))
         except AuthXException as e:
             raise UnauthenticatedException("Invalid token") from e
 

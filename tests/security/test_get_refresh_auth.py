@@ -81,3 +81,14 @@ async def test_get_refresh_auth_rejects_unknown_user(db_session):
     # Act / Assert
     with pytest.raises(UnauthenticatedException):
         await auth.get_refresh_auth(request, db_session)
+
+
+@pytest.mark.anyio
+async def test_get_refresh_auth_rejects_non_uuid_subject(db_session):
+    # Arrange - validly signed token whose subject isn't a UUID (must 401, not 500)
+    token = security.create_refresh_token(uid="not-a-uuid")
+    request = _request(_bearer(token))
+
+    # Act / Assert
+    with pytest.raises(UnauthenticatedException):
+        await auth.get_refresh_auth(request, db_session)
