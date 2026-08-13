@@ -24,6 +24,7 @@ A production-ready FastAPI template built around **Domain-Driven Design (DDD)** 
   - [Local Setup](#local-setup)
   - [Docker Setup](#docker-setup)
   - [Prefect Workers](#prefect-workers)
+- [Authentication](#authentication)
 - [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
 - [Commands](#commands)
@@ -32,7 +33,6 @@ A production-ready FastAPI template built around **Domain-Driven Design (DDD)** 
 - [CI/CD](#cicd)
 - [Versioning & Releases](#versioning--releases)
 - [Adding a New Domain](#adding-a-new-domain)
-- [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
 
@@ -46,7 +46,7 @@ A production-ready FastAPI template built around **Domain-Driven Design (DDD)** 
 | ORM | [SQLAlchemy](https://www.sqlalchemy.org/) (async) |
 | Database | PostgreSQL 17 |
 | Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
-| Auth | [Clerk](https://clerk.com/) (JWT RS256) + API Key (HMAC-SHA256) |
+| Auth | [AuthX](https://authx.yezz.me/) (JWT access + refresh) + API Key (HMAC-SHA256) |
 | Workers | [Prefect](https://www.prefect.io/) |
 | Observability | [Pydantic Logfire](https://pydantic.dev/logfire) (OpenTelemetry) |
 | Package manager | [uv](https://docs.astral.sh/uv/) |
@@ -63,9 +63,11 @@ A production-ready FastAPI template built around **Domain-Driven Design (DDD)** 
 - **Composable CRUD mixins** — `List`, `Read`, `Create`, `Update`, `Delete`, `Bulk*` at repository and service levels
 - **Two-layer authorization** — permission checks (service, deny-by-default) + query-level data scoping (repository)
 - **Request-scoped Unit of Work** — repositories `flush()`, the transaction commits once per request (`get_session`) or per flow (`get_prefect_db_session`)
-- **Rate limiting** — [SlowAPI](https://github.com/laurentS/slowapi) middleware wired in, `@limiter.limit(...)` ready on any route
-- **Dual authentication** — Clerk JWT and API Key (HMAC-SHA256), both ready out of the box
-- **Clerk webhook sync** — automatically syncs users on `user.created`, `user.updated`, `user.deleted`
+- **Rate limiting** — [SlowAPI](https://github.com/laurentS/slowapi) middleware wired in, `@limiter.limit(...)` ready on any route (already applied to `/auth/login` and `/auth/refresh`)
+- **Password + JWT authentication** — [AuthX](https://authx.yezz.me/) issues short-lived access tokens and long-lived refresh tokens; passwords hashed in `app/domains/users/password.py`
+- **Refresh-token rotation & reuse detection** — refresh tokens are persisted per session (`sessions` domain), rotated on every refresh, and a whole token family is revoked if a reused token is detected
+- **Configurable token transport** — Bearer headers, HttpOnly cookies (with automatic CSRF protection), or both, via `AUTH_TOKEN_LOCATION`
+- **API Key authentication** — `X-API-Key` header, hashed with HMAC-SHA256 for deterministic lookup; takes precedence over JWT when present
 - **Async database** — SQLAlchemy async engine with `asyncpg`
 - **Prefect workers** — async task execution with a Docker work pool
 - **Multi-stage Dockerfile** — one file produces three independent images: `api`, `worker`, `migrations`
@@ -92,15 +94,24 @@ app/domains/
 │   ├── repository.py       # Composable CRUD repository mixins
 │   ├── schemas.py          # Base Pydantic schemas
 │   └── service.py          # Composable service mixins
-└── users/                  # User domain (example implementation)
+├── users/                  # User domain (example implementation)
+│   ├── authorization.py
+│   ├── exceptions.py
+│   ├── factory.py
+│   ├── filters.py
+│   ├── models.py           # User, APIKey ORM models
+│   ├── password.py         # Password hashing / verification
+│   ├── repository.py       # UserRepository, APIKeyRepository
+│   ├── schemas.py          # UserRead, UserCreate, UserLogin, TokenPair, APIKeyGenerated…
+│   └── service.py          # UserService (authenticate), APIKeyService
+└── sessions/               # Refresh-token sessions (rotation + reuse detection)
     ├── authorization.py
-    ├── exceptions.py
+    ├── exceptions.py       # InvalidRefreshTokenError, RefreshTokenReuseError
     ├── factory.py
-    ├── filters.py
-    ├── models.py           # User, APIKey ORM models
-    ├── repository.py       # UserRepository, APIKeyRepository
-    ├── schemas.py          # UserRead, UserCreate, UserPatch, APIKeyGenerated…
-    └── service.py          # UserService, ClerkUserService, APIKeyService
+    ├── models.py           # Session ORM model (refresh-token family)
+    ├── repository.py
+    ├── schemas.py
+    └── service.py
 ```
 
 ### Layer Separation
@@ -311,6 +322,43 @@ just serve-flows
 
 ---
 
+## Authentication
+
+Authentication is handled by **[AuthX](https://authx.yezz.me/)** (password + JWT) with an
+optional **API Key** path for machine-to-machine access. There is no third-party identity
+provider — users and credentials live in your own database.
+
+### Password + JWT flow
+
+```
+POST /api/v1/auth/login    email + password        →  access token + refresh token
+POST /api/v1/auth/refresh  valid refresh token     →  new access + refresh (rotated)
+POST /api/v1/auth/logout   valid refresh token     →  refresh-token family revoked
+```
+
+- **Access token** — short-lived (`AUTH_ACCESS_TOKEN_EXPIRES_MINUTES`, default 15 min), sent on every request.
+- **Refresh token** — long-lived (`AUTH_REFRESH_TOKEN_EXPIRES_DAYS`, default 7 days), persisted in the `sessions` domain.
+- **Rotation + reuse detection** — each refresh issues a new token and invalidates the old one. If an already-used refresh token is replayed, the entire token family is revoked (`RefreshTokenReuseError`).
+
+### Token transport
+
+`AUTH_TOKEN_LOCATION` controls where tokens are read from:
+
+| Value | Behavior |
+|---|---|
+| `headers` (default) | `Authorization: Bearer <token>` |
+| `cookies` | HttpOnly cookies + automatic **CSRF protection** |
+| `headers,cookies` | Both accepted |
+
+### API Key
+
+Send an `X-API-Key` header to authenticate as the key's owner. Keys are stored hashed
+(HMAC-SHA256, signed with `SECRET_KEY`) and an API key **takes precedence over JWT** when both
+are present. Each user has at most one key, generate or revoke it via `POST`/`DELETE`
+`/me/api-key`.
+
+---
+
 ## Environment Variables
 
 Run `just env-init` once to create `.env` and `.env.local` from the sample templates.
@@ -343,14 +391,25 @@ Variables are grouped by category below.
 | `APP_DB_HOST` | `dbapp` | `localhost` | PostgreSQL host |
 | `APP_DB_PORT` | `5432` | — | PostgreSQL port |
 
-### Authentication (Clerk)
+### Secrets
 
 | Variable | Default | Description |
 |---|---|---|
-| `CLERK_FRONTEND_API_URL` | — | Clerk frontend API URL (JWKS issuer) |
-| `CLERK_ALGORITHMS` | `RS256` | JWT signing algorithm |
-| `CLERK_AZP` | `http://localhost:3000` | Allowed `azp` claim (your frontend origin) |
-| `CLERK_WEBHOOK_SECRET` | — | Webhook signing secret from Clerk dashboard |
+| `SECRET_KEY` | — (required) | Signs API key hashes. Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+
+### Authentication (AuthX / JWT)
+
+| Variable | Default | Description |
+|---|---|---|
+| `AUTH_JWT_SECRET_KEY` | — | Signing key for access/refresh JWTs. Falls back to `SECRET_KEY` when empty |
+| `AUTH_TOKEN_LOCATION` | `headers` | Token transport: `headers`, `cookies`, or `headers,cookies` |
+| `AUTH_ACCESS_TOKEN_EXPIRES_MINUTES` | `15` | Access token lifetime |
+| `AUTH_REFRESH_TOKEN_EXPIRES_DAYS` | `7` | Refresh token lifetime |
+| `AUTH_COOKIE_SECURE` | `true` | `Secure` flag on auth cookies (cookie mode only) |
+| `AUTH_COOKIE_SAMESITE` | `lax` | `SameSite` policy on auth cookies (cookie mode only) |
+
+> CSRF protection is enabled automatically whenever `AUTH_TOKEN_LOCATION` includes `cookies`.
+
 
 ### CORS
 
@@ -364,6 +423,7 @@ Variables are grouped by category below.
 |---|---|---|
 | `DEFAULT_USER` | `admin@admin.com` | Email of the default user created by `just create-user` |
 | `DEFAULT_USER_ROLE` | `admin` | Role assigned to the default user |
+| `DEFAULT_USER_PASSWORD` | `changeme123` | Password for the default user |
 
 ### Prefect
 
@@ -480,12 +540,16 @@ just test-cov
 ```
 tests/
 ├── conftest.py          # Fixtures: app, async HTTP client, DB session (create/drop per test)
+├── auth/                # login + refresh endpoint tests
 ├── core/                # Unit tests for all repository and service mixins
-├── security/            # JWT and API Key authentication tests
+├── security/            # JWT, refresh-token, and API Key authentication tests
+├── sessions/            # Session repository + service (refresh-token rotation/reuse)
 ├── users/
-│   ├── api/             # HTTP endpoint integration tests
-│   ├── repository/      # find_by_email, find_by_clerk_id
-│   └── service/         # UserService, ClerkUserService (permissions, queries)
+│   ├── api/             # HTTP endpoint integration tests (CRUD, /me, api-key)
+│   ├── repository/      # find_by_email, filters
+│   ├── service/         # UserService (authenticate, permissions), APIKeyService
+│   └── test_password.py # Password hashing / verification
+├── test_config.py
 ├── test_health.py
 └── utils/ & validations/
 ```
