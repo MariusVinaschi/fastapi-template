@@ -93,3 +93,8 @@ Repositories **never commit** — mutations only `flush()`. The commit happens o
 ### Deployment shape
 
 One multi-stage `dockerfile` produces three images: `api` (full app), `worker` (no `app/api/`), `migrations` (runs `alembic upgrade head`). The worker image must not import from `app/api/` — keep worker code depending only on `domains/` and `infrastructure/`.
+
+## Development workflow
+
+Do not create additional Git worktrees unless explicitly requested.
+Do not modify another worktree.
