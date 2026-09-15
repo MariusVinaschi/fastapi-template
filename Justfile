@@ -58,6 +58,17 @@ type-check:
     # Type check code
     uvx ty check app/
 
+complexity:
+    uvx complexipy
+
+coverage-report:
+    # Run tests then print a coverage report (HTML in htmlcov/)
+    uv run coverage run -m pytest && uv run coverage report -m && uv run coverage html
+
+bdd:
+    # Run the Gherkin acceptance suite (pytest-bdd). Exit 5 = no step module bound yet, not a failure.
+    uv run pytest features/steps || [ $? -eq 5 ]
+
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
