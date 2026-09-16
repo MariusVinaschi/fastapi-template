@@ -16,15 +16,16 @@
 ## Commands
 
 Use just for project operations:
-- just setup: locked Python dependencies, isolated DBs, migrations, API port.
+- just setup: locked dependencies, dev PostgreSQL container, isolated DBs,
+  migrations, API port.
 - just dev: foreground API with reload; just status shows its port.
 - just test [pytest arguments]: all tests including configured BDD.
 - just test-unit / just test-integration / just bdd: focused suites.
 - just check: lint, format check, types, complexipy <=12, tests with coverage.
 - just format: explicit formatting; checks do not rewrite code.
 - just migrate / just migrate-create "message": worktree database migrations.
-- just cleanup: managed processes and the two owned DBs; retains shared server
-  and Git worktree. Run only when environment data is disposable.
+- just cleanup: drops this checkout's two databases; retains the shared
+  development container and Git worktree. Run only when data is disposable.
 
 ## Read on demand
 

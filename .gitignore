@@ -130,6 +130,7 @@ celerybeat.pid
 .env
 .env.local
 .worktree/
+.env.worktree
 .complexipy_cache/
 .venv
 env/

@@ -250,8 +250,10 @@ just prek-install
 just dev
 ```
 
-Setup prints the allocated URL (starting at `http://127.0.0.1:18000`).
-Use `/docs` for Swagger UI or `/redocs` for ReDoc; `just status` shows the port.
+Setup starts the development PostgreSQL container (PostgreSQL 17 on
+`127.0.0.1:5433`), then prints the allocated URL (starting at
+`http://127.0.0.1:18000`). Use `/docs` for Swagger UI or `/redocs` for ReDoc;
+`just status` shows the port.
 
 See the [AI development workflow](docs/development/workflow.md) for human
 validation gates, worktrees, review and documentation consolidation, and the
@@ -362,7 +364,7 @@ Run `just env-init` once to create `.env` and `.env.local` from the sample templ
 |---|---|---|
 | `.env` | Docker Compose | Shared secrets + Docker service hostnames (`APP_DB_HOST=dbapp`) |
 | `.env.local` | Your Mac only | Local overrides (`APP_DB_HOST=localhost`) — gitignored |
-| `.worktree/state.json` | Project commands / pytest bootstrap | Generated identity, databases, port and local secret — gitignored |
+| `.env.worktree` | `just`, Docker Compose, pytest bootstrap | Generated identity, databases, port and local secret — mode 0600, gitignored |
 
 On your Mac, `app/infrastructure/config.py` loads `.env` then `.env.local` (later values win).
 Docker Compose injects `.env` only — containers never see `.env.local`.
@@ -458,7 +460,7 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just install` | Install dependencies with uv |
-| `just setup` | Prepare an isolated worktree environment and migrate its application DB |
+| `just setup` | Start the dev database container, prepare this worktree's isolated environment and migrate its application DB |
 | `just status` | Display the worktree identity and allocated API port |
 | `just dev` | Run the API in development mode (hot reload) |
 | `just prek-install` | Install git hooks (Ruff + Conventional Commits) |
@@ -472,7 +474,7 @@ Run `just --list` to see all available commands.
 | `just test-unit` | Tests without database dependencies |
 | `just test-integration` | Tests using real PostgreSQL |
 | `just bdd` | Execute configured pytest-bdd scenarios |
-| `just check` | All required gates, with results tied to the current code fingerprint |
+| `just check` | All required gates in order, stopping at the first failure |
 | `just complexity` | Cognitive complexity gate: maximum 12 per function |
 | `just format-check` | Verify formatting without modifying files |
 | `just test-cov` | Run tests with coverage report (HTML + terminal) |
@@ -515,7 +517,7 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just clean` | Remove caches (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.coverage`, `htmlcov`) |
-| `just cleanup` | Stop managed dev process and drop only this worktree's owned databases |
+| `just cleanup` | Drop only this worktree's two owned databases; the shared container is retained |
 | `just clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
 ---
@@ -525,9 +527,9 @@ Run `just --list` to see all available commands.
 Tests are located in `tests/` and use `pytest` with async support (`pytest-asyncio`, strict mode).
 
 Tests run against a **dedicated test database**: root `conftest.py` redirects
-`APP_DB_NAME` to the worktree test database before any application import.
-`just setup` creates it. CI uses its explicit `APP_DB_TEST_NAME`; unmanaged
-legacy runs default to `fastapi_template_test`, which must already exist.
+`APP_DB_NAME` to this worktree's test database before any application import.
+`just setup` creates it inside the development container. CI overrides
+`APP_DB_TEST_NAME` through process variables, which win over every file.
 The same fixtures serve pytest-bdd under `features/`.
 
 ```bash
