@@ -41,20 +41,20 @@ async def get_session() -> AsyncGenerator[AsyncSession]:
             await session.commit()
 
 
-@asynccontextmanager
-async def get_prefect_db_session(block_name: str):
-    """Flow/task-scoped transaction boundary for Prefect workers.
-
-    Same contract as get_session: commit on success, rollback on exception.
-    Workers can still issue an explicit intermediate commit when a durable
-    checkpoint is required before an external side-effect (e.g. Slack).
-    """
+async def _load_prefect_connector(block_name: str):
     load_result = SqlAlchemyConnector.load(block_name)
     if load_result is None:
         raise ValueError(f"Prefect block {block_name!r} not found")
     connector_cm = await load_result
     if connector_cm is None:
         raise ValueError(f"Prefect block {block_name!r} failed to load")
+    return connector_cm
+
+
+@asynccontextmanager
+async def get_prefect_db_session(block_name: str):
+    """Flow transaction boundary; workers may checkpoint before external side effects."""
+    connector_cm = await _load_prefect_connector(block_name)
     async with connector_cm as connector:
         engine = connector.get_engine()
         session_factory = async_sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
