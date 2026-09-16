@@ -26,6 +26,9 @@ review's verdict on the same code.
 
 ## Workflow
 
+For this repository, follow docs/development/workflow.md for the handoff,
+QA and documentation consolidation. Preserve the existing specialist roles.
+
 ### Step 0 — Detect the project's tooling
 
 Before running anything, check what this project actually has:
@@ -51,12 +54,24 @@ Before running anything, check what this project actually has:
 
 ### Step 1 — Identify the diff
 
-Run `git diff <base-branch>...HEAD -- '*.py'` (or `git diff --staged` if
-reviewing uncommitted work) to get the exact set of changed Python files.
-This diff is the only view of "what was done" that gets passed downstream
-— not a summary written by whoever implemented it.
+Resolve the requested base (main by default) with git merge-base, then
+compare the working tree against that commit. Include staged, unstaged and
+untracked changes; use git ls-files --others --exclude-standard for additions.
+For a local-only review, compare against HEAD. Keep relevant configuration,
+tests and documentation in scope. Pass raw changes, not implementation rationale.
+
+Derive the change set from git yourself. If the caller supplied a summary,
+a rationale, or an account of what was done, discard it and never pass it
+downstream — an implementer describing its own work is exactly the anchoring
+this agent exists to prevent.
 
 ### Step 2 — Run the quantitative gates once
+
+This repository uses just check. Reuse .worktree/check.json only when passed
+is true and its fingerprint matches scripts.quality.fingerprint for the current
+checkout; otherwise run just check. Report its actual gates and failures.
+Do not rerun coverage or BDD separately after a current successful check.
+Use the following detection fallback only in projects without just check.
 
 Using the tooling detected in Step 0, run, in order, whichever of these
 the project actually has:

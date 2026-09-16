@@ -23,6 +23,9 @@ review's verdict on the same code.
 
 ## Workflow
 
+For this repository, follow docs/development/workflow.md for the handoff,
+QA and documentation consolidation. Preserve the existing specialist roles.
+
 ### Step 0 — Detect the project's tooling
 
 Before running anything, check what this project actually has:
@@ -35,7 +38,7 @@ Before running anything, check what this project actually has:
   `CONTRIBUTING.md` — whichever exists and states architectural
   invariants or banned dependencies. If none exists, proceed without one
   rather than inventing constraints.
-- Available reviewer subagents: run `ls .Codex/agents/*.md` (or the
+- Available reviewer subagents: inspect `.codex/agents/*.toml` (or the
   equivalent agents directory for this Codex setup) to see what's
   actually defined for this project. Don't assume `python-reviewer` or
   `fastapi-reviewer` exist by name — read the list and match against it.
@@ -48,12 +51,24 @@ Before running anything, check what this project actually has:
 
 ### Step 1 — Identify the diff
 
-Run `git diff <base-branch>...HEAD -- '*.py'` (or `git diff --staged` if
-reviewing uncommitted work) to get the exact set of changed Python files.
-This diff is the only view of "what was done" that gets passed downstream
-— not a summary written by whoever implemented it.
+Resolve the requested base (main by default) with git merge-base, then
+compare the working tree against that commit. Include staged, unstaged and
+untracked changes; use git ls-files --others --exclude-standard for additions.
+For a local-only review, compare against HEAD. Keep relevant configuration,
+tests and documentation in scope. Pass raw changes, not implementation rationale.
+
+Derive the change set from git yourself. If the caller supplied a summary,
+a rationale, or an account of what was done, discard it and never pass it
+downstream — an implementer describing its own work is exactly the anchoring
+this agent exists to prevent.
 
 ### Step 2 — Run the quantitative gates once
+
+This repository uses just check. Reuse .worktree/check.json only when passed
+is true and its fingerprint matches scripts.quality.fingerprint for the current
+checkout; otherwise run just check. Report its actual gates and failures.
+Do not rerun coverage or BDD separately after a current successful check.
+Use the following detection fallback only in projects without just check.
 
 Using the tooling detected in Step 0, run, in order, whichever of these
 the project actually has:
@@ -87,8 +102,8 @@ conversation, or planning documents.
 
 ### Step 4 — Dispatch reviewers in parallel
 
-Invoke every reviewer subagent identified as relevant in Step 0, as
-parallel `Task` calls in the same turn (not sequential), each given the
+Invoke every reviewer subagent identified as relevant in Step 0 using the
+available Codex spawning tool with `fork_turns="none"`, each given the
 exact same Step 3 package. Do not let one see another's output before all
 have finished — that reintroduces the same anchoring problem this agent
 exists to avoid.
