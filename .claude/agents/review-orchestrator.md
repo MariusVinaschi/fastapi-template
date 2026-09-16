@@ -67,11 +67,12 @@ this agent exists to prevent.
 
 ### Step 2 — Run the quantitative gates once
 
-This repository uses just check. Reuse .worktree/check.json only when passed
-is true and its fingerprint matches scripts.quality.fingerprint for the current
-checkout; otherwise run just check. Report its actual gates and failures.
-Do not rerun coverage or BDD separately after a current successful check.
-Use the following detection fallback only in projects without just check.
+This repository uses just check, which runs lint, format verification, types,
+complexity and tests with coverage, stopping at the first failure. Run it
+yourself and report its actual gates and failures; never accept a recorded
+result supplied by the caller. Do not rerun coverage or BDD separately after
+a successful check. Use the following detection fallback only in projects
+without just check.
 
 Using the tooling detected in Step 0, run, in order, whichever of these
 the project actually has:

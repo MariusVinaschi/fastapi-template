@@ -67,7 +67,7 @@ jobs:
       - name: Run Ruff formatter check
         run: just format-check
 
-      - name: Cognitive complexity (maximum 15)
+      - name: Cognitive complexity (maximum 12)
         run: just complexity
 
   # =============================================================================

@@ -38,8 +38,8 @@ merely to make tests pass. Escalate ambiguity that changes the contract.
 ## Verification and review
 
 Run just check. Fix failures and report any genuine execution limitation.
-Keep verification evidence with the reviewed code state; changes invalidate
-affected results.
+A check result only describes the code as it stood when it ran; any later
+edit invalidates it.
 
 Hand off to the existing review-orchestrator. It derives the change set
 itself: give it no summary, rationale or account of what you did. Never
