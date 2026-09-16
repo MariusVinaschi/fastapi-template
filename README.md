@@ -240,27 +240,22 @@ docker build --target migrations -t myapp:migrations .
 git clone https://github.com/mariusvinaschi/fastapi-template.git
 cd fastapi-template
 
-# 2. Bootstrap environment files (.env for Docker, .env.local for Mac overrides)
-just env-init
-
-# 3. Install dependencies
-just install
+# 2. Prepare Python, isolated databases, migrations and an API port
+just setup
 
 # 4. Install git hooks (Ruff + Conventional Commits)
 just prek-install
 
-# 5. Start the database
-docker compose up -d dbapp
-
-# 6. Run migrations
-just migrate
-
-# 7. Start the API server
+# 5. Start the API server
 just dev
 ```
 
-The API is now available at `http://localhost:8000`.
-Interactive docs: `http://localhost:8000/docs` (Swagger UI) or `http://localhost:8000/redoc` (ReDoc).
+Setup prints the allocated URL (starting at `http://127.0.0.1:18000`).
+Use `/docs` for Swagger UI or `/redocs` for ReDoc; `just status` shows the port.
+
+See the [AI development workflow](docs/development/workflow.md) for human
+validation gates, worktrees, review and documentation consolidation, and the
+[environment guide](docs/development/environment.md) for isolation and cleanup.
 
 ### Docker Setup
 
@@ -367,6 +362,7 @@ Run `just env-init` once to create `.env` and `.env.local` from the sample templ
 |---|---|---|
 | `.env` | Docker Compose | Shared secrets + Docker service hostnames (`APP_DB_HOST=dbapp`) |
 | `.env.local` | Your Mac only | Local overrides (`APP_DB_HOST=localhost`) — gitignored |
+| `.worktree/state.json` | Project commands / pytest bootstrap | Generated identity, databases, port and local secret — gitignored |
 
 On your Mac, `app/infrastructure/config.py` loads `.env` then `.env.local` (later values win).
 Docker Compose injects `.env` only — containers never see `.env.local`.
@@ -462,6 +458,8 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just install` | Install dependencies with uv |
+| `just setup` | Prepare an isolated worktree environment and migrate its application DB |
+| `just status` | Display the worktree identity and allocated API port |
 | `just dev` | Run the API in development mode (hot reload) |
 | `just prek-install` | Install git hooks (Ruff + Conventional Commits) |
 | `just prek-run` | Run hooks manually on all files |
@@ -471,6 +469,12 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just test` | Run all tests |
+| `just test-unit` | Tests without database dependencies |
+| `just test-integration` | Tests using real PostgreSQL |
+| `just bdd` | Execute configured pytest-bdd scenarios |
+| `just check` | All required gates, with results tied to the current code fingerprint |
+| `just complexity` | Cognitive complexity gate: maximum 12 per function |
+| `just format-check` | Verify formatting without modifying files |
 | `just test-cov` | Run tests with coverage report (HTML + terminal) |
 | `just lint` | Run Ruff linter on `app/` |
 | `just format` | Format code with Ruff |
@@ -511,6 +515,7 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just clean` | Remove caches (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.coverage`, `htmlcov`) |
+| `just cleanup` | Stop managed dev process and drop only this worktree's owned databases |
 | `just clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
 ---
@@ -519,13 +524,11 @@ Run `just --list` to see all available commands.
 
 Tests are located in `tests/` and use `pytest` with async support (`pytest-asyncio`, strict mode).
 
-Tests run against a **dedicated test database**: `tests/conftest.py` redirects `APP_DB_NAME`
-to `APP_DB_TEST_NAME` (default `fastapi_template_test`) before any `app.*` import, so your
-development data is never touched. Create it once:
-
-```sql
-CREATE DATABASE fastapi_template_test;
-```
+Tests run against a **dedicated test database**: root `conftest.py` redirects
+`APP_DB_NAME` to the worktree test database before any application import.
+`just setup` creates it. CI uses its explicit `APP_DB_TEST_NAME`; unmanaged
+legacy runs default to `fastapi_template_test`, which must already exist.
+The same fixtures serve pytest-bdd under `features/`.
 
 ```bash
 # Run all tests
@@ -539,9 +542,8 @@ just test-cov
 
 ```
 tests/
-├── conftest.py          # Fixtures: app, async HTTP client, DB session (create/drop per test)
 ├── auth/                # login + refresh endpoint tests
-├── core/                # Unit tests for all repository and service mixins
+├── core/                # Repository/service integration tests and pure logic tests
 ├── security/            # JWT, refresh-token, and API Key authentication tests
 ├── sessions/            # Session repository + service (refresh-token rotation/reuse)
 ├── users/
