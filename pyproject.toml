@@ -112,7 +112,7 @@ max-complexity = 5
 paths = ["app", "tests", "scripts", "features", "conftest.py"]
 cache-dir = ".complexipy_cache"
 failed = true
-max-complexity-allowed = 15
+max-complexity-allowed = 12
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI's `Depends()`/`Security()` in argument defaults is the framework's
