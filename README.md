@@ -358,24 +358,25 @@ are present. Each user has at most one key, generate or revoke it via `POST`/`DE
 
 ## Environment Variables
 
-Run `just env-init` once to create `.env` and `.env.local` from the sample templates.
+`just setup` creates `.env` and `.env.local` from the sample templates on first run; `just env-init` does only that step.
 
 | File | Read by | Purpose |
 |---|---|---|
 | `.env` | Docker Compose | Shared secrets + Docker service hostnames (`APP_DB_HOST=dbapp`) |
-| `.env.local` | Your Mac only | Local overrides (`APP_DB_HOST=localhost`) — gitignored |
+| `.env.local` | The host only | Local overrides — gitignored, never seen by containers |
 | `.env.worktree` | `just`, Docker Compose, pytest bootstrap | Generated identity, databases, port and local secret — mode 0600, gitignored |
 
-On your Mac, `app/infrastructure/config.py` loads `.env` then `.env.local` (later values win).
+`app/infrastructure/config.py` loads `.env` then `.env.local` (later values win),
+and process variables win over both — which is how `.env.worktree` takes effect.
 Docker Compose injects `.env` only — containers never see `.env.local`.
 
-| Command | DB host used |
+| Command | DB endpoint used |
 |---|---|
-| `just dev`, `just migrate`, `just test` | `localhost` (via `.env.local`) |
-| `docker compose up` | `dbapp` (via `.env` only) |
-| DBeaver / TablePlus on your Mac | `localhost:5432` |
+| `just dev`, `just migrate`, `just test` | `127.0.0.1:5433` (via `.env.worktree`) |
+| `docker compose up` | `dbapp:5432` (via `.env` only) |
+| A database client | `127.0.0.1:5433`, database name from `just status` |
 
-**Rule of thumb:** Docker problem → check `.env`. Local problem → check `.env.local`.
+**Rule of thumb:** Docker problem → check `.env`. Local problem → check `.env.worktree`, then `.env.local`.
 
 Variables are grouped by category below.
 
