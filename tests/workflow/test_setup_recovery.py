@@ -3,11 +3,14 @@ import subprocess
 import pytest
 
 from scripts import workflow
-from scripts.environment import ENV_FILE, worktree_env
+from scripts.environment import ENV_FILE, OWNED_KEYS, UNPROVISIONED, worktree_env
 
 
 @pytest.fixture
 def isolated_setup(tmp_path, monkeypatch):
+    # A simulated fresh checkout must not inherit the real worktree's coordinates.
+    for key in (*OWNED_KEYS, UNPROVISIONED):
+        monkeypatch.delenv(key, raising=False)
     (tmp_path / ".env").write_text("PRESERVED_SETTING=keep-me\n")
     monkeypatch.setattr(workflow, "ensure_server", lambda _: None)
     monkeypatch.setattr(workflow, "provision", lambda *args, **kwargs: None)

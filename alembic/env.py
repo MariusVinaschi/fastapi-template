@@ -1,5 +1,8 @@
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -7,12 +10,21 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# An ambient variable beats just's dotenv loading, so migrations must re-assert
+# the worktree's owned coordinates themselves, before any app import reads them.
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from scripts.environment import runtime_environment  # noqa: E402
+
+os.environ.update(runtime_environment(ROOT))
+
 # IMPORT ALL MODELS TO THE DATABASE
 # Import from the new domain structure
-from app.domains.base.models import Base
-from app.domains.sessions.models import RefreshSession  # noqa
-from app.domains.users.models import APIKey, User  # noqa
-from app.infrastructure.config import settings
+from app.domains.base.models import Base  # noqa: E402
+from app.domains.sessions.models import RefreshSession  # noqa: E402,F401
+from app.domains.users.models import APIKey, User  # noqa: E402,F401
+from app.infrastructure.config import settings  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

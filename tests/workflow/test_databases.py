@@ -1,3 +1,4 @@
+import hashlib
 import subprocess
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from scripts import databases
 from scripts.databases import CONTAINER, SAFE_NAME, checked, manage, provision
 from scripts.environment import database_names, identity
+from scripts.workflow import ROOT
 
 
 class FakeServer:
@@ -71,15 +73,27 @@ def test_unexpected_identifiers_never_reach_sql(name):
         checked(name, SAFE_NAME, "database name")
 
 
-def container_running() -> bool:
-    return subprocess.run(["docker", "exec", CONTAINER, "true"], capture_output=True, check=False).returncode == 0
+@pytest.fixture
+def running_container() -> str:
+    """Probed here, not at collection, so unit runs never reach Docker."""
+    probe = subprocess.run(["docker", "exec", CONTAINER, "true"], capture_output=True, check=False)
+    if probe.returncode:
+        pytest.skip("development container is not running")
+    return CONTAINER
+
+
+@pytest.fixture
+def selftest_databases() -> tuple[tuple[str, str], str]:
+    """Owned by this checkout, and distinct from its two real databases."""
+    worktree_id = identity(ROOT)
+    token = hashlib.sha256(f"selftest:{worktree_id}".encode()).hexdigest()[:48]
+    return database_names(f"{worktree_id}_selftest"), token
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not container_running(), reason="development container is not running")
-def test_real_container_round_trip():
-    names = database_names("wt_selftest_0123456789ab")
-    token = "c" * 48
+def test_real_container_round_trip(running_container, selftest_databases):
+    names, token = selftest_databases
+    assert names[0] not in database_names(identity(ROOT))
     provision("fastapitemplateuser", names, token)
     try:
         assert databases.current_owner("fastapitemplateuser", names[0]) == token

@@ -78,6 +78,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Nothing is provisioned by just setup here, so consent is explicit.
+      WORKFLOW_ALLOW_UNPROVISIONED_DB: "1"
       APP_DB_HOST: localhost
       APP_DB_PORT: 5432
       APP_DB_USER: fastapitemplateuser

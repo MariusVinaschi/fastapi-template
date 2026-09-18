@@ -529,9 +529,10 @@ Tests are located in `tests/` and use `pytest` with async support (`pytest-async
 
 Tests run against a **dedicated test database**: root `conftest.py` redirects
 `APP_DB_NAME` to this worktree's test database before any application import.
-`just setup` creates it inside the development container. CI overrides
-`APP_DB_TEST_NAME` through process variables, which win over every file.
-The same fixtures serve pytest-bdd under `features/`.
+`just setup` creates it inside the development container, and no ambient
+variable can redirect it. Where nothing was provisioned, such as CI, set
+`WORKFLOW_ALLOW_UNPROVISIONED_DB=1` and supply the `APP_DB_*` values
+explicitly. The same fixtures serve pytest-bdd under `features/`.
 
 ```bash
 # Run all tests

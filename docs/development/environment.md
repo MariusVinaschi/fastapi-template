@@ -72,9 +72,14 @@ diagnosis or explicit cleanup.
 ## Tests and CI
 
 The root `conftest.py` sets the test database before application imports and
-serves both `tests/` and `features/`. Process variables win over every file, so
-CI's explicit `APP_DB_*` values apply unchanged and no worktree state is needed.
-Logfire export is disabled in tests.
+serves both `tests/` and `features/`. In a provisioned checkout, `APP_DB_HOST`,
+`APP_DB_PORT`, `APP_DB_NAME` and `APP_DB_TEST_NAME` come from `.env.worktree`
+and no ambient variable can move them: a differing one is refused rather than
+applied, because the fixture creates and drops tables in whichever database it
+is given. Every other variable still accepts an override. Where nothing was
+provisioned — CI, or a server you manage yourself — set
+`WORKFLOW_ALLOW_UNPROVISIONED_DB=1`, exactly `1`, and supply all four
+explicitly. Logfire export is disabled in tests.
 
 Tests are classified from their fixture dependencies: `db_session` means
 integration, otherwise unit, unless an explicit marker supplies the level. Tests

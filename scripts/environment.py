@@ -4,13 +4,19 @@ import hashlib
 import os
 import re
 import socket
+import tempfile
 from pathlib import Path
 
 from dotenv import dotenv_values
 
 ENV_FILE = ".env.worktree"
+UNPROVISIONED = "WORKFLOW_ALLOW_UNPROVISIONED_DB"
 PORTS = range(18000, 19000)
 DEV_DB_PORT = "5433"
+# Coordinates a provisioned checkout owns outright: no ambient variable may move them.
+OWNED_KEYS = ("APP_DB_HOST", "APP_DB_PORT", "APP_DB_NAME", "APP_DB_TEST_NAME")
+PROTECTED_DATABASES = frozenset({"postgres", "template0", "template1"})
+SAFE_DATABASE = re.compile(r"[a-z0-9_]{1,63}")
 
 
 def identity(root: Path) -> str:
@@ -44,11 +50,16 @@ def choose_port(root: Path) -> int:
 
 def write_private(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.parent / f"{path.name}.tmp"
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w") as stream:
-        stream.write(text)
-    temporary.replace(path)
+    # mkstemp creates a unique file exclusively, so no stale file or symlink is followed.
+    descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(descriptor, "w") as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            stream.write(text)
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def write_env(path: Path, values: dict[str, str]) -> None:
@@ -64,29 +75,61 @@ def worktree_env(root: Path) -> dict[str, str]:
 
 
 def runtime_environment(root: Path, *, testing: bool = False) -> dict[str, str]:
+    generated = worktree_env(root)
     values = {
         **dotenv_values(root / ".env"),
         **dotenv_values(root / ".env.local"),
-        **worktree_env(root),
+        **generated,
         **os.environ,
     }
     env = {key: value for key, value in values.items() if value is not None}
+    if generated:
+        claim_owned_coordinates(env, generated)
+    else:
+        require_unprovisioned_consent(env)
     if testing:
         apply_test_environment(env)
     return env
 
 
+def claim_owned_coordinates(env: dict[str, str], generated: dict[str, str]) -> None:
+    """A provisioned checkout never lets an ambient variable move its databases."""
+    missing = [key for key in OWNED_KEYS if not generated.get(key)]
+    if missing:
+        raise ValueError(f"{ENV_FILE} lacks {', '.join(missing)}; run just setup again")
+    if generated["APP_DB_NAME"] == generated["APP_DB_TEST_NAME"]:
+        raise ValueError(f"{ENV_FILE} must name two different databases; run just setup again")
+    for key in OWNED_KEYS:
+        owned = generated[key]
+        ambient = env.get(key)
+        if ambient is not None and ambient != owned:
+            raise ValueError(f"{key} is owned by {ENV_FILE} ({owned}); refusing ambient value {ambient!r}")
+        env[key] = owned
+
+
+def require_unprovisioned_consent(env: dict[str, str]) -> None:
+    """Nothing was provisioned here, so using a database must be a deliberate, complete choice.
+
+    The test fixture creates and drops tables in whatever it is given, and this
+    tooling cannot vouch for a database it did not create.
+    """
+    if env.get(UNPROVISIONED) != "1":
+        raise ValueError(
+            f"No {ENV_FILE}: run just setup, or set {UNPROVISIONED}=1 to use a database "
+            f"this tooling did not create, with explicit {', '.join(OWNED_KEYS)}"
+        )
+    missing = [key for key in OWNED_KEYS if not env.get(key)]
+    if missing:
+        raise ValueError(f"{UNPROVISIONED}=1 requires explicit {', '.join(missing)}")
+
+
 def apply_test_environment(env: dict[str, str]) -> None:
-    test_name = env.get("APP_DB_TEST_NAME", "fastapi_template_test").lstrip("/")
-    if not test_name or test_name in {"postgres", "template0", "template1"}:
-        raise ValueError("Invalid test database name")
-    if not env.get("WORKFLOW_TESTING") and not os.environ.get("CI") and test_name == env.get("APP_DB_NAME"):
-        raise ValueError("Test database must differ from the application database")
+    test_name = env["APP_DB_TEST_NAME"]
+    if test_name in PROTECTED_DATABASES or not SAFE_DATABASE.fullmatch(test_name):
+        raise ValueError(f"Refusing to create and drop tables in {test_name!r}")
     env.update(
         APP_DB_NAME=test_name,
-        APP_DB_TEST_NAME=test_name,
         LOGFIRE_SEND_TO_LOGFIRE="false",
         LOGFIRE_TOKEN="",
-        WORKFLOW_TESTING="1",
     )
     env.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
