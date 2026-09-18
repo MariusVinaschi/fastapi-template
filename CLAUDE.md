@@ -9,7 +9,7 @@
   transaction boundaries. Workers must not import app/api.
 - Preserve existing user changes. Do not create worktrees without explicit
   authorization or edit another worktree. One independent task normally uses
-  its own branch/worktree/workspace; avoid concurrent implementing writers.
+  its own branch and worktree; avoid concurrent implementing writers.
 - Keep comments short and explain only non-obvious constraints.
 - Use Conventional Commits. Never manually bump project.version.
 

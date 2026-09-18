@@ -10,7 +10,7 @@ sequence itself — check, independent review, QA, documentation
 consolidation, human merge, cleanup — is defined once in
 docs/development/workflow.md. Follow it there rather than a copy.
 
-One independent change uses one branch, one worktree and one workspace.
+One independent change uses one branch and one worktree.
 Use feature/<id>-<slug> or fix/<id>-<slug>, respecting any required client
 prefix. Keep the main checkout clean. An explicitly authorized existing
 checkout is a valid exception to creating a dedicated worktree.

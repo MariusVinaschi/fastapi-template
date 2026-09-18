@@ -1,12 +1,12 @@
 # AI development workflow
 
-Herdr is the cockpit for workspaces, panes and agent sessions. Project logic
-lives behind `just`, so the same workflow works from a terminal, editor or CI.
-Herdr automation is a separate future project.
+Project logic lives behind `just`, so this workflow runs the same way from a
+terminal, a multiplexer, an editor or CI. Choosing and driving those sessions is
+outside this repository's scope.
 
 ## Work and human decisions
 
-One independent change = one branch = one worktree = one workspace. Keep the
+One independent change = one branch = one worktree = one session. Keep the
 main checkout clean; implementing agents normally do not share a worktree.
 Create worktrees only when authorized. The initial workflow installation is
 being completed in the existing `docs/agents-skills-setup` checkout.

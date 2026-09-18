@@ -18,7 +18,8 @@ and selective Gherkin.
 
 ## Consequences
 
-The workflow works outside Herdr. A shared container saves resources while
+The workflow depends on no particular session manager. A shared container saves
+resources while
 isolating schema and data between tasks; it is not a security boundary between
 mutually untrusted users. Cleanup needs durable ownership evidence, because all
 checkouts share one server. Docker becomes a hard requirement for local
@@ -26,8 +27,8 @@ development — an earlier revision reused any server already listening on the
 configured endpoint, which silently ran tests against PostgreSQL 15 while CI
 used 17. Pinning the image removes that class of drift. Port 5433 avoids the
 default port, commonly held by another project's container. Prefect is opt-in
-and not isolated by this baseline. Herdr automation, workspace creation and Git
-cleanup are later orchestration concerns.
+and not isolated by this baseline. Session orchestration and Git cleanup are
+left to whatever tooling the developer already uses.
 
 Only durable information is merged into main; temporary specification and
 planning artifacts are consolidated before the human merge gate.
