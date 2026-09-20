@@ -90,9 +90,11 @@ such as `20260916T120000Z-hybrid-retrieval` to avoid parallel numbering races.
   approval briefly, with the accepted revision/date, never invent it.
 - After approval, append an AC-to-test mapping: unit, integration and/or
   useful business scenario. Gherkin is optional and never a mechanical copy.
-- `plan.md`: affected architecture/modules, implementation order, test
-  strategy, risks and open questions. Significant questions block dependent
-  work and return to the human; ordinary technical choices do not.
+- `plan.md`: an extremely concise, scannable list of affected modules,
+  implementation order, test strategy and risks; do not repeat the feature or
+  ACs. End with `## Open questions`, using `None` when there are none.
+  Significant questions block dependent work and return to the human;
+  ordinary technical choices do not.
 
 Write executable Gherkin directly into `features/<domain>/<behavior>.feature`.
 The existing specification and TDD skills live in `.agents/skills/` and are

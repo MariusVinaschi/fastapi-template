@@ -77,8 +77,11 @@ implementation. See features/README.md. Do not add a mandatory Gherkin gate.
 
 For business/structural features, write plan.md with affected modules,
 implementation order, test strategy, risks and unresolved decisions.
-Significant product or architectural questions require human answers.
-Routine implementation choices do not require another approval gate.
+Keep it extremely concise and scannable: prefer short bullets and paths over
+prose, and do not restate the feature or acceptance criteria. End every plan
+with `## Open questions`; write `None` when no significant question remains.
+Significant product or architectural questions require human answers. Routine
+implementation choices do not require another approval gate.
 
 Once the work is authorized and decisions are resolved, hand off to the
 existing tdd-implementation skill. If the request was specification-only,
