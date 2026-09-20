@@ -127,6 +127,20 @@ QA maps the accepted criteria to demonstrated behavior. Automate verifiable
 checks; ask the human for product judgments automation cannot settle. A green
 test suite alone does not establish that the intended product was delivered.
 
+After the technical and contract review reaches `Approve`, classify merge
+risk independently on that approved, unchanged diff. Reversibility is
+`two-way`, `conditional` or `one-way`; blast radius is `low`, `medium` or
+`high`. The assessment cites evidence in the diff, states the worst credible
+failure, explains rollback or recovery, and names the required depth of human
+review. A `one-way` change or `high` blast radius does not become safe because
+automated gates pass: it requires explicit migration, rollout and recovery
+consideration before merge.
+
+Do not classify merge risk when review returns `Warning` or `Block`; report it
+as not assessed and resolve the review first. Any material diff change makes
+both the review verdict and risk assessment stale, so repeat the affected
+checks and the full independent review before assessing risk again.
+
 ## Documentation and delivery
 
 Before presenting the change for merge, consolidate:
@@ -143,7 +157,25 @@ documents elsewhere; remove AC documents only after their contract survives
 in tests and documentation. Never delete unreviewed user documents blindly.
 The repository should describe its current system, not accumulated agent notes.
 
-Human merge is the last gate. Then run `just cleanup` while still inside the
-worktree. Separately verify the branch is merged and the checkout is clean
-before removing the worktree and local branch. Cleanup never performs Git
-removal or removes the shared PostgreSQL service.
+After consolidation, the agent prepares a Conventional Commit-style PR title
+and a body using the final diff, accepted contract, verification results and
+merge-risk assessment. Preparation is local and automatic. It performs no
+remote operation and presents the exact base branch, title and body.
+
+Pushing and creating the PR share one explicit, single-use human gate. The
+agent asks permission to push the named current branch to the named remote and
+create the PR against the shown base with the shown title and body. Approval
+does not authorize force-push, merge, extra comments or labels, another remote
+mutation, or cleanup. A material change to the diff, base, title or body
+invalidates approval; a changed diff also invalidates its checks, review and
+risk classification.
+
+Keep the PR body concise: summarize what and why, list delivered ACs and actual
+verification, then reduce merge risk to its classification plus one sentence
+covering failure and recovery. Do not paste full reviewer reports; mention
+documentation only when it helps understand the change. Creating the PR
+returns its URL but never implies merge authorization. Human merge is the last
+gate. Then run `just cleanup` while still inside the worktree. Separately
+verify the branch is merged and the checkout is clean before removing the
+worktree and local branch. Cleanup never performs Git removal or removes the
+shared PostgreSQL service.

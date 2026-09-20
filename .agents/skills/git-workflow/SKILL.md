@@ -32,7 +32,8 @@ After verification, independent review, QA and documentation consolidation,
 prepare a Conventional Commit-style PR title and a body based on the final
 diff, accepted contract, actual gate results and merge-risk assessment. This
 preparation is local: show the exact base branch, title and body without
-creating or changing anything remotely.
+creating or changing anything remotely. Keep the body concise and summarize
+the review evidence instead of pasting reviewer reports.
 
 Before offering publication, verify that the worktree is clean, the reviewed
 commit is the current HEAD, the independent review verdict is `Approve`, and

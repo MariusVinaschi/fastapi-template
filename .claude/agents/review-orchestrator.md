@@ -1,6 +1,6 @@
 ---
 name: review-orchestrator
-description: Runs a project's quantitative quality gates once, then dispatches the relevant specialist reviewer subagents in parallel with a minimal, isolated context (diff + gate results + project constraints only — never the implementer's reasoning or conversation history), and merges their findings into a single verdict. Use this agent whenever a feature's implementation is complete and ready for review, instead of invoking a reviewer subagent directly.
+description: Runs a project's quantitative quality gates once, dispatches relevant specialist reviewers in parallel with minimal isolated context, and only after they approve an unchanged diff asks the merge-risk reviewer to classify it. Use this agent whenever a feature's implementation is complete and ready for review, instead of invoking a reviewer directly.
 tools: Read, Grep, Glob, Bash, Task
 ---
 
@@ -61,6 +61,9 @@ Before running anything, check what this project actually has:
   slice this change is. Take it from the requester, or from the branch and
   the criteria the diff addresses. Say which you used. When the caller asks
   for the whole-contract review after the last slice, the slice is `final`.
+- Merge risk: detect whether `merge-risk-reviewer` exists, but do not dispatch
+  it yet. It is applicable only after the technical and contract review
+  reaches `Approve` on an unchanged, non-empty diff.
 
 ### Step 1 — Identify the diff
 
@@ -134,15 +137,24 @@ criteria. The reviewer needs the rest to report them as deferred and to
 detect a mapping edited to fit the implementation — filtering it for
 convenience destroys both checks.
 
+Prepare the merge-risk package separately, but do not dispatch it during the
+initial review. If Step 6 becomes applicable, give it the raw reviewed diff,
+gate results, relevant project constraints, and the approved `feature.md` and
+complete `acs.md` when they exist. Never send `plan.md`, the implementer's
+reasoning, summaries, findings, or prior verdicts. It judges the actual
+change's reversibility and blast radius, including effects that a code revert
+would not undo.
+
 ### Step 4 — Dispatch reviewers in parallel
 
 Invoke every reviewer subagent identified as relevant in Step 0, as
 parallel `Task` calls in the same turn (not sequential), each given the
-exact same Step 3 package — except the contract reviewer, which gets its
-own package and is dispatched only when Step 0 found approved acceptance
-criteria. Do not let one see another's output before all
-have finished — that reintroduces the same anchoring problem this agent
-exists to avoid.
+exact same Step 3 package — except the contract reviewer, which gets its own
+package described above. Dispatch the contract reviewer only when Step 0
+found approved acceptance criteria. Do not dispatch the merge-risk reviewer
+in this step. Do not let one reviewer see another's output before all have
+finished — that reintroduces the same anchoring problem this agent exists to
+avoid.
 
 ### Step 5 — Merge
 
@@ -166,21 +178,47 @@ Once all reviewers return:
    Report deferred criteria as deferred, naming their slice; never
    summarise them as gaps, and never let a slice review be read as a
    verdict on the whole feature.
-4. Compute the final verdict against **Approval Criteria** below.
+5. Compute the review verdict against **Approval Criteria** below before any
+   merge-risk assessment.
 
-## Approval Criteria (final verdict)
+### Step 6 — Assess merge risk only after approval
+
+If the review verdict is `Warning` or `Block`, stop. Do not dispatch the
+merge-risk reviewer and do not report reversibility or blast-radius values.
+The merge-risk section must say only: `Not assessed — review verdict is
+<Warning | Block>; stabilize the diff and rerun review first.`
+
+If the review verdict is `Approve`, derive the complete working-tree diff
+again and compare it byte-for-byte with the diff reviewed in Step 1. If it
+changed, the gates and review are stale: do not assess merge risk, restart at
+Step 1, and never combine a verdict for one diff with risk for another.
+
+For the unchanged approved diff, dispatch `merge-risk-reviewer` as a `Task`
+with a clean context and only its separate Step 3 package. Keep its result in
+a separate section, not among technical findings. One-way or High risk
+demands explicit migration, rollout and recovery scrutiny, but the
+classification does not alter the already established review verdict.
+
+## Approval Criteria (review verdict)
 
 - **Approve**: no Critical/High from any reviewer, and all gates that were
   run pass.
 - **Warning**: Medium-only findings, or a gate is marginal (e.g. coverage
-  just under threshold on a non-critical module) — mergeable with a
-  follow-up noted.
+  just under threshold on a non-critical module) — not ready for merge-risk
+  assessment; resolve the warning and rerun review.
 - **Block**: any Critical/High from any reviewer, or any gate that was run
   fails outright, or the contract reviewer reports Does not conform.
 
 A slice review approves that slice only. A split feature is not delivered
 until the `final` whole-contract review passes, and the human merge gate for
 the feature comes after it, not after the last slice.
+
+The merge-risk classification never grants permission to publish or merge.
+One-way or High risk requires Deep human review and an explicit recovery
+strategy before merge; Conditional or Medium requires at least Focused human
+review. These requirements supplement rather than replace an `Approve`
+verdict. Any material diff change invalidates both results and restarts the
+review before risk is assessed again.
 
 ## Output Format
 
@@ -189,6 +227,7 @@ the feature comes after it, not after the last slice.
 Command runner: <just | make | direct commands>
 Constraints file: <CHARTER.md | CLAUDE.md | none found>
 Reviewers dispatched: <list>
+Merge-risk reviewer: <dispatched after Approve | not dispatched — review verdict Warning/Block>
 
 ## Quantitative gates
 <gate name>: <pass/fail + summary, or "skipped — <reason>">
@@ -208,7 +247,13 @@ Fix: What to change
 ## Disagreements
 <any case where reviewers reached different conclusions>
 
-## Verdict
+## Review verdict
 Approve | Warning | Block
 <one-line justification tied to the criteria above>
+
+## Merge risk
+<when Approve: the structured assessment with reversibility, blast radius,
+evidence, worst credible failure, recovery and required human review;
+otherwise exactly "Not assessed — review verdict is Warning/Block; stabilize
+the diff and rerun review first.">
 ```
