@@ -1,29 +1,14 @@
 ## Summary
 
-- 
+- <!-- What changes and why, in a few lines -->
 
-## Contract
+## Validation
 
-- Feature: <!-- docs/specs/.../feature.md or not applicable -->
-- Acceptance criteria: <!-- docs/specs/.../acs.md or not applicable -->
-- Slice: <!-- id, final, or not split -->
-- Delivered: <!-- AC ids or concise accepted behavior -->
-
-## Verification
-
+- ACs: <!-- ids and spec link, or not applicable -->
 - `just check`: <!-- passed / limitation -->
-- Independent review: <!-- approved / warning / blocked -->
-- Contract review: <!-- conforms / not applicable -->
+- Review: <!-- Approve -->
 
 ## Merge risk
 
-- Reversibility: <!-- Two-way / Conditional / One-way -->
-- Blast radius: <!-- Low / Medium / High -->
-- Evidence: <!-- facts from the diff -->
-- Worst credible failure: <!-- concrete impact -->
-- Rollback or recovery: <!-- steps or not applicable -->
-- Required human review: <!-- Standard / Focused / Deep -->
-
-## Documentation
-
-- <!-- durable docs updated, or none required -->
+- Assessment: <!-- Two-way · Low · Standard review -->
+- Failure / recovery: <!-- one concise sentence -->
