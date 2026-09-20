@@ -70,6 +70,12 @@ def cleanup(root: Path) -> int:
     return 0
 
 
+def verify_env(root: Path) -> int:
+    """Refuse an ambient variable that would point a command at another database."""
+    runtime_environment(root)
+    return 0
+
+
 def status(root: Path) -> int:
     values = worktree_env(root)
     if not values:
@@ -82,10 +88,11 @@ def status(root: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["setup", "cleanup", "status"])
+    parser.add_argument("command", choices=["setup", "cleanup", "status", "verify-env"])
     args = parser.parse_args()
     try:
-        return {"setup": setup, "cleanup": cleanup, "status": status}[args.command](ROOT)
+        commands = {"setup": setup, "cleanup": cleanup, "status": status, "verify-env": verify_env}
+        return commands[args.command](ROOT)
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         print(f"Workflow error: {exc}", file=sys.stderr)
         return 1

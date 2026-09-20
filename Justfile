@@ -29,8 +29,12 @@ install:
 setup: env-init install
     uv run --locked python -m scripts.workflow setup
 
+# Refuse an ambient variable that would point a command at another database
+verify-env:
+    @uv run --locked python -m scripts.workflow verify-env
+
 # Run FastAPI with reload, on this checkout's port and database
-dev:
+dev: verify-env
     #!/usr/bin/env bash
     set -euo pipefail
     [ "${WORKTREE_READY:-}" = "1" ] || { echo "Run just setup first"; exit 1; }
@@ -92,20 +96,20 @@ check: lint format-check type-check complexity test-cov
 # Database
 # -----------------------------------------------------------------------------
 
-migrate:
+migrate: verify-env
     uv run --locked alembic upgrade head
 
 # Usage: just migrate-create "your message"
-migrate-create message:
+migrate-create message: verify-env
     uv run --locked alembic revision --autogenerate -m {{quote(message)}}
 
-migrate-down:
+migrate-down: verify-env
     uv run --locked alembic downgrade -1
 
-migrate-history:
+migrate-history: verify-env
     uv run --locked alembic history
 
-create-user:
+create-user: verify-env
     uv run --locked generate-user
 
 # -----------------------------------------------------------------------------
@@ -121,6 +125,19 @@ docker-build-worker:
 
 docker-build-migrations:
     docker build --target migrations -t fastapi-template:migrations .
+
+# Build the migrations image and run it: catches an env.py import just check cannot
+smoke-migrations: verify-env docker-build-migrations
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # .env supplies the credentials; -e overrides only what differs in-network.
+    docker run --rm --network fastapi-template-dev_default \
+        --env-file .env \
+        -e APP_DB_HOST=postgres \
+        -e APP_DB_PORT=5432 \
+        -e APP_DB_NAME="$APP_DB_NAME" \
+        -e SECRET_KEY="$SECRET_KEY" \
+        fastapi-template:migrations
 
 docker-build-all: docker-build-api docker-build-worker docker-build-migrations
 

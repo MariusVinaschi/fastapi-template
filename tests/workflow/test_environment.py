@@ -81,14 +81,16 @@ def test_matching_ambient_variable_is_accepted(managed, monkeypatch):
 
 
 def test_incomplete_generated_file_is_refused(tmp_path, monkeypatch):
-    monkeypatch.delenv(UNPROVISIONED, raising=False)
+    for key in ("APP_DB_HOST", "APP_DB_PORT", "APP_DB_NAME", "APP_DB_TEST_NAME", UNPROVISIONED):
+        monkeypatch.delenv(key, raising=False)
     write_env(tmp_path / ENV_FILE, {"WORKTREE_ROOT": str(tmp_path.resolve()), "APP_DB_HOST": "127.0.0.1"})
     with pytest.raises(ValueError, match="lacks"):
         runtime_environment(tmp_path)
 
 
-def test_generated_file_naming_one_database_twice_is_refused(tmp_path, monkeypatch):
-    monkeypatch.delenv(UNPROVISIONED, raising=False)
+def test_provisioned_file_naming_one_database_twice_is_refused(tmp_path, monkeypatch):
+    for key in ("APP_DB_HOST", "APP_DB_PORT", "APP_DB_NAME", "APP_DB_TEST_NAME", UNPROVISIONED):
+        monkeypatch.delenv(key, raising=False)
     write_env(
         tmp_path / ENV_FILE,
         {
@@ -99,8 +101,28 @@ def test_generated_file_naming_one_database_twice_is_refused(tmp_path, monkeypat
             "APP_DB_TEST_NAME": "same",
         },
     )
-    with pytest.raises(ValueError, match="two different databases"):
+    with pytest.raises(ValueError, match="must differ from APP_DB_NAME"):
         runtime_environment(tmp_path)
+
+
+def test_unprovisioned_mode_cannot_point_tests_at_the_application_database(tmp_path, monkeypatch):
+    # Consent to an external server is never consent to destroy its application data.
+    monkeypatch.setenv(UNPROVISIONED, "1")
+    monkeypatch.setenv("APP_DB_HOST", "db.example")
+    monkeypatch.setenv("APP_DB_PORT", "5432")
+    monkeypatch.setenv("APP_DB_NAME", "production_like")
+    monkeypatch.setenv("APP_DB_TEST_NAME", "production_like")
+    with pytest.raises(ValueError, match="has no override"):
+        runtime_environment(tmp_path, testing=True)
+
+
+def test_unprovisioned_mode_accepts_two_distinct_names(tmp_path, monkeypatch):
+    monkeypatch.setenv(UNPROVISIONED, "1")
+    monkeypatch.setenv("APP_DB_HOST", "db.example")
+    monkeypatch.setenv("APP_DB_PORT", "5432")
+    monkeypatch.setenv("APP_DB_NAME", "app_db")
+    monkeypatch.setenv("APP_DB_TEST_NAME", "test_db")
+    assert runtime_environment(tmp_path, testing=True)["APP_DB_NAME"] == "test_db"
 
 
 @pytest.mark.parametrize("value", ["false", "0", "", "yes"])

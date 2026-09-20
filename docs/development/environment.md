@@ -79,7 +79,14 @@ applied, because the fixture creates and drops tables in whichever database it
 is given. Every other variable still accepts an override. Where nothing was
 provisioned — CI, or a server you manage yourself — set
 `WORKFLOW_ALLOW_UNPROVISIONED_DB=1`, exactly `1`, and supply all four
-explicitly. Logfire export is disabled in tests.
+explicitly.
+
+In both modes `APP_DB_TEST_NAME` must differ from `APP_DB_NAME`, and there
+is no option to allow otherwise: the fixture drops every table in the test
+database, so a database the tests touch is entirely disposable by
+definition. Consent to an unprovisioned server is never consent to destroy
+its application data. CI therefore declares two distinct names even though
+only the test database is created. Logfire export is disabled in tests.
 
 Tests are classified from their fixture dependencies: `db_session` means
 integration, otherwise unit, unless an explicit marker supplies the level. Tests

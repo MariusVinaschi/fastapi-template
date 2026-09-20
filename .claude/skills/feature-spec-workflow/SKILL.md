@@ -18,6 +18,16 @@ Propose a level; the user can change it:
 - Structural feature: the business path plus approval of significant
   architectural decisions and human QA when judgment is needed.
 
+Also look for a split before planning, and report what you found. Several
+ACs, several domains, a point where the product is already useful, or a
+large expected diff are signals to look — not reasons to split. Split only
+when an observable, coherent, independently deliverable boundary exists;
+an atomic behaviour may cross several domains and have no shippable
+intermediate state, and forcing a split there is worse than one honest
+larger change. Each slice must be vertical — model through route through
+tests, ending in observable behaviour — and releasable alone. Never split
+by layer. See docs/development/workflow.md for the full rule.
+
 Work in the feature's worktree. Never create a worktree or change another
 checkout without authorization. Keep the primary main checkout clean.
 For an existing authorized checkout, continue there.
@@ -44,6 +54,15 @@ Show the criteria and wait for explicit approval. Record the accepted
 version. An approved implementation plan supplied by the user can serve as
 existing authorization when it explicitly establishes these decisions;
 do not require ceremonial reapproval.
+
+When the feature is split, `acs.md` keeps the **whole** contract and assigns
+every criterion to a slice. Give each one `Slice: <id>`, or `Slice: all` for
+a cross-cutting criterion that every slice must satisfy — authorization and
+transaction boundaries are the usual ones. Assign the mapping before any
+implementation starts, as part of the approved contract. It may be revised
+only by returning to the human, stating what changed and why; moving a
+criterion to a later slice so that a review passes is a contract change
+disguised as bookkeeping, and reviewers check the diff for exactly that.
 
 ## Transform the approved contract
 

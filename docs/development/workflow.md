@@ -26,6 +26,58 @@ The abbreviated bug/small-feature paths include proportional QA: demonstrate
 the reproduction or accepted behavior. They do not require an extra human QA
 gate unless product judgment is needed.
 
+## One change or several
+
+A feature is not automatically one change, and not automatically several.
+Before writing `plan.md`, look for a split and report what you found.
+
+These conditions **trigger the search**. They are signals, never sufficient
+reasons on their own:
+
+- a subset of the acceptance criteria looks independently demonstrable;
+- the work crosses more than one domain under `app/domains/`;
+- the implementation order seems to reach a point where the product is
+  already useful to someone;
+- the expected diff looks large.
+
+Then **split only when an observable, coherent, independently deliverable
+boundary actually exists.** An atomic behaviour may legitimately cross
+several domains and have no intermediate state worth shipping. Forcing a
+split there produces slices that cannot be demonstrated and reviews that
+cannot conclude — worse than one honest larger change. When no such
+boundary exists, say so and keep it as one change.
+
+Diff size stays an indicator, never a rule: a configuration change can
+touch ten files and remain conceptually tiny, while a single indivisible
+behaviour can be long. Size prompts the question; only the boundary
+answers it.
+
+Each slice stays **vertical**: it crosses every layer it needs — model,
+repository, service, route, tests — and ends in behaviour someone can
+observe. Never slice horizontally, all models first and services later:
+a horizontal slice cannot be demonstrated, cannot be reviewed against a
+criterion, and cannot merge alone.
+
+Slices are ordered so each one is releasable on its own. One slice = one
+branch = one worktree = one review. `feature.md` and `acs.md` stay the
+shared contract: `acs.md` keeps every criterion and assigns each one
+`Slice: <id>`, or `Slice: all` when it is cross-cutting and every slice
+must satisfy it.
+
+The mapping is fixed before implementation starts. A criterion that turns
+out to be undeliverable returns to the human with what changed and why; it
+is never quietly moved to a later slice to let a review pass, and reviewers
+check the diff for that edit. A slice review judges only that slice's
+criteria plus the cross-cutting ones and reports the rest as **deferred**,
+not missing. After the last slice, a whole-contract review judges every
+criterion with nothing deferred — that is the gate that catches what each
+slice left to the next and nobody delivered. The human merge gate for a
+split feature comes after that review, not after the last slice.
+
+Prefer fewer, larger criteria over splitting a single behaviour across
+slices: a slice that needs another slice to be observable is horizontal
+in disguise.
+
 ## Specification in the feature worktree
 
 Use `docs/specs/<ticket-or-timestamp>-<slug>/` with `feature.md`, `acs.md` and,

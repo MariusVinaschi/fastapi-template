@@ -84,7 +84,9 @@ jobs:
       APP_DB_PORT: 5432
       APP_DB_USER: fastapitemplateuser
       APP_DB_PASSWORD: fastapitemplatepassword
-      APP_DB_NAME: fastapi_template_test
+      # Two distinct names are mandatory, with no override. Only the test
+      # database is created: the application one must never be reachable here.
+      APP_DB_NAME: fastapi_template_app
       APP_DB_TEST_NAME: fastapi_template_test
 
     services:
@@ -120,3 +122,44 @@ jobs:
 
       - name: Run tests
         run: just test-cov
+
+  # =============================================================================
+  # Migrations image smoke test
+  # =============================================================================
+  migrations-image:
+    name: Migrations image
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fastapitemplateuser
+          POSTGRES_PASSWORD: fastapitemplatepassword
+          POSTGRES_DB: fastapi_template_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # The image ships only app/ and alembic/, so an env.py import outside those
+      # breaks it in a way no lint, type check or test suite can observe.
+      - name: Build the migrations image
+        run: docker build --target migrations -t fastapi-template:migrations .
+
+      - name: Run the migrations image
+        run: |
+          docker run --rm --network host \
+            -e APP_DB_HOST=localhost \
+            -e APP_DB_PORT=5432 \
+            -e APP_DB_USER=fastapitemplateuser \
+            -e APP_DB_PASSWORD=fastapitemplatepassword \
+            -e APP_DB_NAME=fastapi_template_migrations \
+            -e SECRET_KEY=ci-smoke-test-not-for-production \
+            fastapi-template:migrations

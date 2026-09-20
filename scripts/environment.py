@@ -87,6 +87,7 @@ def runtime_environment(root: Path, *, testing: bool = False) -> dict[str, str]:
         claim_owned_coordinates(env, generated)
     else:
         require_unprovisioned_consent(env)
+    require_distinct_databases(env, provisioned=bool(generated))
     if testing:
         apply_test_environment(env)
     return env
@@ -97,14 +98,29 @@ def claim_owned_coordinates(env: dict[str, str], generated: dict[str, str]) -> N
     missing = [key for key in OWNED_KEYS if not generated.get(key)]
     if missing:
         raise ValueError(f"{ENV_FILE} lacks {', '.join(missing)}; run just setup again")
-    if generated["APP_DB_NAME"] == generated["APP_DB_TEST_NAME"]:
-        raise ValueError(f"{ENV_FILE} must name two different databases; run just setup again")
     for key in OWNED_KEYS:
         owned = generated[key]
         ambient = env.get(key)
         if ambient is not None and ambient != owned:
             raise ValueError(f"{key} is owned by {ENV_FILE} ({owned}); refusing ambient value {ambient!r}")
         env[key] = owned
+
+
+def require_distinct_databases(env: dict[str, str], *, provisioned: bool) -> None:
+    """The test database is entirely disposable, so it can never be the application one.
+
+    The test fixture creates and drops every table in whatever APP_DB_TEST_NAME
+    names. This holds in both modes and has no override, deliberately: an option
+    to allow it would be an option to destroy an application database.
+    """
+    if env["APP_DB_NAME"] != env["APP_DB_TEST_NAME"]:
+        return
+    remedy = f"run just setup again to regenerate {ENV_FILE}" if provisioned else "declare two distinct names"
+    raise ValueError(
+        f"APP_DB_TEST_NAME must differ from APP_DB_NAME (both are {env['APP_DB_NAME']!r}): "
+        f"the test suite creates and drops every table in it, and this protection "
+        f"has no override — {remedy}"
+    )
 
 
 def require_unprovisioned_consent(env: dict[str, str]) -> None:

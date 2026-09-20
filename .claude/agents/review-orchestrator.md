@@ -51,6 +51,16 @@ Before running anything, check what this project actually has:
 - Mutation testing: check if `mutmut` (or another mutation tool) is
   configured for this project. If not, skip it entirely rather than
   reporting "not run" with no reason.
+- Approved contract: look for `docs/specs/<id>-<slug>/` covering this
+  change — `acs.md` with a recorded human approval, and the `feature.md`
+  beside it. The approved `acs.md` is what makes the contract reviewer
+  applicable; its absence is normal for a bug fix or a mechanical edit, and
+  is not itself a finding. Note `feature.md` separately: without it, scope
+  findings are limited to what the criteria imply.
+- Current slice: when `acs.md` assigns criteria to slices, determine which
+  slice this change is. Take it from the requester, or from the branch and
+  the criteria the diff addresses. Say which you used. When the caller asks
+  for the whole-contract review after the last slice, the slice is `final`.
 
 ### Step 1 — Identify the diff
 
@@ -105,11 +115,32 @@ Assemble exactly:
 Nothing else. Do not include your own read of the code, any prior
 conversation, or planning documents.
 
+The contract reviewer is the one exception, and it is deliberate. Give it
+the diff, the tests in that diff, the approved `feature.md`, the complete
+approved `acs.md`, and the current slice id — and **not** the constraints
+file. It judges whether the accepted contract was
+delivered, which is a different question from whether the code is good.
+Mixing the two lets an elegant implementation of the wrong contract pass.
+
+It needs both documents because they answer different questions: `acs.md`
+makes conformance judgeable, while `feature.md` states the included and
+excluded scope and is the only thing that makes scope creep judgeable.
+Still never send it `plan.md` or any other design document, and never the
+implementer's reasoning: a plan describes an intended solution, and intent
+reconstructed from a solution is not an approved criterion.
+
+Send the whole `acs.md`, never a filtered copy holding only this slice's
+criteria. The reviewer needs the rest to report them as deferred and to
+detect a mapping edited to fit the implementation — filtering it for
+convenience destroys both checks.
+
 ### Step 4 — Dispatch reviewers in parallel
 
 Invoke every reviewer subagent identified as relevant in Step 0, as
 parallel `Task` calls in the same turn (not sequential), each given the
-exact same Step 3 package. Do not let one see another's output before all
+exact same Step 3 package — except the contract reviewer, which gets its
+own package and is dispatched only when Step 0 found approved acceptance
+criteria. Do not let one see another's output before all
 have finished — that reintroduces the same anchoring problem this agent
 exists to avoid.
 
@@ -127,6 +158,14 @@ Once all reviewers return:
    on whether something is an issue at all, state the disagreement rather
    than silently picking one — this is often more informative than either
    verdict alone.
+4. **Keep conformance separate**: report the contract reviewer's per-AC
+   verdict as its own section, never merged into the code findings. A
+   change can pass every code reviewer and still not deliver what was
+   approved; that must stay visible rather than averaged away. State
+   plainly when it did not run because no approved criteria exist.
+   Report deferred criteria as deferred, naming their slice; never
+   summarise them as gaps, and never let a slice review be read as a
+   verdict on the whole feature.
 4. Compute the final verdict against **Approval Criteria** below.
 
 ## Approval Criteria (final verdict)
@@ -137,7 +176,11 @@ Once all reviewers return:
   just under threshold on a non-critical module) — mergeable with a
   follow-up noted.
 - **Block**: any Critical/High from any reviewer, or any gate that was run
-  fails outright.
+  fails outright, or the contract reviewer reports Does not conform.
+
+A slice review approves that slice only. A split feature is not delivered
+until the `final` whole-contract review passes, and the human merge gate for
+the feature comes after it, not after the last slice.
 
 ## Output Format
 
@@ -150,6 +193,10 @@ Reviewers dispatched: <list>
 ## Quantitative gates
 <gate name>: <pass/fail + summary, or "skipped — <reason>">
 [... one line per gate actually applicable to this project ...]
+
+## Contract conformance
+<slice judged, or "final"; the per-criterion verdict including deferred
+criteria, or "not run — no approved acceptance criteria for this change">
 
 ## Findings (merged, deduplicated)
 [SEVERITY] Issue title
