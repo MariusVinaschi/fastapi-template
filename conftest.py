@@ -1,29 +1,12 @@
-"""
-Pytest loads this module before test files. We point the app at a dedicated test DB
-before any `app.*` import so `Settings()` and `async_engine` use the correct URL.
-
-- Default DB name: APP_DB_TEST_NAME or "fastapi_template_test". Create it once:
-    CREATE DATABASE fastapi_template_test;
-"""
+"""Shared pytest bootstrap for tests/ and features/, before any app import."""
 
 import os
+from pathlib import Path
 
+from scripts.environment import runtime_environment
 
-def _apply_test_database_env() -> None:
-    # Accept values like "/fastapi_template_test" from CI env parsing and normalize.
-    test_db = os.environ.get("APP_DB_TEST_NAME", "fastapi_template_test").lstrip("/") or "fastapi_template_test"
-    os.environ["APP_DB_TEST_NAME"] = test_db
-    os.environ["APP_DB_NAME"] = test_db
-
-
-def _apply_test_secrets_env() -> None:
-    # SECRET_KEY has no default; AUTH_JWT_SIGNING_KEY falls back to it, so AuthX tokens
-    # are signed with this key in tests.
-    os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
-
-
-_apply_test_database_env()
-_apply_test_secrets_env()
+os.environ.update(runtime_environment(Path(__file__).parent, testing=True))
+pytest_plugins = ["scripts.pytest_workflow"]
 
 from collections.abc import AsyncGenerator, Iterator
 
@@ -56,7 +39,9 @@ async def client(app: FastAPI) -> AsyncGenerator:
 
 
 @pytest.fixture(scope="function")
-async def db_session() -> AsyncGenerator:
+async def db_session(request: pytest.FixtureRequest) -> AsyncGenerator:
+    if request.node.get_closest_marker("unit"):
+        pytest.fail("Unit tests cannot request db_session, including through dynamic BDD steps")
     async_session = async_sessionmaker(bind=async_engine, autoflush=False, expire_on_commit=False)
     async with async_session() as session:
         async with async_engine.begin() as conn:

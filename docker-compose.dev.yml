@@ -1,0 +1,25 @@
+# Development PostgreSQL owned by this project.
+# One container shared by every worktree; each checkout owns two databases in it.
+# Port 5433 is deliberate: 5432 is commonly taken by another project's container.
+name: fastapi-template-dev
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: fastapi-template-dev-db
+    environment:
+      POSTGRES_USER: ${APP_DB_USER:-fastapitemplateuser}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-fastapitemplatepassword}
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - development_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  development_postgres:

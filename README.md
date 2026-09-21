@@ -240,27 +240,24 @@ docker build --target migrations -t myapp:migrations .
 git clone https://github.com/mariusvinaschi/fastapi-template.git
 cd fastapi-template
 
-# 2. Bootstrap environment files (.env for Docker, .env.local for Mac overrides)
-just env-init
-
-# 3. Install dependencies
-just install
+# 2. Prepare Python, isolated databases, migrations and an API port
+just setup
 
 # 4. Install git hooks (Ruff + Conventional Commits)
 just prek-install
 
-# 5. Start the database
-docker compose up -d dbapp
-
-# 6. Run migrations
-just migrate
-
-# 7. Start the API server
+# 5. Start the API server
 just dev
 ```
 
-The API is now available at `http://localhost:8000`.
-Interactive docs: `http://localhost:8000/docs` (Swagger UI) or `http://localhost:8000/redoc` (ReDoc).
+Setup starts the development PostgreSQL container (PostgreSQL 17 on
+`127.0.0.1:5433`), then prints the allocated URL (starting at
+`http://127.0.0.1:18000`). Use `/docs` for Swagger UI or `/redocs` for ReDoc;
+`just status` shows the port.
+
+See the [AI development workflow](docs/development/workflow.md) for human
+validation gates, worktrees, review and documentation consolidation, and the
+[environment guide](docs/development/environment.md) for isolation and cleanup.
 
 ### Docker Setup
 
@@ -361,23 +358,25 @@ are present. Each user has at most one key, generate or revoke it via `POST`/`DE
 
 ## Environment Variables
 
-Run `just env-init` once to create `.env` and `.env.local` from the sample templates.
+`just setup` creates `.env` and `.env.local` from the sample templates on first run; `just env-init` does only that step.
 
 | File | Read by | Purpose |
 |---|---|---|
 | `.env` | Docker Compose | Shared secrets + Docker service hostnames (`APP_DB_HOST=dbapp`) |
-| `.env.local` | Your Mac only | Local overrides (`APP_DB_HOST=localhost`) — gitignored |
+| `.env.local` | The host only | Local overrides — gitignored, never seen by containers |
+| `.env.worktree` | `just`, Docker Compose, pytest bootstrap | Generated identity, databases, port and local secret — mode 0600, gitignored |
 
-On your Mac, `app/infrastructure/config.py` loads `.env` then `.env.local` (later values win).
+`app/infrastructure/config.py` loads `.env` then `.env.local` (later values win),
+and process variables win over both — which is how `.env.worktree` takes effect.
 Docker Compose injects `.env` only — containers never see `.env.local`.
 
-| Command | DB host used |
+| Command | DB endpoint used |
 |---|---|
-| `just dev`, `just migrate`, `just test` | `localhost` (via `.env.local`) |
-| `docker compose up` | `dbapp` (via `.env` only) |
-| DBeaver / TablePlus on your Mac | `localhost:5432` |
+| `just dev`, `just migrate`, `just test` | `127.0.0.1:5433` (via `.env.worktree`) |
+| `docker compose up` | `dbapp:5432` (via `.env` only) |
+| A database client | `127.0.0.1:5433`, database name from `just status` |
 
-**Rule of thumb:** Docker problem → check `.env`. Local problem → check `.env.local`.
+**Rule of thumb:** Docker problem → check `.env`. Local problem → check `.env.worktree`, then `.env.local`.
 
 Variables are grouped by category below.
 
@@ -462,6 +461,8 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just install` | Install dependencies with uv |
+| `just setup` | Start the dev database container, prepare this worktree's isolated environment and migrate its application DB |
+| `just status` | Display the worktree identity and allocated API port |
 | `just dev` | Run the API in development mode (hot reload) |
 | `just prek-install` | Install git hooks (Ruff + Conventional Commits) |
 | `just prek-run` | Run hooks manually on all files |
@@ -471,6 +472,12 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just test` | Run all tests |
+| `just test-unit` | Tests without database dependencies |
+| `just test-integration` | Tests using real PostgreSQL |
+| `just bdd` | Execute configured pytest-bdd scenarios |
+| `just check` | All required gates in order, stopping at the first failure |
+| `just complexity` | Cognitive complexity gate: maximum 12 per function |
+| `just format-check` | Verify formatting without modifying files |
 | `just test-cov` | Run tests with coverage report (HTML + terminal) |
 | `just lint` | Run Ruff linter on `app/` |
 | `just format` | Format code with Ruff |
@@ -511,6 +518,7 @@ Run `just --list` to see all available commands.
 | Command | Description |
 |---|---|
 | `just clean` | Remove caches (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.coverage`, `htmlcov`) |
+| `just cleanup` | Drop only this worktree's two owned databases; the shared container is retained |
 | `just clean-docker` | Remove Docker images and volumes (app + Prefect) |
 
 ---
@@ -519,13 +527,12 @@ Run `just --list` to see all available commands.
 
 Tests are located in `tests/` and use `pytest` with async support (`pytest-asyncio`, strict mode).
 
-Tests run against a **dedicated test database**: `tests/conftest.py` redirects `APP_DB_NAME`
-to `APP_DB_TEST_NAME` (default `fastapi_template_test`) before any `app.*` import, so your
-development data is never touched. Create it once:
-
-```sql
-CREATE DATABASE fastapi_template_test;
-```
+Tests run against a **dedicated test database**: root `conftest.py` redirects
+`APP_DB_NAME` to this worktree's test database before any application import.
+`just setup` creates it inside the development container, and no ambient
+variable can redirect it. Where nothing was provisioned, such as CI, set
+`WORKFLOW_ALLOW_UNPROVISIONED_DB=1` and supply the `APP_DB_*` values
+explicitly. The same fixtures serve pytest-bdd under `features/`.
 
 ```bash
 # Run all tests
@@ -539,9 +546,8 @@ just test-cov
 
 ```
 tests/
-├── conftest.py          # Fixtures: app, async HTTP client, DB session (create/drop per test)
 ├── auth/                # login + refresh endpoint tests
-├── core/                # Unit tests for all repository and service mixins
+├── core/                # Repository/service integration tests and pure logic tests
 ├── security/            # JWT, refresh-token, and API Key authentication tests
 ├── sessions/            # Session repository + service (refresh-token rotation/reuse)
 ├── users/

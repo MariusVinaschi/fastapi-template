@@ -129,6 +129,10 @@ celerybeat.pid
 # Environments
 .env
 .env.local
+# .worktree/ is no longer created; ignored so upgraded checkouts stay clean.
+.worktree/
+.env.worktree
+.complexipy_cache/
 .venv
 env/
 venv/

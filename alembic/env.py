@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# Deliberately generic: this module runs unchanged in the migrations image,
+# which ships only app/ and alembic/. Validating that local database
+# coordinates are the ones this checkout owns belongs to just, not here.
 # IMPORT ALL MODELS TO THE DATABASE
 # Import from the new domain structure
 from app.domains.base.models import Base
