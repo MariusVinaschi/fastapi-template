@@ -89,8 +89,14 @@ type-check:
 complexity:
     uv run --locked complexipy
 
+# Structural invariants: import contracts and architecture tests. No database,
+# no provisioning, so it runs on a bare checkout while you work.
+architecture-check:
+    uv run --locked lint-imports
+    uv run --locked pytest tests/architecture -q
+
 # just runs dependencies in order and stops at the first failure
-check: lint format-check type-check complexity test-cov
+check: lint format-check type-check complexity architecture-check test-cov
 
 # -----------------------------------------------------------------------------
 # Database

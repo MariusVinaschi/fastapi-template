@@ -43,6 +43,7 @@ dev = [
     "alembic>=1.17.2",
     "asyncpg>=0.31.0",
     "complexipy>=8.0.1",
+    "import-linter>=2.15",
     "prek<=0.3.4",
     "pyjwt>=2.11.0",
     "pytest>=9.0.2",
@@ -122,6 +123,8 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Security"]
 [tool.ruff.lint.per-file-ignores]
 # Test DB env must be set before importing the app (see root conftest.py).
 "conftest.py" = ["E402"]
+# Architecture fixtures contain deliberate violations; linting them defeats them.
+"tests/architecture/fixtures/**" = ["F401", "E402"]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
@@ -152,10 +155,66 @@ docstring-code-line-length = "dynamic"
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "features"]
-markers = ["unit: no database or external calls", "integration: requires real PostgreSQL", "bdd: Gherkin scenario"]
+markers = [
+    "unit: no database or external calls",
+    "integration: requires real PostgreSQL",
+    "bdd: Gherkin scenario",
+    "architecture: structural invariant, no database",
+]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
+
+# =============================================================================
+# Import Linter: the architecture contracts (just architecture-check)
+# =============================================================================
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+# `sessions` reaches `users` only through a string-based relationship, so the
+# runtime coupling is the test factory alone. See feature.md D2.
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Domains are framework-agnostic"
+type = "forbidden"
+source_modules = ["app.domains"]
+forbidden_modules = ["fastapi", "starlette", "prefect"]
+
+[[tool.importlinter.contracts]]
+name = "Workers never import the HTTP API"
+type = "forbidden"
+source_modules = ["app.workers"]
+forbidden_modules = ["app.api"]
+
+# Higher to lower. Delivery adapters on top; infrastructure at the bottom, which is
+# why the auth adapter moved out of it (feature.md D1). `users` sits below
+# `sessions`: a refresh session belongs to a user, never the reverse (D2).
+[[tool.importlinter.contracts]]
+name = "Application layers"
+type = "layers"
+layers = [
+    "app.api | app.workers",
+    "app.domains.sessions",
+    "app.domains.users",
+    "app.domains.base",
+    "app.infrastructure",
+]
+
+# One contract per domain, deliberately not a wildcard: with
+# `allowed_importers = app.domains.*` every domain is its own allow-list, so a real
+# cross-domain import reports KEPT. Measured before writing this.
+[[tool.importlinter.contracts]]
+name = "The users repository is private to its domain"
+type = "protected"
+protected_modules = ["app.domains.users.repository"]
+allowed_importers = ["app.domains.users"]
+
+[[tool.importlinter.contracts]]
+name = "The sessions repository is private to its domain"
+type = "protected"
+protected_modules = ["app.domains.sessions.repository"]
+allowed_importers = ["app.domains.sessions"]
 
 [tool.ty.src]
 include = ["app"]

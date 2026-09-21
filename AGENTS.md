@@ -3,6 +3,7 @@
 ## Essential invariants
 
 - Business logic belongs in app/domains; no FastAPI/Prefect imports there.
+  Structural boundaries are decided by just architecture-check, not by review.
 - API services use for_user; deliberate system operations use for_system.
   Permissions are deny-by-default and repositories scope rows in SQL.
 - Repositories flush, never commit. HTTP requests and Prefect flows own
@@ -21,7 +22,9 @@ Use just for project operations:
 - just dev: foreground API with reload; just status shows its port.
 - just test [pytest arguments]: all tests including configured BDD.
 - just test-unit / just test-integration / just bdd: focused suites.
-- just check: lint, format check, types, complexipy <=12, tests with coverage.
+- just check: lint, format check, types, complexipy <=12, architecture, tests
+  with coverage.
+- just architecture-check: structural invariants alone. No database, no setup.
 - just format: explicit formatting; checks do not rewrite code.
 - just migrate / just migrate-create "message": worktree database migrations.
 - just cleanup: drops this checkout's two databases; retains the shared

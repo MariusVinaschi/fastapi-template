@@ -2,15 +2,39 @@
 
 The application uses DDD boundaries: `app/domains/` owns business logic,
 `app/api/` adapts HTTP, `app/workers/` adapts Prefect and `app/infrastructure/`
-provides settings, database sessions, AuthX JWT/API keys and observability.
+provides settings, database sessions, AuthX configuration and observability.
 Domain code must not import FastAPI or Prefect. ORM/Pydantic domain types are
 intentional. Worker images omit `app/api/`, so workers must not import it.
+
+`app/api/security.py` holds the HTTP authentication dependencies. It raises
+`HTTPException` and depends on the users domain, so it is a delivery adapter and
+lives with the delivery layer; `app/infrastructure/` stays below the domains.
 
 Each domain composes generic CRUD mixins from `app/domains/base/` and normally
 contains models, schemas, repository, service, exceptions, authorization,
 filters and test factories. Use `users` and `sessions` as concrete examples.
 For detailed file conventions, load the matching `.agents/skills/domain-*/`
 skill (Codex) or `.claude/rules/domains/` rule (Claude).
+
+## Machine-checked boundaries
+
+`just architecture-check` decides the structural rules below. Do not re-verify them
+by reading code, and do not restate them as prose to be trusted:
+
+| Rule | Checked by |
+| --- | --- |
+| Domains import no FastAPI, Starlette or Prefect | contract *Domains are framework-agnostic* |
+| Workers import no `app/api/` | contract *Workers never import the HTTP API* |
+| Delivery above domains above infrastructure; `users` below `sessions` | contract *Application layers* |
+| A domain's repository is private to that domain | one *private to its domain* contract per domain |
+| A new domain cannot arrive without its confinement contract | `tests/architecture/` |
+
+The contracts live in `pyproject.toml` under `[tool.importlinter]`. Each one has a
+fixture package under `tests/architecture/fixtures/` that it must reject: a contract
+matching nothing is otherwise indistinguishable from a contract that is satisfied.
+
+A deliberate exception is declared in the contract's `ignore_imports` with a reason.
+Stale exceptions fail the gate rather than accumulating.
 
 ## Authorization
 

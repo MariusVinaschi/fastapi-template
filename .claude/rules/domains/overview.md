@@ -14,6 +14,9 @@ etc.). These invariants span every domain file — apply them everywhere.
 No FastAPI / HTTP / Prefect imports anywhere in `app/domains/`. The only outward contract
 is **domain exceptions** — the delivery layer (`app/api/`) catches them and maps to HTTP.
 
+Machine-checked by `just architecture-check`. Write the code correctly; do not audit
+this by hand and do not treat a passing gate as proof of anything beyond the imports.
+
 ## 2. Stay inside the domain (DDD boundary)
 
 A domain must not reach into another domain's **repository**.
@@ -22,6 +25,9 @@ A domain must not reach into another domain's **repository**.
 - DO go through the other domain's **service**, built on the same session and context:
   `OtherService.for_user(self.session, self.authorization_context)`.
 - Within a domain, the service owns the repository — nothing else instantiates it.
+
+The import half is machine-checked by `just architecture-check`, one contract per
+domain. A new domain without its contract fails the gate.
 
 ## 3. `for_user` vs `for_system`
 

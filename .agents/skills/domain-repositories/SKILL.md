@@ -37,4 +37,4 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
       return query
   ```
 
-Never commit: mutations only flush or refresh. Do not import another domain's model or repository; cross-domain behavior belongs in services.
+Never commit: mutations only flush or refresh. Do not import another domain's model or repository; cross-domain behavior belongs in services. `just architecture-check` decides the cross-domain import rule, so write it correctly rather than auditing it.

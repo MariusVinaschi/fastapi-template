@@ -3,9 +3,9 @@ from uuid import uuid4
 import pytest
 from starlette.requests import Request
 
+from app.api.security import RefreshTokenAuth, UnauthenticatedException, auth
 from app.domains.users.factory import UserFactory
 from app.infrastructure.auth import security
-from app.infrastructure.security import RefreshTokenAuth, UnauthenticatedException, auth
 
 
 def _request(headers: dict[str, str] | None = None, method: str = "POST") -> Request:

@@ -14,6 +14,13 @@ hooks = [
 repo = "local"
 hooks = [
   {
+    id = "architecture-check",
+    name = "architecture-check",
+    entry = "just architecture-check",
+    language = "system",
+    pass_filenames = false,
+  },
+  {
     id = "ty",
     name = "ty",
     entry = "uv run ty check app/",

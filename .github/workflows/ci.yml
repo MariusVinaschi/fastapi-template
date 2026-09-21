@@ -70,6 +70,10 @@ jobs:
       - name: Cognitive complexity (maximum 12)
         run: just complexity
 
+      # Same recipe a developer runs, so the two verdicts cannot drift apart.
+      - name: Architecture contracts
+        run: just architecture-check
+
   # =============================================================================
   # Tests with Pytest
   # =============================================================================

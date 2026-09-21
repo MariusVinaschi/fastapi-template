@@ -1,10 +1,10 @@
 import pytest
 from starlette.requests import Request
 
+from app.api.security import UnauthorizedException, auth
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 from app.infrastructure.auth import security
-from app.infrastructure.security import UnauthorizedException, auth
 
 
 def _request(headers: dict[str, str] | None = None, method: str = "GET") -> Request:
