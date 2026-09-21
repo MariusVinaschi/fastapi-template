@@ -88,11 +88,26 @@ belongs to a user; the dependency is directed and legitimate. The contract decla
 that `sessions/models.py` imports `users` only under `TYPE_CHECKING` (string-based
 relationship and foreign key), so the sole runtime coupling is the test factory.
 
-**D3 — tooling.** The import graph is checked by import-linter (contracts in
-`pyproject.toml`). The invariants it cannot see are checked by tests in the existing
-pytest suite, using the standard library only. Rejected: tach (a second module map
-next to `pyproject.toml`, duplicating import-linter's job) and pytest-archon
-(0.0.x, a year without release, import-graph only).
+**D3 — tooling (revised 2026-09-21).** Three sensors, each given the invariants it
+is actually able to decide:
+
+- **import-linter** for the import graph (contracts in `pyproject.toml`).
+- **ast-grep** for invariants expressible as observable syntactic structure.
+  Declarative YAML rules, each with `valid` and `invalid` cases run by
+  `ast-grep test`. MIT, 15 MiB, measured at 0.03s on this tree.
+- **Runtime introspection tests** for invariants that need resolved types.
+
+ast-grep is explicitly **not** treated as a semantic analysis engine. It reads
+syntactic structure; it does not resolve types, data flow, symbols or the call
+graph. A rule such as "every query is effectively user-scoped" is out of its reach
+and is not claimed. See AC-B2.
+
+Rejected: tach (a second module map beside `pyproject.toml`, duplicating
+import-linter). pytest-archon (0.0.x, a year without release, import-graph only).
+Hand-written `ast` visitors (the maintenance burden is the thing being avoided).
+semgrep (47.6 MiB and 66 packages, LGPL-2.1, 1.70s per pass; and its natural
+formulation of the AC-B4 rule was silently dead — it matched nothing, including a
+deliberate violation, while looking green).
 
 **D4 — delivery.** Structural rigor. Two slices, A then B, described in `acs.md`.
 

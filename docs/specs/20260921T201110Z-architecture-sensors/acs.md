@@ -1,11 +1,12 @@
 # Acceptance criteria — Executable architecture sensors
 
 - Feature: `feature.md` (gate 1 approved 2026-09-21)
-- Status: gate 2 approved (2026-09-21), amended with AC-08 at the same approval
+- Status: gate 2 approved (2026-09-21); amended the same day with AC-08, AC-09,
+  the AC-B2 limit and the AC-05 strengthening, each requested by the human
 
 The observable surface of this feature is the project's own quality gate. A
 criterion is met when a deliberately violating change makes the gate fail, and a
-conforming change leaves it green. "The gate" means `just check-architecture`, the
+conforming change leaves it green. "The gate" means `just architecture-check`, the
 `just check` aggregate that contains it, and the equivalent CI job; all three must
 always agree.
 
@@ -42,10 +43,12 @@ The checks run against source and in-process type information only. They do not
 open a database connection or make a network call.
 
 **AC-05 — Exemptions are named, justified and perishable.** `Slice: all`
-A violation may be deliberately accepted only through a declared exemption carrying
-its target and a written reason. An exemption that no longer corresponds to an
-actual violation fails the gate, so stale exemptions cannot accumulate. Disabling a
-check wholesale is not an exemption mechanism.
+A violation may be deliberately accepted only through a declared exemption that
+names **the specific rule it suppresses** and carries a written reason. A blanket
+exemption, suppressing whatever happens to match, fails the gate. An exemption that
+no longer corresponds to an actual violation also fails the gate, so stale
+exemptions cannot accumulate. Disabling a check wholesale is not an exemption
+mechanism.
 
 **AC-06 — No behaviour change.** `Slice: all`
 Routes, request and response payloads, status codes, authentication behaviour and
@@ -58,10 +61,16 @@ reviewers not to re-verify those invariants by hand. Invariants that remain a ma
 of judgment are not marked as checked.
 
 **AC-08 — A dedicated command runs the architecture checks alone.** `Slice: all`
-`just check-architecture` runs every invariant of this feature and nothing else: no
+`just architecture-check` runs every invariant of this feature and nothing else: no
 formatting, no typing, no application test suite. It is runnable on its own against
 an unprovisioned checkout, without `just setup`, a database or a network. `just check`
 contains it, so a full check cannot pass while the architecture command fails.
+
+**AC-09 — No rule may be silently dead.** `Slice: all`
+Every rule ships with at least one input it must reject and one it must accept, and
+the gate runs them. A rule that rejects none of its own violating inputs fails,
+rather than reporting a clean tree. A rule matching nothing must be indistinguishable
+from a broken rule, never from a satisfied one.
 
 ---
 
@@ -110,10 +119,19 @@ A change introducing a transaction commit in a domain repository or a domain ser
 fails the gate. Deliberate commits outside those roles, such as the test-data
 factory, are unaffected.
 
-**AC-B2 — Custom reads stay scoped.** `Slice: B`
-A custom read in a domain repository that builds a query without applying the
-authorization scope fails the gate. The finders that deliberately bypass scoping for
-authentication lookups pass only while declared as exemptions under AC-05.
+**AC-B2 — Custom reads declare their scoping.** `Slice: B`
+A custom read in a domain repository whose body contains neither an application of
+the authorization scope nor an explicit system-operation requirement fails the gate.
+The finders that deliberately bypass scoping for authentication lookups pass only
+while declared as exemptions under AC-05.
+
+This criterion is a **syntactic contract, not a proof of authorization.** It
+establishes that the scoping ritual is present in the method, and nothing more. It
+does not and cannot establish that every execution path is correctly scoped: that
+requires type resolution, data flow and call-graph analysis, which no sensor in this
+feature performs. Authorization correctness remains a matter for review and for the
+authorization tests in the existing suite. A green AC-B2 must never be read as
+evidence that a query is safe.
 
 **AC-B3 — Services are built through their factories.** `Slice: B`
 A change constructing a domain service or repository directly, rather than through
@@ -148,7 +166,8 @@ the violation, then asserting the real tree is clean.
 | AC-01, AC-02 | Unit — a violating fixture produces a non-zero exit and a message naming it. |
 | AC-03 | Integration — CI and `just check` invoke the same entry point; verified by inspection of the invocation, not by a duplicate rule list. |
 | AC-04 | Unit — the checks run in a process with no database reachable. |
-| AC-05 | Unit — a stale exemption fails; an exemption without a reason fails. |
+| AC-05 | Unit — a stale exemption fails; a blanket exemption fails. |
+| AC-09 | Unit — each rule is executed against its own accepted and rejected inputs. |
 | AC-08 | Integration — the command runs on an unprovisioned checkout and reports every invariant; `just check` fails when it fails. |
 | AC-06 | Integration — the existing API and migration suites, unchanged. |
 | AC-07 | Reviewed by a human; no automated test. |
