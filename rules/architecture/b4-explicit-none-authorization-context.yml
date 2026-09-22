@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
+id: b4-explicit-none-authorization-context
+message: >
+  Never pass authorization_context=None at a call site (AC-B4): a missing context
+  must be deliberate, via for_system(), not incidental. The `authorization_context=None`
+  default in a repository/service __init__ signature is prescribed and unaffected --
+  tree-sitter's `keyword_argument` (a call-site argument) and `default_parameter` (a
+  signature default) are structurally distinct node kinds.
+severity: error
+language: Python
+rule:
+  kind: keyword_argument
+  all:
+    - has: {field: name, regex: "^authorization_context$"}
+    - has: {field: value, regex: "^None$"}

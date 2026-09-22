@@ -41,6 +41,7 @@ exclude = ["alembic*", "var*"]
 [dependency-groups]
 dev = [
     "alembic>=1.17.2",
+    "ast-grep-cli>=0.45.3",
     "asyncpg>=0.31.0",
     "complexipy>=8.0.1",
     "import-linter>=2.15",

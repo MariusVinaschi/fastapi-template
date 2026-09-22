@@ -1,0 +1,27 @@
+id: b2-unscoped-repository-read
+valid:
+  # scoped custom read
+  - |
+    class UserRepository:
+        async def get_by_email(self, email):
+            query = select(self.model).where(self.model.email == email)
+            query = self._apply_user_scope(query)
+            return await self.session.scalar(query)
+  # deliberate system-only bypass, declared as such
+  - |
+    class APIKeyRepository:
+        async def get_by_api_key_hash(self, api_key_hash):
+            self._require_system()
+            query = select(self.model).where(self.model.key_hash == api_key_hash)
+            return await self.session.scalar(query)
+  # a read with no select() at all is not this rule's concern
+  - |
+    class UserRepository:
+        async def count_all(self):
+            return await self.session.scalar(func.count())
+invalid:
+  - |
+    class UserRepository:
+        async def get_by_api_key_hash(self, api_key_hash):
+            query = select(self.model).where(self.model.key_hash == api_key_hash)
+            return await self.session.scalar(query)

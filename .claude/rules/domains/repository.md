@@ -24,6 +24,10 @@ class UserRepository(CreateRepositoryMixin, UpdateRepositoryMixin,
 
 ## Scoping (data security)
 
+`just architecture-check` (rule `b2-unscoped-repository-read`) checks that this
+ritual is *present* in a custom read — never that a query is *correctly* scoped.
+Passing it is not evidence of correctness; scoping logic is still a review concern.
+
 - **Every custom read must call `self._apply_user_scope(query)`** before executing:
   ```python
   query = select(self.model).where(self.model.email == email)
@@ -31,7 +35,9 @@ class UserRepository(CreateRepositoryMixin, UpdateRepositoryMixin,
   ```
 - A finder may intentionally skip scoping only for auth/system lookups (e.g.
   `APIKeyRepository.get_by_api_key_hash`). When it does, the **service** must enforce the
-  permission check, and you document the reason inline.
+  permission check, and you document the reason inline with a named
+  `# ast-grep-ignore: b2-unscoped-repository-read` exemption — see the two finders in
+  `app/domains/users/repository.py` for the pattern.
 
 ## Filters
 
@@ -51,5 +57,5 @@ def _apply_filters(self, query, filters):
 ## Invariants
 
 - **Never `commit()`** — mutations `flush()` / `refresh()` only; the caller owns the
-  transaction.
+  transaction. Machine-checked (rule `b1-no-commit-in-domain`).
 - Stay in-domain: don't import another domain's models or repository (see `overview.md`).

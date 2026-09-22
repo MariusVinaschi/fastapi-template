@@ -1,0 +1,23 @@
+id: b1-no-commit-in-domain
+snapshots:
+  ? |
+    class UserRepository:
+        async def create(self, data):
+            self.session.add(data)
+            await self.session.commit()
+            return data
+  : labels:
+    - source: self.session.commit()
+      style: primary
+      start: 101
+      end: 122
+  ? |
+    class UserService:
+        async def create(self, data):
+            await self.repository.create(data)
+            await self.session.commit()
+  : labels:
+    - source: self.session.commit()
+      style: primary
+      start: 110
+      end: 131

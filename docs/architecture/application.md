@@ -36,6 +36,34 @@ matching nothing is otherwise indistinguishable from a contract that is satisfie
 A deliberate exception is declared in the contract's `ignore_imports` with a reason.
 Stale exceptions fail the gate rather than accumulating.
 
+Six more invariants that no import graph can see are checked the same way, by
+ast-grep rules (`rules/architecture/*.yml`) and, where a rule needs a resolved type
+rather than syntax, by tests under `tests/architecture/`:
+
+| Rule | Checked by |
+| --- | --- |
+| Repositories and services never commit | rule *b1-no-commit-in-domain* |
+| A custom repository read applies the authorization scope, or declares a system-only bypass | rule *b2-unscoped-repository-read* |
+| A domain service or repository is built only via `for_user`/`for_system` | rule *b3-direct-service-construction* |
+| `authorization_context=None` never appears at a call site | rule *b4-explicit-none-authorization-context* |
+| No route's response model reaches a stored credential, password, token or hash | `tests/architecture/test_no_secrets_in_responses.py` |
+| Every domain's repository wires a scope strategy from its own domain | `tests/architecture/test_authorization_is_declared.py` |
+
+**b2 is a syntactic contract, not a proof of authorization.** It checks that the
+scoping ritual is present in a method body — nothing more. It cannot establish that
+every execution path is correctly scoped, which needs type resolution, data flow and
+call-graph analysis no rule here performs. A green b2 is never evidence that a query
+is safe; authorization correctness remains a matter for review and for the
+authorization tests in the existing suite.
+
+An ast-grep exception is a comment naming the exact rule
+(`# ast-grep-ignore: <rule-id>`) with the reason on the line above, immediately
+before the flagged line. `just architecture-check` rejects a blanket suppression
+that names no rule and a suppression that no longer matches any violation, so
+neither can accumulate silently. Every rule ships `valid` and `invalid` cases run by
+`ast-grep test`: a rule matching nothing is otherwise indistinguishable from a
+satisfied one.
+
 ## Authorization
 
 API services use `Service.for_user(session, authorization_context)`.

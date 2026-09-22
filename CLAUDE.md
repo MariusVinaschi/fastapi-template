@@ -5,7 +5,9 @@
 - Business logic belongs in app/domains; no FastAPI/Prefect imports there.
   Structural boundaries are decided by just architecture-check, not by review.
 - API services use for_user; deliberate system operations use for_system.
-  Permissions are deny-by-default and repositories scope rows in SQL.
+  Permissions are deny-by-default and repositories scope rows in SQL. Construction
+  discipline, commit discipline and scoping presence are decided by
+  just architecture-check, not by review; permission correctness still is.
 - Repositories flush, never commit. HTTP requests and Prefect flows own
   transaction boundaries. Workers must not import app/api.
 - Preserve existing user changes. Do not create worktrees without explicit

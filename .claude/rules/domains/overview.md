@@ -32,6 +32,8 @@ domain. A new domain without its contract fails the gate.
 ## 3. `for_user` vs `for_system`
 
 Services are constructed only via the factory methods, never the raw constructor.
+Machine-checked by `just architecture-check` (rules `b3-direct-service-construction`,
+`b4-explicit-none-authorization-context`): write it correctly, don't audit it by hand.
 
 - User-context flow (any request-driven work): `Service.for_user(session, ctx)`.
 - `Service.for_system(session)` is **only** for genuine system work — workers, webhooks,
@@ -52,12 +54,15 @@ scoping rituals the base methods use.
 
 Every entity gets an `AuthorizationScopeStrategy` (repository-level data scoping) and the
 service must enforce permissions (deny-by-default). Never ship a domain without both.
-See `authorization.md` and `service.md`.
+See `authorization.md` and `service.md`. The repository half — every repository wires a
+strategy from its own domain — is machine-checked by `just architecture-check`; the
+permission half is not, and stays a review concern.
 
 ## 6. Unit of Work
 
 Repositories `flush()` / `refresh()` — **never `commit()`**. The transaction boundary is
 owned by the caller: once per HTTP request in `get_session`, once per Prefect flow.
+Machine-checked by `just architecture-check` (rule `b1-no-commit-in-domain`).
 
 ---
 Reference implementation: `app/domains/users/`. Base abstractions: `app/domains/base/`.

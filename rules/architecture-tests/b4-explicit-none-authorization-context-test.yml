@@ -1,0 +1,16 @@
+id: b4-explicit-none-authorization-context
+valid:
+  # the prescribed __init__ default -- a default_parameter, not a call site
+  - |
+    class UserRepository:
+        def __init__(self, session, authorization_context=None):
+            super().__init__(session, UserScopeStrategy(), User, authorization_context)
+  # a call site passing a real context is fine
+  - |
+    def handler(session, ctx):
+        return UserRepository(session, authorization_context=ctx)
+invalid:
+  # a call site defeating scoping by passing an explicit None
+  - |
+    def handler(session):
+        return UserRepository(session, authorization_context=None)

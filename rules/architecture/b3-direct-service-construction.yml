@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
+id: b3-direct-service-construction
+message: >
+  Construct a domain service or repository only through Service.for_user(session,
+  ctx) or Service.for_system(session) — never the raw constructor (AC-B3).
+severity: error
+language: Python
+# Production code only: a repository test legitimately constructs its subject
+# directly to exercise it in isolation, bypassing the user/system factory on
+# purpose. The discipline this rule protects is an application concern.
+files:
+  - "app/**/*.py"
+rule:
+  kind: call
+  has:
+    field: function
+    kind: identifier
+    regex: "^[A-Z][A-Za-z0-9]*(Service|Repository)$"

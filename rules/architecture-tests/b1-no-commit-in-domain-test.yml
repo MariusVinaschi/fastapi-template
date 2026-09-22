@@ -1,0 +1,27 @@
+id: b1-no-commit-in-domain
+valid:
+  # flush/refresh are the prescribed unit-of-work operations for a repository.
+  - |
+    class UserRepository:
+        async def create(self, data):
+            self.session.add(data)
+            await self.session.flush()
+            await self.session.refresh(data)
+            return data
+  # a commit on something that isn't a session-shaped object is not this rule's concern.
+  - |
+    class Report:
+        def build(self):
+            return self.buffer.commit_pending_writes()
+invalid:
+  - |
+    class UserRepository:
+        async def create(self, data):
+            self.session.add(data)
+            await self.session.commit()
+            return data
+  - |
+    class UserService:
+        async def create(self, data):
+            await self.repository.create(data)
+            await self.session.commit()

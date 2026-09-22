@@ -1,0 +1,18 @@
+id: b4-explicit-none-authorization-context
+snapshots:
+  ? |
+    def handler(session):
+        return UserRepository(session, authorization_context=None)
+  : labels:
+    - source: authorization_context=None
+      style: primary
+      start: 57
+      end: 83
+    - source: authorization_context
+      style: secondary
+      start: 57
+      end: 78
+    - source: None
+      style: secondary
+      start: 79
+      end: 83

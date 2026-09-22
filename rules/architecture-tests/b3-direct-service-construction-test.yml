@@ -1,0 +1,26 @@
+id: b3-direct-service-construction
+valid:
+  # the sanctioned factories
+  - |
+    async def handler(session, ctx):
+        service = UserService.for_user(session, ctx)
+        return service
+  - |
+    async def worker_task(session):
+        service = UserService.for_system(session)
+        return service
+  # the factory methods themselves construct via `cls`, never a literal name
+  - |
+    class BaseService:
+        @classmethod
+        def for_user(cls, session, authorization_context):
+            return cls(session, authorization_context)
+invalid:
+  - |
+    async def handler(session, ctx):
+        service = UserService(session, ctx)
+        return service
+  - |
+    async def build(session):
+        repo = UserRepository(session)
+        return repo

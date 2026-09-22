@@ -92,6 +92,8 @@ complexity:
 # Structural invariants: import contracts and architecture tests. No database,
 # no provisioning, so it runs on a bare checkout while you work.
 architecture-check:
+    uv run --locked ast-grep test
+    uv run --locked ast-grep scan --error=unused-suppression --error=no-suppress-all
     uv run --locked lint-imports
     uv run --locked pytest tests/architecture -q
 

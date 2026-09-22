@@ -61,13 +61,21 @@ class APIKeyRepository(
         super().__init__(session, APIKeyScopeStrategy(), APIKey, authorization_context)
 
     async def get_by_user_id(self, user_id: UUID) -> APIKey | None:
+        # Not scoped in SQL: APIKeyService.get_by_user_id enforces the instance-level
+        # permission check on the fetched row (see service.py), the documented pattern
+        # for a finder that a user-context caller legitimately reaches.
         instance = await self.session.scalars(
+            # ast-grep-ignore: b2-unscoped-repository-read
             select(self.model).options(joinedload(self.model.user)).where(self.model.user_id == user_id)
         )
         return instance.one_or_none()
 
     async def get_by_api_key_hash(self, api_key_hash: str) -> APIKey | None:
+        # Not scoped in SQL: the hash is the lookup key, unknown until the row is
+        # found. APIKeyService.get_by_api_key_hash enforces the instance-level
+        # permission check afterward (see service.py).
         instance = await self.session.scalars(
+            # ast-grep-ignore: b2-unscoped-repository-read
             select(self.model).options(joinedload(self.model.user)).where(self.model.key_hash == api_key_hash)
         )
         return instance.one_or_none()

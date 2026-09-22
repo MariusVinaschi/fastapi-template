@@ -20,7 +20,11 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
 
 ## Data security and filters
 
-- Every custom read applies `self._apply_user_scope(query)` before execution:
+- Every custom read applies `self._apply_user_scope(query)` before execution.
+  `just architecture-check` (rule `b2-unscoped-repository-read`) checks that the call
+  is present, never that the query is correctly scoped; correctness stays a review
+  concern. A deliberate bypass needs a named `# ast-grep-ignore: b2-unscoped-repository-read`
+  exemption with its reason on the line above (see `users/repository.py`):
   ```python
   query = select(self.model).where(self.model.email == email)
   query = self._apply_user_scope(query)
@@ -37,4 +41,4 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
       return query
   ```
 
-Never commit: mutations only flush or refresh. Do not import another domain's model or repository; cross-domain behavior belongs in services. `just architecture-check` decides the cross-domain import rule, so write it correctly rather than auditing it.
+Never commit: mutations only flush or refresh (`just architecture-check`, rule `b1-no-commit-in-domain`). Do not import another domain's model or repository; cross-domain behavior belongs in services. `just architecture-check` also decides the cross-domain import rule, so write it correctly rather than auditing it.
