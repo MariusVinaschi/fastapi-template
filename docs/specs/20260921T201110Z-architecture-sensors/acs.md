@@ -1,8 +1,8 @@
 # Acceptance criteria — Executable architecture sensors
 
 - Feature: `feature.md` (gate 1 approved 2026-09-21)
-- Status: gate 2 approved (2026-09-21); amended the same day with AC-08, AC-09,
-  the AC-B2 limit and the AC-05 strengthening, each requested by the human
+- Status: gate 2 approved (2026-09-21); reduced scope approved by the human on
+  2026-09-22: direct CLI checks only, without meta-tests or runtime introspection
 
 The observable surface of this feature is the project's own quality gate. A
 criterion is met when a deliberately violating change makes the gate fail, and a
@@ -38,17 +38,16 @@ re-reading the rule documents.
 The same invariants are checked by `just check` and by CI, and produce the same
 verdict on the same tree. CI cannot pass a tree that fails locally, or the reverse.
 
-**AC-04 — The gate needs no database and no network.** `Slice: all`
+**AC-04 — The gate needs no database or application setup.** `Slice: all`
 The checks run against source and in-process type information only. They do not
-open a database connection or make a network call.
+open a database connection or require application configuration.
 
-**AC-05 — Exemptions are named, justified and perishable.** `Slice: all`
+**AC-05 — Exemptions are specific and perishable.** `Slice: all`
 A violation may be deliberately accepted only through a declared exemption that
-names **the specific rule it suppresses** and carries a written reason. A blanket
-exemption, suppressing whatever happens to match, fails the gate. An exemption that
-no longer corresponds to an actual violation also fails the gate, so stale
-exemptions cannot accumulate. Disabling a check wholesale is not an exemption
-mechanism.
+names **the specific rule it suppresses**. A blanket exemption, suppressing whatever
+happens to match, fails the gate. An exemption that no longer corresponds to an
+actual violation also fails the gate, so stale exemptions cannot accumulate.
+Disabling a check wholesale is not an exemption mechanism.
 
 **AC-06 — No behaviour change.** `Slice: all`
 Routes, request and response payloads, status codes, authentication behaviour and
@@ -62,17 +61,9 @@ of judgment are not marked as checked.
 
 **AC-08 — A dedicated command runs the architecture checks alone.** `Slice: all`
 `just architecture-check` runs every invariant of this feature and nothing else: no
-formatting, no typing, no application test suite. It is runnable on its own against
-an unprovisioned checkout, without `just setup`, a database or a network. `just check`
-contains it, so a full check cannot pass while the architecture command fails.
-
-**AC-09 — No rule may be silently dead.** `Slice: all`
-Every rule ships with at least one input it must reject and one it must accept, and
-the gate runs them. A rule that rejects none of its own violating inputs fails,
-rather than reporting a clean tree. A rule matching nothing must be indistinguishable
-from a broken rule, never from a satisfied one.
-
----
+formatting, no typing, no application test suite. It does not require `just setup`,
+an application database or application configuration. `just check` contains it, so a
+full check cannot pass while the architecture command fails.
 
 ## Slice A — the import graph
 
@@ -95,11 +86,6 @@ A change in which a domain imports another domain's repository, directly or
 indirectly, fails the gate — including when the two domains are otherwise allowed to
 depend on each other under AC-A3.
 
-**AC-A5 — A new domain cannot slip past the boundary.** `Slice: A`
-Adding a domain package without the declaration that confines its repository fails
-the gate. A contract that is silently inapplicable to a new domain is treated as a
-violation, not as a pass.
-
 **AC-A6 — Infrastructure sits below the domains.** `Slice: A`
 After this slice, no module under `app/infrastructure/` imports any module under
 `app/domains/`, and the gate enforces it with no exemption declared for it.
@@ -120,9 +106,9 @@ fails the gate. Deliberate commits outside those roles, such as the test-data
 factory, are unaffected.
 
 **AC-B2 — Custom reads declare their scoping.** `Slice: B`
-A custom read in a domain repository whose body contains neither an application of
-the authorization scope nor an explicit system-operation requirement fails the gate.
-The finders that deliberately bypass scoping for authentication lookups pass only
+A literal `select(...)` call in a domain repository whose enclosing function
+contains neither an application of the authorization scope nor an explicit
+system-operation requirement fails the gate. Deliberate unscoped lookups pass only
 while declared as exemptions under AC-05.
 
 This criterion is a **syntactic contract, not a proof of authorization.** It
@@ -134,46 +120,37 @@ authorization tests in the existing suite. A green AC-B2 must never be read as
 evidence that a query is safe.
 
 **AC-B3 — Services are built through their factories.** `Slice: B`
-A change constructing a domain service or repository directly, rather than through
-the user-context or system-context factory, fails the gate.
+A direct call through a bare UpperCamelCase identifier whose name ends in `Service`
+or `Repository` fails the gate; application code uses the user-context or
+system-context factory instead. Qualified calls, aliases and symbol resolution are
+outside this syntactic contract.
 
 **AC-B4 — A missing authorization context is deliberate, never incidental.** `Slice: B`
 Passing an empty authorization context at a call site fails the gate. The prescribed
 optional parameter in a repository or service constructor signature is not a
 violation and does not fail the gate.
 
-**AC-B5 — Responses carry no secrets.** `Slice: B`
-A schema reachable from any route's declared response model that exposes a stored
-credential, a password, a token or a hash fails the gate. Nested schemas and
-paginated or otherwise parameterised response models are inspected as well. The
-single endpoint that returns a freshly generated API key once passes only while
-declared as an exemption under AC-05.
-
-**AC-B6 — Every domain declares its authorization.** `Slice: B`
-A domain whose entity has no authorization scope strategy, or whose repository does
-not wire one, fails the gate.
-
 ---
 
 ## Test classification
 
-Everything in this feature is developer-facing tooling. The criteria are
-demonstrated by feeding each check a known-violating input and asserting it reports
-the violation, then asserting the real tree is clean.
+Everything in this feature is developer-facing tooling. The accepted public
+boundary is the command itself: Import Linter and ast-grep scan the real tree and
+their non-zero exit status fails the gate. Synthetic tests of the linters are
+deliberately outside scope.
 
 | AC | Level |
 | --- | --- |
-| AC-01, AC-02 | Unit — a violating fixture produces a non-zero exit and a message naming it. |
+| AC-01, AC-02 | Direct tool execution — each configured sensor reports violations through its CLI. |
 | AC-03 | Integration — CI and `just check` invoke the same entry point; verified by inspection of the invocation, not by a duplicate rule list. |
-| AC-04 | Unit — the checks run in a process with no database reachable. |
-| AC-05 | Unit — a stale exemption fails; a blanket exemption fails. |
-| AC-09 | Unit — each rule is executed against its own accepted and rejected inputs. |
-| AC-08 | Integration — the command runs on an unprovisioned checkout and reports every invariant; `just check` fails when it fails. |
+| AC-04 | Direct tool execution — both sensors inspect source/imports only and need no application setup. |
+| AC-05 | Tool configuration — unmatched Import Linter ignores and unused or blanket ast-grep suppressions are errors. |
+| AC-08 | Integration — the dedicated recipe runs both CLIs and is included in `just check`. |
 | AC-06 | Integration — the existing API and migration suites, unchanged. |
 | AC-07 | Reviewed by a human; no automated test. |
-| AC-A1 … AC-A6 | Unit — each contract is run against a fixture package containing the violation it targets, and against the real tree. |
+| AC-A1 … AC-A4, AC-A6 | Direct `lint-imports` execution against the real tree. |
 | AC-A7 | Integration — the existing authentication and security suites. |
-| AC-B1 … AC-B6 | Unit — each sensor is run against violating and conforming fixture sources. |
+| AC-B1 … AC-B4 | Direct `ast-grep scan` execution against the real tree. |
 
 **Gherkin: none.** There is no business actor and no product behaviour here. The
 observable subject is a developer running a command, and a Gherkin scenario would
@@ -182,6 +159,7 @@ Writing one would be the mechanical translation `features/README.md` warns again
 
 ## Approval
 
-Gate 2 approved by the human on 2026-09-21, covering this revision including AC-08,
-which the same approval requested and accepted. The slice assignment above is part
-of what is approved and may only change by returning to the human.
+Gate 2 approved by the human on 2026-09-21. On 2026-09-22 the human approved the
+reduced contract: AC-09, AC-A5, AC-B5 and AC-B6 were removed; direct CLI execution
+replaces architecture meta-tests, and B2/B3 are limited to source forms ast-grep can
+resolve. The remaining slice assignment is unchanged.

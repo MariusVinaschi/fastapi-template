@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
-id: b2-unscoped-repository-read
+id: unscoped-repository-read
 message: >
-  Custom read must call self._apply_user_scope(query) before executing, or declare
-  the deliberate system-only bypass with self._require_system() (AC-B2).
+  A repository select() must be accompanied by self._apply_user_scope(...) or the
+  deliberate system-only bypass self._require_system() (AC-B2).
 
   This is a SYNTACTIC contract, not a proof of authorization: it checks that the
   scoping ritual is present in the method body, nothing more. It cannot and does not
@@ -20,11 +20,6 @@ rule:
     kind: function_definition
     stopBy: end
   not:
-    # `inside` with stopBy:end matches if ANY enclosing function -- not only the
-    # nearest one -- satisfies this shape. A select() built inside a nested helper
-    # is still "scoped" if the outer method (a further-out ancestor) applies the
-    # scope call; anchoring only to the nearest ancestor would miss that and flag a
-    # correctly scoped read (verified against a nested-helper fixture).
     inside:
       kind: function_definition
       stopBy: end

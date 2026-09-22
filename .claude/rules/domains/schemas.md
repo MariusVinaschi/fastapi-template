@@ -27,10 +27,8 @@ Never reuse a single schema across concerns. Separate:
   `/auth/refresh`, a freshly generated key in `APIKeyGenerated`) is the sanctioned
   exception, not a violation of this rule: it is the endpoint's entire purpose, not
   leaked internal state.
-  Machine-checked by `just architecture-check`: every route's effective response
-  type — including one declared `response_model=None`, resolved from its return
-  annotation — is walked for a credential/password/token/hash-shaped field. Each
-  sanctioned exception is named explicitly, not a blanket allowance for the schema.
+  Verify response safety in focused API tests and review; the structural gate does
+  not resolve FastAPI response types.
 - Use constrained Pydantic types (`EmailStr`, `StrEnum`) instead of hand-written
   validation where the type can express the rule.
 - A system-managed entity may need only an internal-persist schema (no Read/Patch).

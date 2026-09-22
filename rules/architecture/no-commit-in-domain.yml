@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
-id: b1-no-commit-in-domain
+id: no-commit-in-domain
 message: >
   Repositories and services flush, never commit (AC-B1). The transaction boundary
   belongs to the caller: once per HTTP request, once per Prefect flow.
@@ -9,4 +9,4 @@ files:
   - "app/domains/**/repository.py"
   - "app/domains/**/service.py"
 rule:
-  pattern: self.session.commit($$$ARGS)
+  pattern: $SESSION.commit($$$ARGS)

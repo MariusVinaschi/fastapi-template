@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
-id: b4-explicit-none-authorization-context
+id: explicit-none-authorization-context
 message: >
   Never pass authorization_context=None at a call site (AC-B4): a missing context
   must be deliberate, via for_system(), not incidental. The `authorization_context=None`
@@ -8,9 +8,8 @@ message: >
   signature default) are structurally distinct node kinds.
 severity: error
 language: Python
-# Deliberately unscoped, unlike b3: a call site writing this out explicitly is
-# suspicious in test code too, not only in application code. Verified: zero hits
-# anywhere in the repository today, including tests/.
+# Deliberately unscoped: a call site writing this out explicitly is suspicious in
+# test code too, not only in application code.
 rule:
   kind: keyword_argument
   all:

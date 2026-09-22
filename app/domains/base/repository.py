@@ -113,7 +113,7 @@ class ListRepositoryMixin(BaseRepository):
         """
         # Deliberately unscoped: the caller (get_all) applies self._apply_user_scope
         # to this query's result, not this method.
-        # ast-grep-ignore: b2-unscoped-repository-read
+        # ast-grep-ignore: unscoped-repository-read
         return select(self.model)
 
     async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
@@ -231,7 +231,7 @@ class ReadRepositoryMixin(BaseRepository):
         """
         # Deliberately unscoped: the caller (get_by_id) applies self._apply_user_scope
         # to this query's result, not this method.
-        # ast-grep-ignore: b2-unscoped-repository-read
+        # ast-grep-ignore: unscoped-repository-read
         return select(self.model)
 
     async def get_by_id(self, id: str) -> ModelType | None:

@@ -23,9 +23,9 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
 - Every custom read applies `self._apply_user_scope(query)` before execution, even
   when a user-context caller always passes their own id -- it's free defense in
   depth against a future caller that doesn't (see `APIKeyRepository.get_by_user_id`).
-  `just architecture-check` (rule `b2-unscoped-repository-read`) checks that the call
-  is present, never that the query is correctly scoped; correctness stays a review
-  concern.
+  For literal `select(...)` calls, `just architecture-check` (rule
+  `unscoped-repository-read`) checks that the call is present, never that the query
+  is correctly scoped; correctness stays a review concern.
   ```python
   query = select(self.model).where(self.model.email == email)
   query = self._apply_user_scope(query)
@@ -34,7 +34,7 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
   something unknown until the row is found, e.g. `APIKeyRepository.get_by_api_key_hash`):
   call `self._require_system()` first -- the rule accepts it natively, no
   suppression needed. When neither scoping nor `_require_system()` fits, a named
-  `# ast-grep-ignore: b2-unscoped-repository-read` exemption with its reason on the
+  `# ast-grep-ignore: unscoped-repository-read` exemption with its reason on the
   line above is the escape hatch (see `base/repository.py`'s `_build_list_query`).
 - An `_apply_filters` override calls the base method first, then handles domain fields under an `isinstance` guard:
   ```python
@@ -47,4 +47,4 @@ Repositories provide framework-agnostic data access. Follow `app/domains/users/r
       return query
   ```
 
-Never commit: mutations only flush or refresh (`just architecture-check`, rule `b1-no-commit-in-domain`). Do not import another domain's model or repository; cross-domain behavior belongs in services. `just architecture-check` also decides the cross-domain import rule, so write it correctly rather than auditing it.
+Never commit: mutations only flush or refresh (`just architecture-check`, rule `no-commit-in-domain`). Do not import another domain's model or repository; cross-domain behavior belongs in services. `just architecture-check` also decides the cross-domain import rule, so write it correctly rather than auditing it.

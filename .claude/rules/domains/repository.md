@@ -24,9 +24,10 @@ class UserRepository(CreateRepositoryMixin, UpdateRepositoryMixin,
 
 ## Scoping (data security)
 
-`just architecture-check` (rule `b2-unscoped-repository-read`) checks that this
-ritual is *present* in a custom read — never that a query is *correctly* scoped.
-Passing it is not evidence of correctness; scoping logic is still a review concern.
+For literal `select(...)` calls, `just architecture-check` (rule
+`unscoped-repository-read`) checks that this ritual is *present* — never that a
+query is *correctly* scoped. Passing it is not evidence of correctness; scoping logic
+is still a review concern.
 
 - **Every custom read must call `self._apply_user_scope(query)`** before executing:
   ```python
@@ -41,7 +42,7 @@ Passing it is not evidence of correctness; scoping logic is still a review conce
   `APIKeyRepository.get_by_user_id`).
 - The rule's own unscoped builders (`base/repository.py`'s `_build_list_query` /
   `_build_single_query`, whose callers apply the scope) are the pattern for a named,
-  reasoned `# ast-grep-ignore: b2-unscoped-repository-read` exemption when neither
+  reasoned `# ast-grep-ignore: unscoped-repository-read` exemption when neither
   scoping nor `_require_system()` fits.
 
 ## Filters
@@ -62,5 +63,5 @@ def _apply_filters(self, query, filters):
 ## Invariants
 
 - **Never `commit()`** — mutations `flush()` / `refresh()` only; the caller owns the
-  transaction. Machine-checked (rule `b1-no-commit-in-domain`).
+  transaction. Machine-checked (rule `no-commit-in-domain`).
 - Stay in-domain: don't import another domain's models or repository (see `overview.md`).

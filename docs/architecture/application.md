@@ -27,34 +27,28 @@ by reading code, and do not restate them as prose to be trusted:
 | Workers import no `app/api/` | contract *Workers never import the HTTP API* |
 | Delivery above domains above infrastructure; `users` below `sessions` | contract *Application layers* |
 | A domain's repository is private to that domain | one *private to its domain* contract per domain |
-| A new domain cannot arrive without its confinement contract | `tests/architecture/` |
 
-The contracts live in `pyproject.toml` under `[tool.importlinter]`. Each one has a
-fixture package under `tests/architecture/fixtures/` that it must reject: a contract
-matching nothing is otherwise indistinguishable from a contract that is satisfied.
+The contracts live in `pyproject.toml` under `[tool.importlinter]` and are executed
+directly by `lint-imports`.
 
 A deliberate exception is declared in the contract's `ignore_imports` with a reason.
 Stale exceptions fail the gate rather than accumulating.
 
-Six more invariants that no import graph can see are checked the same way, by
-ast-grep rules (`rules/architecture/*.yml`) and, where a rule needs a resolved type
-rather than syntax, by tests under `tests/architecture/`:
+Four more invariants that no import graph can see are checked by ast-grep rules
+under `rules/architecture/`:
 
 | Rule | Checked by |
 | --- | --- |
-| Repositories and services never commit | rule *b1-no-commit-in-domain* |
-| A custom repository read applies the authorization scope, or declares a system-only bypass | rule *b2-unscoped-repository-read* |
-| A domain service or repository is built only via `for_user`/`for_system` | rule *b3-direct-service-construction* |
-| `authorization_context=None` never appears at a call site | rule *b4-explicit-none-authorization-context* |
-| No route's response model reaches a stored credential, password, token or hash | `tests/architecture/test_no_secrets_in_responses.py` |
-| Every domain's repository wires a scope strategy from its own domain | `tests/architecture/test_authorization_is_declared.py` |
+| Repositories and services never commit | rule *no-commit-in-domain* |
+| A custom repository read applies the authorization scope, or declares a system-only bypass | rule *unscoped-repository-read* |
+| A domain service or repository is built only via `for_user`/`for_system` | rule *direct-service-construction* |
+| `authorization_context=None` never appears at a call site | rule *explicit-none-authorization-context* |
 
-**b2 is a syntactic contract, not a proof of authorization.** It checks that the
-scoping ritual is present in a method body — nothing more. It cannot establish that
-every execution path is correctly scoped, which needs type resolution, data flow and
-call-graph analysis no rule here performs. A green b2 is never evidence that a query
-is safe; authorization correctness remains a matter for review and for the
-authorization tests in the existing suite.
+**b2 and b3 are syntactic contracts.** b2 checks literal `select(...)` calls; b3
+checks direct callees whose names end in `Service` or `Repository`. They do not
+resolve aliases, types, data flow or call graphs. A green result is not evidence that
+authorization or construction is semantically correct; those remain review and
+application-test concerns.
 
 An ast-grep exception is a comment naming the exact rule
 (`# ast-grep-ignore: <rule-id>`) with the reason on the line above, immediately
@@ -63,9 +57,11 @@ before the flagged line — not the statement that contains it. Reflowing that l
 fails as unused rather than as the original violation; keep the comment adjacent to
 the exact line a rule reports. `just architecture-check` rejects a blanket
 suppression that names no rule and a suppression that no longer matches any
-violation, so neither can accumulate silently. Every rule ships `valid` and
-`invalid` cases run by `ast-grep test`: a rule matching nothing is otherwise
-indistinguishable from a satisfied one.
+violation, so neither can accumulate silently.
+
+Response schema safety, repository strategy wiring, and authorization correctness
+remain matters for focused application tests and review. They require semantic or
+runtime knowledge and are deliberately not approximated by this structural gate.
 
 ## Authorization
 

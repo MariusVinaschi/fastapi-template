@@ -46,13 +46,14 @@ enforcement.
   private to its own domain.
 - A deterministic gate over the **non-import invariants** that the import graph
   cannot see: no `commit()` in repositories and domain services, no direct
-  service construction bypassing `for_user` / `for_system`, no
-  `authorization_context=None` passed directly, custom repository reads scoped,
-  response schemas free of secret fields.
+  construction through a bare UpperCamelCase `*Service(...)` or `*Repository(...)`
+  call, no
+  `authorization_context=None` passed directly, and literal repository `select(...)`
+  calls declaring their scoping ritual.
 - Wiring both gates into `just check`, the git hooks and CI, so the local and
   remote verdicts are identical.
-- An escape hatch: a violation can be deliberately accepted, but only in a
-  reviewable, named, justified way — never by silently disabling the gate.
+- An escape hatch: a violation can be deliberately accepted only through a named,
+  specific and non-stale suppression — never by silently disabling the gate.
 - Rewriting the affected rule and architecture documents so each invariant names
   the check that enforces it, and reviewers are told not to re-verify it by hand.
 - Recording the layering the checks will assert as an explicit, approved decision,
@@ -67,6 +68,13 @@ enforcement.
   contract rather than fixed here.
 - Runtime or performance enforcement, dependency/CVE scanning, coverage
   thresholds, or any rule about test structure.
+- Runtime introspection of FastAPI response types or repository composition.
+  Response safety, strategy wiring and authorization correctness remain covered by
+  focused application tests and review.
+- Meta-tests proving that linter rules can fail. The gate runs the configured tools
+  directly and accepts their own exit status as the boundary.
+- Automatic discovery of a newly added domain's missing Import Linter contract.
+  Adding a domain requires adding its explicit repository-confinement contract.
 - Rules that are genuinely a matter of judgment (naming quality, when an
   abstraction is warranted, comment usefulness). These stay prose and stay human.
 - Replacing the existing review agents. The sensors remove mechanical checks from
@@ -96,14 +104,13 @@ contracts KEPT, and a `TYPE_CHECKING` import of FastAPI into a domain is correct
 caught without it. The setting was reverted; it is not part of the shipped
 configuration.
 
-**D3 — tooling (revised 2026-09-21).** Three sensors, each given the invariants it
-is actually able to decide:
+**D3 — tooling (revised 2026-09-22).** Two command-line sensors, each given the
+invariants it is actually able to decide:
 
 - **import-linter** for the import graph (contracts in `pyproject.toml`).
 - **ast-grep** for invariants expressible as observable syntactic structure.
-  Declarative YAML rules, each with `valid` and `invalid` cases run by
-  `ast-grep test`. MIT, 15 MiB, measured at 0.03s on this tree.
-- **Runtime introspection tests** for invariants that need resolved types.
+  Declarative YAML rules are scanned directly; no rule-test or snapshot tree is
+  maintained.
 
 ast-grep is explicitly **not** treated as a semantic analysis engine. It reads
 syntactic structure; it does not resolve types, data flow, symbols or the call
@@ -121,6 +128,8 @@ deliberate violation, while looking green).
 
 ## Approval
 
-Gate 1 approved by the human on 2026-09-21, covering this revision including the
-amendments D1 and D2. The approval covers intent and scope only; the acceptance
+Gate 1 approved by the human on 2026-09-21, covering D1 and D2. The reduced tooling
+scope in D3 was approved by the human on 2026-09-22: direct CLI checks replace
+architecture meta-tests, runtime introspection is no longer part of this feature,
+and syntactic rules claim only the source forms they can resolve. The acceptance
 criteria carry their own approval in `acs.md`.

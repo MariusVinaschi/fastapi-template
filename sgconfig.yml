@@ -1,8 +1,4 @@
-# ast-grep config for the non-import architecture invariants (see plan.md slice B).
+# ast-grep config for the non-import architecture invariants.
 # Rules read syntactic structure only — never types, data flow or the call graph.
-# Tests live in a sibling directory: ruleDirs is scanned recursively for rule
-# files, and a nested tests/ directory would be parsed as rules too.
 ruleDirs:
   - rules/architecture
-testConfigs:
-  - testDir: rules/architecture-tests

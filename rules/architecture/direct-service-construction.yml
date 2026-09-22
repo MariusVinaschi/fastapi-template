@@ -1,12 +1,11 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
-id: b3-direct-service-construction
+id: direct-service-construction
 message: >
-  Construct a domain service or repository only through Service.for_user(session,
-  ctx) or Service.for_system(session) — never the raw constructor (AC-B3).
+  A direct call through a bare UpperCamelCase *Service or *Repository identifier
+  bypasses for_user()/for_system() (AC-B3).
 
-  This matches on the callee's own name ending in Service/Repository: an aliased
-  import (`from ... import UserService as US`) or a class not following that naming
-  convention is outside what this rule can see.
+  Qualified calls, aliased imports and classes outside that naming convention are
+  not resolved by this syntactic rule.
 severity: error
 language: Python
 # Production code only: a repository test legitimately constructs its subject

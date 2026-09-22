@@ -45,7 +45,7 @@ Services contain framework-agnostic business logic and permission enforcement. F
 Build a service only via `Service.for_user(session, ctx)` or `.for_system(session)`,
 never the raw constructor, and never pass `authorization_context=None` at a call
 site — `just architecture-check` machine-checks both (rules
-`b3-direct-service-construction`, `b4-explicit-none-authorization-context`).
+`direct-service-construction`, `explicit-none-authorization-context`).
 
 Every public method first calls `_check_general_permissions(action)`. A row operation loads with `get_by_id` (which raises the configured not-found exception), then calls `_check_instance_permissions(action, instance)`. Custom reads follow the same ritual.
 

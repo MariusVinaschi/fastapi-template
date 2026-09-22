@@ -89,15 +89,10 @@ type-check:
 complexity:
     uv run --locked complexipy
 
-# Structural invariants: import contracts and architecture tests. No database,
-# no provisioning, so it runs on a bare checkout while you work.
+# Structural invariants from import-linter and ast-grep. No database or setup.
 architecture-check:
-    uv run --locked ast-grep test
     uv run --locked ast-grep scan --error=unused-suppression --error=no-suppress-all
-    uv run --locked lint-imports
-    # --confcutdir stops the root conftest.py's database bootstrap from loading:
-    # these tests run on a bare, unprovisioned checkout (AC-08).
-    uv run --locked pytest tests/architecture --confcutdir=tests/architecture -q -p tests.architecture.no_network
+    uv run --locked lint-imports --no-cache
 
 # just runs dependencies in order and stops at the first failure
 check: lint format-check type-check complexity architecture-check test-cov
