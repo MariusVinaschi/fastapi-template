@@ -61,12 +61,19 @@ class APIKeyRepository(
         super().__init__(session, APIKeyScopeStrategy(), APIKey, authorization_context)
 
     async def get_by_user_id(self, user_id: UUID) -> APIKey | None:
-        instance = await self.session.scalars(
-            select(self.model).options(joinedload(self.model.user)).where(self.model.user_id == user_id)
-        )
+        # The caller (APIKeyService.get_by_user_id) always passes the requesting
+        # user's own id, so this scope is a no-op in a user context -- but it is
+        # free SQL-level defense in depth against a future caller that doesn't.
+        query = select(self.model).options(joinedload(self.model.user)).where(self.model.user_id == user_id)
+        query = self._apply_user_scope(query)
+        instance = await self.session.scalars(query)
         return instance.one_or_none()
 
     async def get_by_api_key_hash(self, api_key_hash: str) -> APIKey | None:
+        # The hash is the lookup key, unknown until the row is found, so this
+        # cannot be scoped by ownership. It is genuinely system-only: its one
+        # caller (app/api/security.py) always authenticates via for_system.
+        self._require_system()
         instance = await self.session.scalars(
             select(self.model).options(joinedload(self.model.user)).where(self.model.key_hash == api_key_hash)
         )

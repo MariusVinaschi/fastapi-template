@@ -3,10 +3,10 @@ from uuid import uuid4
 import pytest
 from starlette.requests import Request
 
+from app.api.security import UnauthenticatedException, auth
 from app.domains.users.factory import UserFactory
 from app.domains.users.service import APIKeyService
 from app.infrastructure.auth import security
-from app.infrastructure.security import UnauthenticatedException, auth
 
 
 def _request(headers: dict[str, str] | None = None, method: str = "GET") -> Request:

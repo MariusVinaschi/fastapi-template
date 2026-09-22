@@ -1,0 +1,4 @@
+# ast-grep config for the non-import architecture invariants.
+# Rules read syntactic structure only — never types, data flow or the call graph.
+ruleDirs:
+  - rules/architecture

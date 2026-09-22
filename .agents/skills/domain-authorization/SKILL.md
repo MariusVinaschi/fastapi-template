@@ -20,6 +20,8 @@ This module defines framework-agnostic query scoping and, only for identity sour
   ```
 - `apply_scope` always receives a non-None context: the repository handles the system case. Decide how to scope, not whether to scope.
 - Global entities return the original query; owner-scoped entities filter their owner FK against `context.user_id`. The repository wires the strategy in its initializer.
+  Strategy wiring and `apply_scope` correctness remain review and application-test
+  concerns; the structural gate does not resolve runtime composition.
 
 ## Identity adapters
 

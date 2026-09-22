@@ -42,6 +42,11 @@ Services contain framework-agnostic business logic and permission enforcement. F
   ```
   Use the same shape in `_check_instance_permissions(action, instance)` for row ownership.
 
+Build a service only via `Service.for_user(session, ctx)` or `.for_system(session)`,
+never the raw constructor, and never pass `authorization_context=None` at a call
+site — `just architecture-check` machine-checks both (rules
+`direct-service-construction`, `explicit-none-authorization-context`).
+
 Every public method first calls `_check_general_permissions(action)`. A row operation loads with `get_by_id` (which raises the configured not-found exception), then calls `_check_instance_permissions(action, instance)`. Custom reads follow the same ritual.
 
 Inject `created_by` and `updated_by` through `_prepare_*_data`, never models or routes. Raise domain exceptions, never `HTTPException`. For another domain, use its service on the same session/context—never its repository.

@@ -89,8 +89,13 @@ type-check:
 complexity:
     uv run --locked complexipy
 
+# Structural invariants from import-linter and ast-grep. No database or setup.
+architecture-check:
+    uv run --locked ast-grep scan --error=unused-suppression --error=no-suppress-all
+    uv run --locked lint-imports --no-cache
+
 # just runs dependencies in order and stops at the first failure
-check: lint format-check type-check complexity test-cov
+check: lint format-check type-check complexity architecture-check test-cov
 
 # -----------------------------------------------------------------------------
 # Database

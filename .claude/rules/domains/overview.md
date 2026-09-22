@@ -14,6 +14,9 @@ etc.). These invariants span every domain file — apply them everywhere.
 No FastAPI / HTTP / Prefect imports anywhere in `app/domains/`. The only outward contract
 is **domain exceptions** — the delivery layer (`app/api/`) catches them and maps to HTTP.
 
+Machine-checked by `just architecture-check`. Write the code correctly; do not audit
+this by hand and do not treat a passing gate as proof of anything beyond the imports.
+
 ## 2. Stay inside the domain (DDD boundary)
 
 A domain must not reach into another domain's **repository**.
@@ -23,9 +26,16 @@ A domain must not reach into another domain's **repository**.
   `OtherService.for_user(self.session, self.authorization_context)`.
 - Within a domain, the service owns the repository — nothing else instantiates it.
 
+The import half is machine-checked by `just architecture-check`, one contract per
+domain. When adding a domain, add its explicit repository contract under
+`[tool.importlinter]` in `pyproject.toml`; Import Linter does not discover that
+missing declaration automatically.
+
 ## 3. `for_user` vs `for_system`
 
 Services are constructed only via the factory methods, never the raw constructor.
+Machine-checked by `just architecture-check` (rules `direct-service-construction`,
+`explicit-none-authorization-context`): write it correctly, don't audit it by hand.
 
 - User-context flow (any request-driven work): `Service.for_user(session, ctx)`.
 - `Service.for_system(session)` is **only** for genuine system work — workers, webhooks,
@@ -46,12 +56,14 @@ scoping rituals the base methods use.
 
 Every entity gets an `AuthorizationScopeStrategy` (repository-level data scoping) and the
 service must enforce permissions (deny-by-default). Never ship a domain without both.
-See `authorization.md` and `service.md`.
+See `authorization.md` and `service.md`. Strategy wiring and permission correctness
+stay review and focused application-test concerns.
 
 ## 6. Unit of Work
 
 Repositories `flush()` / `refresh()` — **never `commit()`**. The transaction boundary is
 owned by the caller: once per HTTP request in `get_session`, once per Prefect flow.
+Machine-checked by `just architecture-check` (rule `no-commit-in-domain`).
 
 ---
 Reference implementation: `app/domains/users/`. Base abstractions: `app/domains/base/`.

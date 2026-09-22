@@ -109,8 +109,14 @@ not a reason to restart specification from scratch.
 ## Development, review and QA
 
 Use the existing TDD skill, then `just check`. It runs lint, format verification,
-types, complexipy (12 per function) and tests with coverage, stopping at the
-first failing gate. Coverage has no new blocking threshold.
+types, complexipy (12 per function), the architecture gate and tests with coverage,
+stopping at the first failing gate. Coverage has no new blocking threshold.
+
+`just architecture-check` runs the structural checks alone, needs no database and no
+`just setup`, so it is usable while writing. Reviewers do not need to duplicate the
+gate's exact syntax/import checks, but they still review architectural intent, scope,
+exceptions and semantic correctness. What each gate covers, and what it explicitly
+does not establish, is in the architecture documentation.
 
 Use the existing review-orchestrator and Python/FastAPI reviewers. Start them
 without implementation history (Codex: `fork_turns="none"` when available).

@@ -3,11 +3,11 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 
 from app.api.rate_limit import limiter
+from app.api.security import auth
 from app.domains.base.exceptions import PermissionDenied
 from app.domains.users.factory import UserFactory
 from app.domains.users.schemas import RoleEnum
 from app.domains.users.service import APIKeyService
-from app.infrastructure.security import auth
 from tests.utils.override_dependencies import DependencyOverrider
 
 

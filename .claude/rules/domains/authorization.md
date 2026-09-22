@@ -27,6 +27,10 @@ an `AuthorizationContext`. Framework-agnostic. Reference:
 - Owner-scoped entity: `return query.where(self.model.<owner_fk> == context.user_id)`.
 - The repository wires the strategy in its `__init__` (see `repository.md`).
 
+Strategy wiring and `apply_scope` correctness remain application-test and review
+concerns. The structural gate does not resolve runtime composition or determine
+whether the resulting WHERE clause is correct for the entity.
+
 ## Context adapter (only for identity sources)
 
 If the entity is an identity source (something a request authenticates as), add an

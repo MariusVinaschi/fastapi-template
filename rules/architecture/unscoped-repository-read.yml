@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
+id: unscoped-repository-read
+message: >
+  A repository select() must be accompanied by self._apply_user_scope(...) or the
+  deliberate system-only bypass self._require_system() (AC-B2).
+
+  This is a SYNTACTIC contract, not a proof of authorization: it checks that the
+  scoping ritual is present in the method body, nothing more. It cannot and does not
+  establish that every execution path is correctly scoped — that needs type
+  resolution, data flow and call-graph analysis this rule does not perform. Passing
+  this rule is never evidence that a query is safe.
+severity: error
+language: Python
+files:
+  - "app/domains/**/repository.py"
+rule:
+  kind: call
+  pattern: select($$$ARGS)
+  inside:
+    kind: function_definition
+    stopBy: end
+  not:
+    inside:
+      kind: function_definition
+      stopBy: end
+      has:
+        stopBy: end
+        any:
+          - pattern: self._apply_user_scope($$$)
+          - pattern: self._require_system()

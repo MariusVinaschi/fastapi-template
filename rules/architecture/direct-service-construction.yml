@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/rule.json
+id: direct-service-construction
+message: >
+  A direct call through a bare UpperCamelCase *Service or *Repository identifier
+  bypasses for_user()/for_system() (AC-B3).
+
+  Qualified calls, aliased imports and classes outside that naming convention are
+  not resolved by this syntactic rule.
+severity: error
+language: Python
+# Production code only: a repository test legitimately constructs its subject
+# directly to exercise it in isolation, bypassing the user/system factory on
+# purpose. The discipline this rule protects is an application concern.
+files:
+  - "app/**/*.py"
+rule:
+  kind: call
+  has:
+    field: function
+    kind: identifier
+    regex: "^[A-Z][A-Za-z0-9]*(Service|Repository)$"
