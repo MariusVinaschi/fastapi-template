@@ -12,18 +12,24 @@ message: >
 severity: error
 language: Python
 files:
-  - "app/domains/*/repository.py"
-ignores:
-  # _build_list_query / _build_single_query are unscoped by design: their caller
-  # (e.g. get_all) applies the scope. See app/domains/base/repository.py.
-  - "app/domains/base/*"
+  - "app/domains/**/repository.py"
 rule:
   kind: call
   pattern: select($$$ARGS)
   inside:
     kind: function_definition
     stopBy: end
-    not:
-      any:
-        - has: {pattern: self._apply_user_scope($$$), stopBy: end}
-        - has: {pattern: self._require_system(), stopBy: end}
+  not:
+    # `inside` with stopBy:end matches if ANY enclosing function -- not only the
+    # nearest one -- satisfies this shape. A select() built inside a nested helper
+    # is still "scoped" if the outer method (a further-out ancestor) applies the
+    # scope call; anchoring only to the nearest ancestor would miss that and flag a
+    # correctly scoped read (verified against a nested-helper fixture).
+    inside:
+      kind: function_definition
+      stopBy: end
+      has:
+        stopBy: end
+        any:
+          - pattern: self._apply_user_scope($$$)
+          - pattern: self._require_system()

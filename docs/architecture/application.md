@@ -58,11 +58,14 @@ authorization tests in the existing suite.
 
 An ast-grep exception is a comment naming the exact rule
 (`# ast-grep-ignore: <rule-id>`) with the reason on the line above, immediately
-before the flagged line. `just architecture-check` rejects a blanket suppression
-that names no rule and a suppression that no longer matches any violation, so
-neither can accumulate silently. Every rule ships `valid` and `invalid` cases run by
-`ast-grep test`: a rule matching nothing is otherwise indistinguishable from a
-satisfied one.
+before the flagged line — not the statement that contains it. Reflowing that line
+(e.g. joining it with the one above) silently detaches the suppression, which then
+fails as unused rather than as the original violation; keep the comment adjacent to
+the exact line a rule reports. `just architecture-check` rejects a blanket
+suppression that names no rule and a suppression that no longer matches any
+violation, so neither can accumulate silently. Every rule ships `valid` and
+`invalid` cases run by `ast-grep test`: a rule matching nothing is otherwise
+indistinguishable from a satisfied one.
 
 ## Authorization
 

@@ -6,7 +6,7 @@ message: >
 severity: error
 language: Python
 files:
-  - "app/domains/*/repository.py"
-  - "app/domains/*/service.py"
+  - "app/domains/**/repository.py"
+  - "app/domains/**/service.py"
 rule:
-  pattern: $X.commit($$$ARGS)
+  pattern: self.session.commit($$$ARGS)

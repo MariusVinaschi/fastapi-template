@@ -84,9 +84,17 @@ exception. This brings the move into scope.
 
 **D2 — `app/domains/sessions` may depend on `app/domains/users`.** A refresh session
 belongs to a user; the dependency is directed and legitimate. The contract declares
-`users` below `sessions` and continues to forbid the reverse. No code changes. Note
-that `sessions/models.py` imports `users` only under `TYPE_CHECKING` (string-based
-relationship and foreign key), so the sole runtime coupling is the test factory.
+`users` below `sessions` and continues to forbid the reverse. No code changes.
+
+*Revised 2026-09-21, after review:* the layers contract alone already legalizes this
+direction — `sessions/models.py`'s `TYPE_CHECKING` import of `users` needs no special
+treatment. The original plan proposed `exclude_type_checking_imports = true` for this,
+but that setting is global, not scoped to this one direction: it would have blinded
+*every* contract to *any* `TYPE_CHECKING` import project-wide, including a domain
+importing FastAPI that way. Verified: removing the setting still leaves all 5
+contracts KEPT, and a `TYPE_CHECKING` import of FastAPI into a domain is correctly
+caught without it. The setting was reverted; it is not part of the shipped
+configuration.
 
 **D3 — tooling (revised 2026-09-21).** Three sensors, each given the invariants it
 is actually able to decide:

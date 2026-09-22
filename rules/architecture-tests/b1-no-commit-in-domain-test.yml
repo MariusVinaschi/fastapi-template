@@ -13,6 +13,12 @@ valid:
     class Report:
         def build(self):
             return self.buffer.commit_pending_writes()
+  # an unrelated object that happens to be named `commit` is not this rule's concern:
+  # it is anchored to `self.session`, the attribute BaseRepository/BaseService use.
+  - |
+    class Consumer:
+        def ack(self):
+            return self.kafka_consumer.commit()
 invalid:
   - |
     class UserRepository:

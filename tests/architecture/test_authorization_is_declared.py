@@ -8,6 +8,7 @@ inspectable literal in source.
 
 import importlib
 import inspect
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -18,11 +19,29 @@ from app.domains.base.repository import BaseRepository
 pytestmark = pytest.mark.architecture
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOMAINS = sorted(p.parent.name for p in (REPO_ROOT / "app" / "domains").glob("*/repository.py"))
-DOMAINS = [d for d in DOMAINS if d != "base"]
 
 
-def _repository_classes(domain: str):
+def _has_repository_module(domain_dir: Path) -> bool:
+    """A repository is a module either way Python accepts it as one."""
+    return (domain_dir / "repository.py").exists() or (domain_dir / "repository" / "__init__.py").exists()
+
+
+def _all_domains() -> set[str]:
+    return {
+        entry.name
+        for entry in (REPO_ROOT / "app" / "domains").iterdir()
+        if entry.is_dir() and entry.name != "base" and not entry.name.startswith("__")
+    }
+
+
+# A domain filtered out here because it lacks a *.py-named repository would silently
+# never be parametrized below -- pytest turns an empty parametrize list into a skip,
+# not a failure. test_every_domain_has_a_discovered_repository is what actually
+# guards against that; this list itself must never be trusted to be complete.
+DOMAINS = sorted(d for d in _all_domains() if _has_repository_module(REPO_ROOT / "app" / "domains" / d))
+
+
+def _repository_classes(domain: str) -> Iterator[type]:
     module = importlib.import_module(f"app.domains.{domain}.repository")
     for _, cls in inspect.getmembers(module, inspect.isclass):
         if issubclass(cls, BaseRepository) and cls.__module__ == module.__name__:
@@ -32,12 +51,20 @@ def _repository_classes(domain: str):
 def _wired_strategy(repository_cls: type) -> AuthorizationScopeStrategy | None:
     """Build the repository with a placeholder session and read what it wired.
 
-    `BaseRepository.__init__` only assigns `session`; no query runs, so a bare
-    `object()` is a safe stand-in and no database is required (AC-04).
+    `BaseRepository.__init__` performs no I/O -- it only assigns its arguments -- so
+    a bare `object()` is a safe stand-in for a real session and no database is
+    required (AC-04).
     """
     instance = repository_cls(session=object())
     strategy = getattr(instance, "scope_strategy", None)
     return strategy if isinstance(strategy, AuthorizationScopeStrategy) else None
+
+
+def test_every_domain_has_a_discovered_repository():
+    """AC-09: an empty or partial DOMAINS list would silently skip, not fail, below."""
+    all_domains = _all_domains()
+    assert all_domains, "no domain directory found -- discovery itself is broken"
+    assert set(DOMAINS) == all_domains, f"domains with no discovered repository module: {all_domains - set(DOMAINS)}"
 
 
 @pytest.mark.parametrize("domain", DOMAINS)

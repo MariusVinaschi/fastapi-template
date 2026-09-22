@@ -111,6 +111,9 @@ class ListRepositoryMixin(BaseRepository):
         Build query for fetching multiple entities.
         Override this method to add specific joins for list fetches.
         """
+        # Deliberately unscoped: the caller (get_all) applies self._apply_user_scope
+        # to this query's result, not this method.
+        # ast-grep-ignore: b2-unscoped-repository-read
         return select(self.model)
 
     async def get_all(self, filters: BaseFilterParams) -> Sequence[ModelType]:
@@ -226,6 +229,9 @@ class ReadRepositoryMixin(BaseRepository):
         Build query for fetching a single entity.
         Override this method to add specific joins for single entity fetches.
         """
+        # Deliberately unscoped: the caller (get_by_id) applies self._apply_user_scope
+        # to this query's result, not this method.
+        # ast-grep-ignore: b2-unscoped-repository-read
         return select(self.model)
 
     async def get_by_id(self, id: str) -> ModelType | None:

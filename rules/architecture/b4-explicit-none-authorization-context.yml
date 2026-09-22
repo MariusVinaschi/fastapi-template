@@ -8,6 +8,9 @@ message: >
   signature default) are structurally distinct node kinds.
 severity: error
 language: Python
+# Deliberately unscoped, unlike b3: a call site writing this out explicitly is
+# suspicious in test code too, not only in application code. Verified: zero hits
+# anywhere in the repository today, including tests/.
 rule:
   kind: keyword_argument
   all:

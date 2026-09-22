@@ -95,7 +95,9 @@ architecture-check:
     uv run --locked ast-grep test
     uv run --locked ast-grep scan --error=unused-suppression --error=no-suppress-all
     uv run --locked lint-imports
-    uv run --locked pytest tests/architecture -q
+    # --confcutdir stops the root conftest.py's database bootstrap from loading:
+    # these tests run on a bare, unprovisioned checkout (AC-08).
+    uv run --locked pytest tests/architecture --confcutdir=tests/architecture -q -p tests.architecture.no_network
 
 # just runs dependencies in order and stops at the first failure
 check: lint format-check type-check complexity architecture-check test-cov

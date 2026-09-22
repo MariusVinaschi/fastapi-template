@@ -14,6 +14,17 @@ valid:
             self._require_system()
             query = select(self.model).where(self.model.key_hash == api_key_hash)
             return await self.session.scalar(query)
+  # the scope call lives in the outer method, not the nested helper that builds the
+  # query -- inside must search every enclosing function, not just the nearest one.
+  - |
+    class UserRepository:
+        async def get_by_email(self, email):
+            def build():
+                return select(self.model).where(self.model.email == email)
+
+            query = build()
+            query = self._apply_user_scope(query)
+            return await self.session.scalar(query)
   # a read with no select() at all is not this rule's concern
   - |
     class UserRepository:

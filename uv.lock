@@ -778,6 +778,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "python-semantic-release" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -817,6 +818,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-mock", specifier = ">=3.15.1" },
     { name = "python-semantic-release", specifier = ">=9.17.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", specifier = ">=0.14.11" },
     { name = "ty", specifier = ">=0.0.10" },
 ]

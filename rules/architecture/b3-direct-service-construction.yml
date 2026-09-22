@@ -3,6 +3,10 @@ id: b3-direct-service-construction
 message: >
   Construct a domain service or repository only through Service.for_user(session,
   ctx) or Service.for_system(session) — never the raw constructor (AC-B3).
+
+  This matches on the callee's own name ending in Service/Repository: an aliased
+  import (`from ... import UserService as US`) or a class not following that naming
+  convention is outside what this rule can see.
 severity: error
 language: Python
 # Production code only: a repository test legitimately constructs its subject

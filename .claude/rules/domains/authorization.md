@@ -27,6 +27,12 @@ an `AuthorizationContext`. Framework-agnostic. Reference:
 - Owner-scoped entity: `return query.where(self.model.<owner_fk> == context.user_id)`.
 - The repository wires the strategy in its `__init__` (see `repository.md`).
 
+`just architecture-check` checks that every domain's repository wires a strategy
+*defined in that same domain* — it does not, and cannot, check that `apply_scope`'s
+filtering logic is actually correct for the entity. Getting the scope wired to the
+right domain is machine-checked; getting its WHERE clause right is still a review
+concern.
+
 ## Context adapter (only for identity sources)
 
 If the entity is an identity source (something a request authenticates as), add an

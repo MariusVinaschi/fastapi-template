@@ -53,6 +53,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.15.1",
     "python-semantic-release>=9.17.0",
+    "pyyaml>=6.0.3",
     "ruff>=0.14.11",
     "ty>=0.0.10",
 ]
@@ -172,9 +173,10 @@ pythonpath = ["."]
 [tool.importlinter]
 root_package = "app"
 include_external_packages = true
-# `sessions` reaches `users` only through a string-based relationship, so the
-# runtime coupling is the test factory alone. See feature.md D2.
-exclude_type_checking_imports = true
+# Declared explicitly rather than relied on as import-linter's default (AC-05): an
+# ignore_imports entry matching nothing must fail, so a stale exemption can't
+# accumulate silently.
+unmatched_ignore_imports_alerting = "error"
 
 [[tool.importlinter.contracts]]
 name = "Domains are framework-agnostic"
