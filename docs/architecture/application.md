@@ -18,8 +18,9 @@ skill (Codex) or `.claude/rules/domains/` rule (Claude).
 
 ## Machine-checked boundaries
 
-`just architecture-check` decides the structural rules below. Do not re-verify them
-by reading code, and do not restate them as prose to be trusted:
+`just architecture-check` enforces the structural forms below. Review still evaluates
+architectural intent, scope, deliberate exceptions and semantic correctness; reviewers
+do not need to duplicate the exact syntax/import checks after the gate passes:
 
 | Rule | Checked by |
 | --- | --- |
@@ -44,9 +45,10 @@ under `rules/architecture/`:
 | A domain service or repository is built only via `for_user`/`for_system` | rule *direct-service-construction* |
 | `authorization_context=None` never appears at a call site | rule *explicit-none-authorization-context* |
 
-**b2 and b3 are syntactic contracts.** b2 checks literal `select(...)` calls; b3
-checks direct callees whose names end in `Service` or `Repository`. They do not
-resolve aliases, types, data flow or call graphs. A green result is not evidence that
+**`unscoped-repository-read` and `direct-service-construction` are syntactic
+contracts.** The first checks literal `select(...)` calls; the second checks direct
+callees whose names match the documented service/repository form. They do not resolve
+aliases, types, data flow or call graphs. A green result is not evidence that
 authorization or construction is semantically correct; those remain review and
 application-test concerns.
 
