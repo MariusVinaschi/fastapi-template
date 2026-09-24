@@ -2,6 +2,7 @@
 name: contract-reviewer
 description: Checks a change against its human-approved contract — every AC it claims demonstrated by a test, and no behaviour outside the approved scope. Receives the diff, its tests, feature.md, acs.md and the current slice id; never plan.md or implementer reasoning. Judges only that slice's criteria plus the cross-cutting ones, reports the rest as deferred, and runs once more over the whole contract after the last slice.
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 ## Prompt Defense Baseline

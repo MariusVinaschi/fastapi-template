@@ -64,6 +64,12 @@ Before running anything, check what this project actually has:
 - Merge risk: detect whether `merge-risk-reviewer` exists, but do not dispatch
   it yet. It is applicable only after the technical and contract review
   reaches `Approve` on an unchanged, non-empty diff.
+- Review round: determine whether this is the first review of this change or a
+  verification round after earlier findings were addressed, and how many
+  verification rounds have already run. Take it from the requester or from a
+  prior review report for this branch, and say which you used. An implementer's
+  claim that a finding is fixed selects the round shape; it is never evidence
+  that the finding is actually resolved.
 
 ### Step 1 — Identify the diff
 
@@ -77,6 +83,43 @@ Derive the change set from git yourself. If the caller supplied a summary,
 a rationale, or an account of what was done, discard it and never pass it
 downstream — an implementer describing its own work is exactly the anchoring
 this agent exists to prevent.
+
+### Step 1b — Choose the round shape
+
+A first review is always full: every relevant reviewer, on the whole diff.
+
+A verification round may instead be **scoped** to the delta since the last
+reviewed diff, but only when all of these hold:
+
+- the previous verdict was `Warning` or `Block`, and this round exists to
+  check the findings it raised;
+- the delta touches only files that were already in the reviewed diff;
+- it changes no route signature, public schema, permission or authorization
+  rule, migration, dependency or architectural boundary;
+- it edits no acceptance criterion and no AC-to-slice mapping;
+- fewer than two scoped rounds have already run on this change.
+
+If any condition fails, run a full review from Step 1 and name the condition
+that forced it. The third verification round is full regardless: small
+correct-looking deltas accumulate drift that only a whole-diff read catches.
+
+A scoped round dispatches only the reviewers whose findings are being
+verified, never the others. Each receives the delta, the complete current
+content of every file the delta touches, verbatim the findings it raised, and
+the fresh gate results — not the implementer's account of the fix. It answers
+two questions per finding, and nothing else: is this finding resolved, and
+does the delta introduce a new issue in what it touched. It does not re-audit
+untouched code and does not restate findings it already made.
+
+Scope the contract reviewer in only when the delta touches tests or behaviour
+mapped to an acceptance criterion. Otherwise carry its previous per-AC verdict
+forward unchanged and report it as carried, not re-derived.
+
+A scoped round never yields `Approve`. Its verdict is `Findings resolved` or
+`Findings outstanding`, and `Findings resolved` means the next round is a full
+review of the final diff. `Approve` always rests on a whole-diff read, which
+is also the only diff merge risk is ever assessed on. Scoping makes the
+intermediate rounds cheap; it never removes the final full one.
 
 ### Step 2 — Run the quantitative gates once
 
@@ -97,6 +140,10 @@ the project actually has:
 4. Mutation testing, only if configured **and** either the diff touches
    core/critical logic or the user explicitly asked for it — it's
    expensive, so it stays conditional even when available.
+
+Run the gates on every round, scoped rounds included: they are cheap next to
+a reviewer and they are the only check that a fix did not break something the
+scoped reviewers were never shown.
 
 Record pass/fail and the key numbers (coverage %, complexity scores over
 threshold, mutation score if run, number of failing acceptance scenarios)
@@ -209,6 +256,11 @@ classification does not alter the already established review verdict.
 - **Block**: any Critical/High from any reviewer, or any gate that was run
   fails outright, or the contract reviewer reports Does not conform.
 
+On a scoped round these three verdicts do not apply. Report `Findings
+resolved` when every verified finding is closed and the delta introduced
+nothing new, otherwise `Findings outstanding`. Neither is an approval, and
+neither makes merge risk assessable.
+
 A slice review approves that slice only. A split feature is not delivered
 until the `final` whole-contract review passes, and the human merge gate for
 the feature comes after it, not after the last slice.
@@ -218,7 +270,8 @@ One-way or High risk requires Deep human review and an explicit recovery
 strategy before merge; Conditional or Medium requires at least Focused human
 review. These requirements supplement rather than replace an `Approve`
 verdict. Any material diff change invalidates both results and restarts the
-review before risk is assessed again.
+review before risk is assessed again — scoped under Step 1b when it qualifies,
+full otherwise.
 
 ## Output Format
 
@@ -226,7 +279,8 @@ review before risk is assessed again.
 ## Tooling detected
 Command runner: <just | make | direct commands>
 Constraints file: <CHARTER.md | CLAUDE.md | none found>
-Reviewers dispatched: <list>
+Review round: <first (full) | verification N (scoped) | verification N (full — <reason>)>
+Reviewers dispatched: <list; on a scoped round, only those whose findings are verified>
 Merge-risk reviewer: <dispatched after Approve | not dispatched — review verdict Warning/Block>
 
 ## Quantitative gates
@@ -248,7 +302,7 @@ Fix: What to change
 <any case where reviewers reached different conclusions>
 
 ## Review verdict
-Approve | Warning | Block
+Approve | Warning | Block | Findings resolved | Findings outstanding
 <one-line justification tied to the criteria above>
 
 ## Merge risk
