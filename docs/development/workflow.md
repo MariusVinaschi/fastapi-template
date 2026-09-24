@@ -147,7 +147,21 @@ consideration before merge.
 Do not classify merge risk when review returns `Warning` or `Block`; report it
 as not assessed and resolve the review first. Any material diff change makes
 both the review verdict and risk assessment stale, so repeat the affected
-checks and the full independent review before assessing risk again.
+checks and the independent review before assessing risk again.
+
+A verification round after findings were addressed may be **scoped**: only the
+reviewers whose findings are being checked, on the delta and the current
+content of the files it touches, answering whether each finding is resolved
+and whether the delta broke what it touched. The orchestrator decides this,
+and refuses to scope when the delta crosses a route signature, a public
+schema, a permission rule, a migration, a dependency, an architectural
+boundary or an acceptance criterion — or when two scoped rounds have already
+run. Gates run on every round regardless.
+
+A scoped round never yields `Approve`; it reports findings resolved or
+outstanding. `Approve` and merge risk always rest on a full review of the
+final, unchanged diff. Scoping exists to make the intermediate rounds cheap,
+not to remove the last full one.
 
 ## Documentation and delivery
 
