@@ -6,6 +6,10 @@
 
 - Initial Release
 
+## v2.0.0-rc.1 (2026-09-24)
+
+- Initial Release
+
 ## v2.0.0-rc.1 (2026-09-22)
 
 - Initial Release
